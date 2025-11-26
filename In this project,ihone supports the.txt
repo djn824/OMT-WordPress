@@ -1,0 +1,35 @@
+In this project,ihone supports the most features. For example, if you can use mic in your pc, you can test the tools in this broswerstack 
+
+
+I see. I can use the mic for testing. but a bit. make  sense?ok
+
+But current issue oesn't require mic
+
+let me show you bugs
+
+
+this tool has issue in only iPhone
+
+it's for testing the mobile phone's vibration
+
+So if press the play button, it should work. You can check it via browserstack android or your local web after that.
+
+But this tool doesn't work on iPhone
+
+did you see?yeah
+
+I think it has an issue for iPhone
+
+you mean the vibration issue?
+yes
+
+TypeError: navigator.vibrate is not a function. (In 'navigator.vibrate(1)', 'navigator.vibrate' is undefined)
+
+I see the issue. I think this is the iPhone issue. on mobile, it's working well. right?
+
+right. I think the javascript function for iPhone is a bit difference with android's
+so this issue is caused
+
+I see what you are saying now. So we use other functions for the feature on iPhone. right?
+right. let's chat in telegram
+yeah
