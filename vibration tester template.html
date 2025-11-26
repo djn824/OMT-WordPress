@@ -1,10 +1,8 @@
-<?php
-/* Template Name:Vibration Tester*/
-get_header();?>
+
 <style media="screen">
 	@media all and (max-width: 1024px) {
 		#sAs-menu-responsive span {
-			background-image: url(<?php echo get_stylesheet_directory_uri();?>/assets/images/toggle.png);
+			background-image: url(https://www.onlinemictest.com/wp-content/themes/onlinemictest_child-2/assets/images/toggle.png);
 			background-repeat: no-repeat;
 			background-size: contain;
 			display: block;
@@ -421,11 +419,11 @@ get_header();?>
 		<div class="col-12 col-lg-7 col-xl-7 col-xxl-7">
 			<div class="align-items-center">
 				<div class="d-flex align-items-center justify-content-between">
-<!-- 					<p class="style-heading"><?php the_field('test_time_label');?></p> -->
-					<h5 class="style-heading"><?php the_field('test_time_label');?></h5>
+<!-- 					<p class="style-heading">test_time_label</p> -->
+					<h5 class="style-heading">test_time_label</h5>
 					<div class="d-flex align-items-start justify-content-end">
-						<p class="five-mins" id="five-mins"><?php the_field('five_mins_label');?></p>
-<!-- 						<img class="img-fluid pt-1 skip-lazy" src="<?=get_stylesheet_directory_uri();?>/assets/images/unlimited1.png" alt="" id="unlimited"> -->
+						<p class="five-mins" id="five-mins">five_mins_label</p>
+<!-- 						<img class="img-fluid pt-1 skip-lazy" src="https://www.onlinemictest.com/wp-content/themes/onlinemictest_child-2/assets/images/unlimited1.png" alt="" id="unlimited"> -->
 					</div>
 				</div>
 				<div class="w-full slider-container">
@@ -435,27 +433,27 @@ get_header();?>
 			</div>
 			<br/>
 			<div>
-				<h5 class="style-heading" id="vibration-pattern"><?php the_field('vibration_pattern_label');?></h5>
+				<h5 class="style-heading" id="vibration-pattern">vibration_pattern_label</h5>
 				<div class="dis-flex align-items-center justify-content-between" id="custom-title-group">
-					<h5 class="style-heading"><?php the_field('custom_pattern_label');?></h5>
-					<img class="img-fluid all-options skip-lazy pattern-cursor" src="<?=get_stylesheet_directory_uri();?>/assets/images/AllOptions.svg" id="all-options" alt="">
+					<h5 class="style-heading">custom_pattern_label</h5>
+					<img class="img-fluid all-options skip-lazy pattern-cursor" src="https://www.onlinemictest.com/wp-content/themes/onlinemictest_child-2/assets/images/AllOptions.svg" id="all-options" alt="">
 				</div>
 					<div class="row" id="pattern-group">
 						<div class="col-4 col-sm-3 col-md-2 col-lg-3 col-xl-2 d-flex-column pattern-item text-left" id="continuous">
-							<img class="pattern-item img-fluid skip-lazy pattern-cursor" src="<?=get_stylesheet_directory_uri();?>/assets/images/Continuous2.svg" alt="">
-							<p class="style-btn-label px-2 pattern-cursor"><?php the_field('continuous_label');?></p>
+							<img class="pattern-item img-fluid skip-lazy pattern-cursor" src="https://www.onlinemictest.com/wp-content/themes/onlinemictest_child-2/assets/images/Continuous2.svg" alt="">
+							<p class="style-btn-label px-2 pattern-cursor">continuous_label</p>
 						</div>
 						<div class="col-4 col-sm-3 col-md-2 col-lg-3 col-xl-2 align-items-center" id="start-stop">
-							<img class="pattern-item img-fluid skip-lazy pattern-cursor" src="<?=get_stylesheet_directory_uri();?>/assets/images/Start-Stop1.svg" alt="">
-							<p class="style-btn-label px-2 pattern-cursor"><?php the_field('start_stop_label');?></p>
+							<img class="pattern-item img-fluid skip-lazy pattern-cursor" src="https://www.onlinemictest.com/wp-content/themes/onlinemictest_child-2/assets/images/Start-Stop1.svg" alt="">
+							<p class="style-btn-label px-2 pattern-cursor">start_stop_label</p>
 						</div>
 						<div class="col-8 col-sm-9 col-md-10 col-lg-9 col-xl-10" id="custom-slider-group">
-							<p class="style-heading custom-slider-label"><?php the_field('vibration_label');?></p>
+							<p class="style-heading custom-slider-label">vibration_label</p>
 							<div class="w-full custom-slider slider-container">
 								<input type="range" min="0.2" max="10" value="3" step="0.1" class="slider" id="vibration-range">
 								<div id="vibration-range-thumb" class="slider-thumb">3s</div>
 							</div>
-							<p class="style-heading custom-slider-label pt-1"><?php the_field('stop_label');?></p>
+							<p class="style-heading custom-slider-label pt-1">stop_label</p>
 							<div class="w-full custom-slider slider-container">
 								<input type="range" min="0.2" max="10" value="2" step="0.1" class="slider" id="stop-range">
 								<div id="stop-range-thumb" class="slider-thumb">2s</div>
@@ -463,41 +461,41 @@ get_header();?>
 						</div>
 						<div class="col-4 col-sm-3 col-md-2 col-lg-3 col-xl-2" id="custom">
 							<div>
-								<img class="pattern-item img-fluid skip-lazy pattern-cursor" src="<?=get_stylesheet_directory_uri();?>/assets/images/Custom1.svg" alt="">
-								<div class="style-btn-label px-2 pattern-cursor" id="custom-label">&nbsp;<?php the_field('custom_label');?></div>
+								<img class="pattern-item img-fluid skip-lazy pattern-cursor" src="https://www.onlinemictest.com/wp-content/themes/onlinemictest_child-2/assets/images/Custom1.svg" alt="">
+								<div class="style-btn-label px-2 pattern-cursor" id="custom-label">&nbsp;custom_label</div>
 							</div>
 						</div>
 					</div>
 			</div>
 			<br/>
 			<div class="note-message d-none d-lg-block d-xl-block">
-				<?php the_field('note');?>
+				note
 			</div>
 		</div>
 		<div class="col-6 col-lg-5 col-xl-5 col-xxl-5 text-center align-items-center image-container"  id="phone-bg">
 			<div class="justify-content-center d-flex">
-				<img class="img-fluid skip-lazy" src="<?=get_stylesheet_directory_uri();?>/assets/images/StartPhone.svg" alt="" id="stop-phone">
+				<img class="img-fluid skip-lazy" src="https://www.onlinemictest.com/wp-content/themes/onlinemictest_child-2/assets/images/StartPhone.svg" alt="" id="stop-phone">
 			</div>
 			<div class="phone-btn-style flex-column justify-content-center">
-				<center><img class="img-fluid skip-lazy" src="<?=get_stylesheet_directory_uri();?>/assets/images/Play.svg" alt="" id="start-btn"></center>
-				<p class="phone-text d-flex justify-content-center" id="phone-label"><?php the_field('start_phone_label');?></p>
+				<center><img class="img-fluid skip-lazy" src="https://www.onlinemictest.com/wp-content/themes/onlinemictest_child-2/assets/images/Play.svg" alt="" id="start-btn"></center>
+				<p class="phone-text d-flex justify-content-center" id="phone-label">start_phone_label</p>
 			</div>
 		</div>
 		<div class="col-12 col-lg-5 col-xl-5 col-xxl-5 text-center align-items-center image-container" id="testing-phone">
 			<div class="justify-content-center d-flex">
 <!-- 				<div class="vector d-flex">
-					<img class="img-fluid skip-lazy vectorL-Sliding" src="<?=get_stylesheet_directory_uri();?>/assets/images/VectorL.svg" alt="">
-					<img class="img-fluid skip-lazy vectorL-Sliding" src="<?=get_stylesheet_directory_uri();?>/assets/images/VectorL.svg" alt="" id="vector-L2">
+					<img class="img-fluid skip-lazy vectorL-Sliding" src="https://www.onlinemictest.com/wp-content/themes/onlinemictest_child-2/assets/images/VectorL.svg" alt="">
+					<img class="img-fluid skip-lazy vectorL-Sliding" src="https://www.onlinemictest.com/wp-content/themes/onlinemictest_child-2/assets/images/VectorL.svg" alt="" id="vector-L2">
 				</div> -->
-				<img class="img-fluid skip-lazy" src="<?=get_stylesheet_directory_uri();?>/assets/images/vibrationPhone.gif" alt="" id="vibration-phone">
+				<img class="img-fluid skip-lazy" src="https://www.onlinemictest.com/wp-content/themes/onlinemictest_child-2/assets/images/vibrationPhone.gif" alt="" id="vibration-phone">
 <!-- 				<div class="vector d-flex">
-					<img class="img-fluid skip-lazy vectorR-Sliding" src="<?=get_stylesheet_directory_uri();?>/assets/images/VectorR.svg" alt="">
-					<img class="img-fluid skip-lazy vectorR-Sliding" src="<?=get_stylesheet_directory_uri();?>/assets/images/VectorR.svg" alt="" id="vector-R2">
+					<img class="img-fluid skip-lazy vectorR-Sliding" src="https://www.onlinemictest.com/wp-content/themes/onlinemictest_child-2/assets/images/VectorR.svg" alt="">
+					<img class="img-fluid skip-lazy vectorR-Sliding" src="https://www.onlinemictest.com/wp-content/themes/onlinemictest_child-2/assets/images/VectorR.svg" alt="" id="vector-R2">
 				</div> -->
 			</div>
 			<div class="phone-btn-style flex-column justify-content-center">
-				<center><img class="img-fluid skip-lazy" src="<?=get_stylesheet_directory_uri();?>/assets/images/Stop.svg" alt="" id="stop-btn"></center>
-				<p class="phone-text d-flex justify-content-center" id="phone-label"><?php the_field('testing_phone_label');?></p>
+				<center><img class="img-fluid skip-lazy" src="https://www.onlinemictest.com/wp-content/themes/onlinemictest_child-2/assets/images/Stop.svg" alt="" id="stop-btn"></center>
+				<p class="phone-text d-flex justify-content-center" id="phone-label">testing_phone_label</p>
 			</div>
 		</div>
 	</div>
@@ -505,10 +503,10 @@ get_header();?>
 	<div class="row d-flex phone-container justify-content-between align-items-center">
 		<div class="col-12 col-lg-7 col-xl-8">
 			<div class="align-items-center">
-				<p class="tool-title"><?php the_field('tool_title');?></p>
+				<p class="tool-title">tool_title</p>
 			</div>
 			<p class="fs-16 d-flex justify-content-between">
-				<?php the_field('tool_dec');?>
+				tool_dec
 			</p>
 		</div>
 	</div>
@@ -517,29 +515,20 @@ get_header();?>
 			<div class="width-50 wid-xs-100">
 				<div class="read-more-text-secction">
 					<div class="read-more-title clearfix" >
-						<h2><strong><?php the_field('more_about_title');?></strong></h2>
+						<h2><strong>more_about_title</strong></h2>
 					</div>
-					<?php
-
-					if( have_rows('test_content') ):
-
-					while ( have_rows('test_content') ) : the_row();?>
 					<div class="read-more-1">
 
 
 						<div class="read-more-subtitle clearfix">
-							<h3 class="mar-bot-20"><?php the_sub_field('heading');?></h3>
+							<h3 class="mar-bot-20">heading</h3>
 						</div>
 
 						<div class="read-more-text">
-							<p><?php the_sub_field('descp');?>
+							<p>descp
 							</p>
 						</div>
 					</div>
-					<?php endwhile;
-					else :
-					endif;
-					?>
 				</div>
 			</div>
 		</div>
@@ -574,8 +563,8 @@ get_header();?>
 
             // Detect platform function (iOS, Android, Windows, Mac, or Linux)
             function getPlatform() {
-                const platform = navigator.platform.toLowerCase();   
-				console.log("platform: " + platform);                 
+                const platform = navigator.platform.toLowerCase(); 
+				console.log("platform: " + platform);               
                 if (/iphone|ipod|ipad/.test(platform)) return platFormType.ios; // iPhone, iPad, or iPod
                 if (/android/.test(platform)) return platFormType.android; // Android               
                 if (/windows/.test(platform)) return platFormType.windows; // Windows OS               
@@ -591,7 +580,7 @@ get_header();?>
             
             // Vibration Tester
             function onVibrate(vibrationPattern) {
-                if (isVibrationSupported()) {
+                if (!isVibrationSupported()) {
                     console.log("Vibration is supported on this device: " + getPlatform());
                     return navigator.vibrate(vibrationPattern);
                 } else {
@@ -1026,4 +1015,3 @@ get_header();?>
 		a.main()
 	})();
 </script>
-<?php get_footer();
