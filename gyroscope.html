@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- MODEL VIEWER -->
+  <script type="module"
+    src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js">
+  </script>
+
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+    model-viewer {
+      width: 100vw;
+      height: 100vh;
+    }
+    #enable-btn {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 20px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
+      background: #007aff;
+      color: white;
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- iOS permission button -->
+  <button id="enable-btn">Enable Gyroscope</button>
+
+  <!-- 3D MODEL -->
+  <model-viewer id="viewer"
+    src="https://modelviewer.dev/shared-assets/models/Astronaut.glb"
+    camera-controls
+    device-orientation
+    auto-rotate
+    exposure="1"
+    interaction-prompt="none"
+    disable-pan
+  >
+  </model-viewer>
+
+  <script>
+    const btn = document.getElementById("enable-btn");
+
+    // Detect if iOS requires permission
+    function needsPermission() {
+      return typeof DeviceMotionEvent !== "undefined"
+        && typeof DeviceMotionEvent.requestPermission === "function";
+    }
+
+    // Show button only for iOS
+    if (needsPermission()) {
+      btn.style.display = "block";
+    }
+
+    // Ask for gyroscope access on iOS
+    btn.addEventListener("click", async () => {
+      try {
+        const res = await DeviceMotionEvent.requestPermission();
+        if (res === "granted") {
+          btn.style.display = "none"; // hide button
+        } else {
+          alert("Gyroscope permission needed.");
+        }
+      } catch (e) {
+        alert("Permission error: " + e);
+      }
+    });
+  </script>
+
+</body>
+</html>

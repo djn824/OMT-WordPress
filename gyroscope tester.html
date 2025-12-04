@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Gyroscope Tester</title>
+
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #111;
+    color: #00ff95;
+    padding: 20px;
+  }
+  h1 { text-align: center; color: #00f7ff; }
+
+  #permissionBtn {
+    display: none;
+    width: 100%;
+    padding: 14px;
+    font-size: 18px;
+    background: #007aff;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    margin-bottom: 20px;
+  }
+
+  .box {
+    border: 1px solid #00f7ff;
+    padding: 15px;
+    margin-top: 15px;
+    border-radius: 10px;
+    background: #000;
+  }
+
+  .value {
+    font-size: 20px;
+    margin: 4px 0;
+  }
+</style>
+</head>
+
+<body>
+
+<h1>📱 Gyroscope Tester</h1>
+
+<button id="permissionBtn">Enable Motion Sensors</button>
+
+<div class="box">
+  <h2>Gyroscope Rotation Rate (deg/sec)</h2>
+  <div class="value">Alpha (Z): <span id="alpha">0</span></div>
+  <div class="value">Beta (X): <span id="beta">0</span></div>
+  <div class="value">Gamma (Y): <span id="gamma">0</span></div>
+</div>
+
+<div class="box">
+  <h2>Orientation Angles</h2>
+  <div class="value">Alpha: <span id="oa">0</span></div>
+  <div class="value">Beta: <span id="ob">0</span></div>
+  <div class="value">Gamma: <span id="og">0</span></div>
+</div>
+
+<script>
+const permissionBtn = document.getElementById("permissionBtn");
+
+// Check if iPhone needs permission
+function needsPermission() {
+  return typeof DeviceMotionEvent !== "undefined" &&
+         typeof DeviceMotionEvent.requestPermission === "function";
+}
+
+// Show button only for iOS
+if (needsPermission()) {
+  permissionBtn.style.display = "block";
+}
+
+permissionBtn.addEventListener("click", async () => {
+  try {
+    const res = await DeviceMotionEvent.requestPermission();
+    if (res === "granted") {
+      permissionBtn.style.display = "none";
+      startSensors();
+    } else {
+      alert("Motion permission is required.");
+    }
+  } catch (e) {
+    alert("Error: " + e);
+  }
+});
+
+// Start automatically for Android
+if (!needsPermission()) startSensors();
+
+function startSensors() {
+  // Gyroscope (rotationRate)
+  window.addEventListener("devicemotion", (e) => {
+    if (!e.rotationRate) return;
+
+    document.getElementById("alpha").textContent = (e.rotationRate.alpha || 0).toFixed(2);
+    document.getElementById("beta").textContent = (e.rotationRate.beta || 0).toFixed(2);
+    document.getElementById("gamma").textContent = (e.rotationRate.gamma || 0).toFixed(2);
+  });
+
+  // Device orientation angles
+  window.addEventListener("deviceorientation", (e) => {
+    document.getElementById("oa").textContent = (e.alpha || 0).toFixed(2);
+    document.getElementById("ob").textContent = (e.beta || 0).toFixed(2);
+    document.getElementById("og").textContent = (e.gamma || 0).toFixed(2);
+  });
+}
+</script>
+
+</body>
+</html>

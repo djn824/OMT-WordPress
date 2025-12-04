@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>iPhone Vibration Notice</title>
+
+<style>
+/* OPTIONAL demo phone — delete if not needed */
+.phone {
+  width: 360px;
+  height: 720px;
+  border-radius: 32px;
+  border: 12px solid #0a0a0a;
+  background: #000;
+  margin: 40px auto;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+}
+.phone .screen {
+  position: absolute;
+  inset: 18px;
+  border-radius: 20px;
+  background: #111;
+}
+
+/* Fade-in animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translate(-50%, -48%); }
+  to   { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+/* Background overlay */
+.overlay-blocker {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 9998;
+  display: none;
+}
+
+/* Prevent scroll */
+body.modal-open {
+  overflow: hidden !important;
+}
+
+/* Beautiful notice box */
+.iphone-vib-notice {
+  z-index: 100001;
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 340px;
+  padding: 22px 20px;
+  border-radius: 18px;
+
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+
+  /* ⚠️ Emoji background */
+  background-image: url("data:image/svg+xml;utf8,\<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='200' opacity='0.28'>⚠️</text></svg>");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 150px;
+
+  box-shadow: 0 20px 40px rgba(0,0,0,0.18);
+  color: #0f0f0f;
+  line-height: 1.45;
+
+  display: none;
+  animation: fadeIn .35s ease-out forwards;
+}
+
+/* If inside phone mock */
+.phone .iphone-vib-notice {
+  position: absolute;
+  max-width: none;
+  width: 82%;
+  padding: 22px;
+  box-shadow: 0 18px 35px rgba(0,0,0,0.25);
+}
+
+/* Title */
+.iphone-vib-notice h3 {
+  margin: 0 0 10px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111;
+}
+
+/* Text */
+.iphone-vib-notice p {
+  margin: 6px 0;
+  font-size: 15px;
+}
+
+/* Bullet list */
+.iphone-vib-notice ul {
+  margin: 8px 0 14px 18px;
+  padding: 0;
+}
+.iphone-vib-notice li {
+  margin-bottom: 6px;
+  font-size: 15px;
+}
+
+/* Footer controls */
+.notice-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* "Don't show again" checkbox */
+.notice-controls label {
+  font-size: 14px;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Beautiful close button */
+.btn-close {
+  background: #007aff;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(0,122,255,0.35);
+  transition: 0.2s;
+}
+.btn-close:active {
+  transform: scale(0.96);
+}
+</style>
+
+</head>
+<body>
+
+<!-- OPTIONAL phone mock (delete if unnecessary) -->
+<div class="phone">
+  <div class="screen"></div>
+</div>
+
+<!-- Overlay -->
+<div class="overlay-blocker"></div>
+
+<!-- Beautiful Notice -->
+<div class="iphone-vib-notice" role="alert">
+  <h3>Vibration Not Supported on iPhone</h3>
+
+  <p>iPhone browsers do not allow websites to use the vibration feature.</p>
+
+  <p style="font-weight:600; margin-top:12px;">To test if vibration works on your device:</p>
+
+  <ul>
+    <li>Long-press any app icon on your home screen.</li>
+    <li>If you feel no vibration, go to <strong>Settings → Sounds &amp; Haptics</strong> and enable Haptics.</li>
+  </ul>
+
+  <div class="notice-controls">
+    <label>
+      <input type="checkbox" id="dontShowAgain"> Don’t show today
+    </label>
+    <button class="btn-close" id="closeNotice">OK</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  // Only show for iPhone
+  var isiPhone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+//   if (!isiPhone) return;
+
+  // Daily check
+  var today = new Date().toISOString().slice(0,10);
+  try {
+    if (localStorage.getItem('vibNoticeDontShowDate') === today) return;
+  } catch(e){}
+
+  var notice = document.querySelector('.iphone-vib-notice');
+  var overlay = document.querySelector('.overlay-blocker');
+  var phoneContainer = document.querySelector('.phone');
+
+  if (phoneContainer) phoneContainer.appendChild(notice);
+
+  // Show
+  overlay.style.display = 'block';
+  notice.style.display = 'block';
+})();
+</script>
+
+</body>
+</html>
