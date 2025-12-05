@@ -1,0 +1,90 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gyroscope Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+      text-align: center;
+    }
+    .data { margin: 10px 0; font-size: 1.2em; }
+    .indicator {
+      margin-top: 20px;
+      width: 100px;
+      height: 100px;
+      border: 2px solid #333;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      background-color: #fff;
+    }
+    #btn {
+      padding: 10px 20px;
+      margin-bottom: 20px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Gyroscope Test</h1>
+
+  <button id="btn">Enable Gyroscope</button>
+
+  <div class="data">Alpha (Z-axis): <span id="alpha">0</span></div>
+  <div class="data">Beta (X-axis): <span id="beta">0</span></div>
+  <div class="data">Gamma (Y-axis): <span id="gamma">0</span></div>
+
+  <div class="indicator" id="indicator">↺</div>
+
+  <script>
+    const button = document.getElementById("btn");
+
+    button.onclick = function () {
+      if (
+        typeof DeviceOrientationEvent.requestPermission === "function"
+      ) {
+        // iPhone/iOS
+        DeviceOrientationEvent.requestPermission()
+          .then((response) => {
+            if (response === "granted") {
+              startGyroscope();
+              button.style.display = "none";
+            }
+          })
+          .catch(console.error);
+      } else {
+        // Android or older browsers
+        startGyroscope();
+        button.style.display = "none";
+      }
+    };
+
+    function startGyroscope() {
+      window.addEventListener("deviceorientation", (event) => {
+        let alpha = event.alpha || 0;
+        let beta = event.beta || 0;
+        let gamma = event.gamma || 0;
+
+        document.getElementById("alpha").textContent = alpha.toFixed(2);
+        document.getElementById("beta").textContent = beta.toFixed(2);
+        document.getElementById("gamma").textContent = gamma.toFixed(2);
+
+        let indicator = document.getElementById("indicator");
+        indicator.style.transform = `rotateZ(${alpha}deg) rotateX(${beta}deg) rotateY(${gamma}deg)`;
+      });
+    }
+  </script>
+</body>
+</html>
