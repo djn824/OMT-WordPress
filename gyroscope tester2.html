@@ -2,89 +2,580 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gyroscope Test</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
-      background-color: #f0f0f0;
-      text-align: center;
-    }
-    .data { margin: 10px 0; font-size: 1.2em; }
-    .indicator {
-      margin-top: 20px;
-      width: 100px;
-      height: 100px;
-      border: 2px solid #333;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      background-color: #fff;
-    }
-    #btn {
-      padding: 10px 20px;
-      margin-bottom: 20px;
-      font-size: 16px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Ultra-Smooth Phone Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 55vh;
+            position: relative;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+
+        .controls {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            display: flex;
+            gap: 10px;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .enable-btn, .calibrate-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 16px 45px;
+            font-size: 1.15em;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+            transition: all 0.3s;
+            font-weight: 700;
+            touch-action: manipulation;
+        }
+
+        .calibrate-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 12px 30px;
+            font-size: 1em;
+        }
+
+        .enable-btn:active, .calibrate-btn:active {
+            transform: scale(0.95);
+        }
+
+        .status-badge {
+            position: absolute;
+            top: 140px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px 25px;
+            border-radius: 25px;
+            font-size: 0.9em;
+            font-weight: 700;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+            color: #856404;
+        }
+
+        .status-badge.connected {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            color: #155724;
+        }
+
+        .orientation-overlay {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.85);
+            padding: 15px 35px;
+            border-radius: 15px;
+            z-index: 10;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .orientation-main {
+            font-size: 1.8em;
+            font-weight: 900;
+            color: #fff;
+            text-transform: uppercase;
+        }
+
+        .data-panel {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 25px;
+            height: 45vh;
+            overflow-y: auto;
+        }
+
+        .data-panel::-webkit-scrollbar {
+            display: none;
+        }
+
+        .accuracy-indicator {
+            text-align: center;
+            padding: 15px;
+            background: linear-gradient(135deg, #00c853 0%, #00e676 100%);
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 200, 83, 0.3);
+        }
+
+        .accuracy-text {
+            font-size: 1.3em;
+            font-weight: 900;
+            color: white;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .data-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 18px 12px;
+            border-radius: 15px;
+            color: white;
+            text-align: center;
+        }
+
+        .data-label {
+            font-size: 0.75em;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .data-value {
+            font-size: 1.8em;
+            font-weight: 900;
+            font-family: monospace;
+        }
+
+        .orientation-details {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-weight: 700;
+            font-size: 0.9em;
+        }
+
+        .detail-value {
+            font-family: monospace;
+            font-weight: 900;
+            color: #4a90e2;
+        }
+
+        .info-text {
+            font-size: 0.85em;
+            color: rgba(255, 255, 255, 0.8);
+            text-align: center;
+            padding: 15px;
+            line-height: 1.6;
+            margin-top: 15px;
+        }
+    </style>
 </head>
 <body>
-  <h1>Gyroscope Test</h1>
+    <div id="canvas-container">
+        <div class="controls">
+            <button class="enable-btn" id="enableBtn">🎯 START TRACKING</button>
+            <button class="calibrate-btn" id="calibrateBtn" style="display: none;">📍 CALIBRATE NOW</button>
+        </div>
+        
+        <div class="status-badge" id="statusBadge">Ready</div>
 
-  <button id="btn">Enable Gyroscope</button>
+        <div class="orientation-overlay" id="orientationOverlay" style="display: none;">
 
-  <div class="data">Alpha (Z-axis): <span id="alpha">0</span></div>
-  <div class="data">Beta (X-axis): <span id="beta">0</span></div>
-  <div class="data">Gamma (Y-axis): <span id="gamma">0</span></div>
+        </div>
+    </div>
 
-  <div class="indicator" id="indicator">↺</div>
+    <div class="data-panel">
+        <div class="accuracy-indicator">
+            <div class="accuracy-text">🎯 SILKY SMOOTH TRACKING</div>
+        </div>
 
-  <script>
-    const button = document.getElementById("btn");
+        <div class="data-grid">
+            <div class="data-card">
+                <div class="data-label">ALPHA (Z)</div>
+                <div class="data-value" id="alphaValue">0°</div>
+            </div>
+            <div class="data-card">
+                <div class="data-label">BETA (X)</div>
+                <div class="data-value" id="betaValue">0°</div>
+            </div>
+            <div class="data-card">
+                <div class="data-label">GAMMA (Y)</div>
+                <div class="data-value" id="gammaValue">0°</div>
+            </div>
+        </div>
 
-    button.onclick = function () {
-      if (
-        typeof DeviceOrientationEvent.requestPermission === "function"
-      ) {
-        // iPhone/iOS
-        DeviceOrientationEvent.requestPermission()
-          .then((response) => {
-            if (response === "granted") {
-              startGyroscope();
-              button.style.display = "none";
+        <div class="orientation-details">
+            <div class="detail-row">
+                <span class="detail-label">Orientation:</span>
+                <span class="detail-value" id="orientationText">-</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Device:</span>
+                <span class="detail-value" id="deviceInfo">-</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Calibrated:</span>
+                <span class="detail-value" id="calibrationStatus">NO</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Smoothing:</span>
+                <span class="detail-value" id="smoothingLevel">ULTRA</span>
+            </div>
+        </div>
+
+        <div class="info-text">
+            📱 <strong>USAGE:</strong><br>
+            1. Tap "START TRACKING"<br>
+            2. Hold phone FLAT and LEVEL (like on a table)<br>
+            3. Tap "CALIBRATE NOW"<br>
+            4. Rotate smoothly - watch the magic! ✨
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <script>
+        let scene, camera, renderer, phoneModel;
+        let sensorActive = false;
+        let calibrated = false;
+        
+        // Quaternion-based smoothing for natural rotation
+        let currentQuaternion = new THREE.Quaternion();
+        let targetQuaternion = new THREE.Quaternion();
+        let smoothQuaternion = new THREE.Quaternion();
+        
+        // Calibration quaternion
+        let calibrationQuaternion = new THREE.Quaternion();
+        
+        // Ultra-smooth interpolation factor
+        const LERP_FACTOR = 0.08; // Lower = smoother (0.05-0.15 range)
+        
+        // Device detection
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const isAndroid = /Android/.test(navigator.userAgent);
+
+        const elements = {
+            enableBtn: document.getElementById('enableBtn'),
+            calibrateBtn: document.getElementById('calibrateBtn'),
+            statusBadge: document.getElementById('statusBadge'),
+            orientationOverlay: document.getElementById('orientationOverlay'),
+            orientationMain: document.getElementById('orientationMain'),
+            alphaValue: document.getElementById('alphaValue'),
+            betaValue: document.getElementById('betaValue'),
+            gammaValue: document.getElementById('gammaValue'),
+            orientationText: document.getElementById('orientationText'),
+            deviceInfo: document.getElementById('deviceInfo'),
+            calibrationStatus: document.getElementById('calibrationStatus'),
+            smoothingLevel: document.getElementById('smoothingLevel')
+        };
+
+        function initThreeJS() {
+            const container = document.getElementById('canvas-container');
+            
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a1a2e);
+
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 0, 8);
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const light1 = new THREE.DirectionalLight(0xffffff, 0.8);
+            light1.position.set(5, 5, 5);
+            scene.add(light1);
+
+            const light2 = new THREE.DirectionalLight(0x667eea, 0.4);
+            light2.position.set(-5, 3, -5);
+            scene.add(light2);
+
+            createPhoneModel();
+            animate();
+        }
+
+        function createPhoneModel() {
+            phoneModel = new THREE.Group();
+
+            // Phone body
+            const phoneGeometry = new THREE.BoxGeometry(1.6, 3.3, 0.25);
+            const phoneMaterial = new THREE.MeshStandardMaterial({
+                color: 0x0a0a0a,
+                metalness: 0.95,
+                roughness: 0.05
+            });
+            const phoneBody = new THREE.Mesh(phoneGeometry, phoneMaterial);
+            phoneModel.add(phoneBody);
+
+            // Screen
+            const screenGeometry = new THREE.PlaneGeometry(1.45, 3.0);
+            const screenMaterial = new THREE.MeshStandardMaterial({
+                color: 0x4a90e2,
+                emissive: 0x2563eb,
+                emissiveIntensity: 0.7
+            });
+            const screen = new THREE.Mesh(screenGeometry, screenMaterial);
+            screen.position.z = 0.14;
+            phoneModel.add(screen);
+
+            // Notch
+            const notchGeo = new THREE.BoxGeometry(0.45, 0.12, 0.05);
+            const notchMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
+            const notch = new THREE.Mesh(notchGeo, notchMat);
+            notch.position.set(0, 1.4, 0.16);
+            phoneModel.add(notch);
+
+            // Camera
+            const cameraGeo = new THREE.CircleGeometry(0.05, 16);
+            const cameraMat = new THREE.MeshStandardMaterial({ 
+                color: 0x1a1a1a,
+                emissive: 0x333333,
+                emissiveIntensity: 0.3
+            });
+            const cameraLens = new THREE.Mesh(cameraGeo, cameraMat);
+            cameraLens.position.set(-0.1, 1.4, 0.17);
+            phoneModel.add(cameraLens);
+
+            scene.add(phoneModel);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Ultra-smooth quaternion interpolation (SLERP)
+            smoothQuaternion.slerp(targetQuaternion, LERP_FACTOR);
+            
+            if (phoneModel) {
+                phoneModel.quaternion.copy(smoothQuaternion);
             }
-          })
-          .catch(console.error);
-      } else {
-        // Android or older browsers
-        startGyroscope();
-        button.style.display = "none";
-      }
-    };
+            
+            renderer.render(scene, camera);
+        }
 
-    function startGyroscope() {
-      window.addEventListener("deviceorientation", (event) => {
-        let alpha = event.alpha || 0;
-        let beta = event.beta || 0;
-        let gamma = event.gamma || 0;
+        function eulerToQuaternion(alpha, beta, gamma) {
+            const degToRad = Math.PI / 180;
+            
+            // Convert device orientation to quaternion
+            const euler = new THREE.Euler();
+            
+            if (isIOS) {
+                // iOS coordinate system
+                euler.set(
+                    beta * degToRad,
+                    alpha * degToRad,
+                    -gamma * degToRad,
+                    'YXZ'
+                );
+            } else {
+                // Android coordinate system
+                euler.set(
+                    beta * degToRad,
+                    alpha * degToRad,
+                    -gamma * degToRad,
+                    'YXZ'
+                );
+            }
+            
+            const quaternion = new THREE.Quaternion();
+            quaternion.setFromEuler(euler);
+            
+            return quaternion;
+        }
 
-        document.getElementById("alpha").textContent = alpha.toFixed(2);
-        document.getElementById("beta").textContent = beta.toFixed(2);
-        document.getElementById("gamma").textContent = gamma.toFixed(2);
+        function getScreenOrientation() {
+            if (screen.orientation && screen.orientation.angle !== undefined) {
+                return screen.orientation.angle;
+            }
+            if (window.orientation !== undefined) {
+                return window.orientation;
+            }
+            return window.innerWidth > window.innerHeight ? 90 : 0;
+        }
 
-        let indicator = document.getElementById("indicator");
-        indicator.style.transform = `rotateZ(${alpha}deg) rotateX(${beta}deg) rotateY(${gamma}deg)`;
-      });
-    }
-  </script>
+        function determineOrientation() {
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            return w > h ? 'LANDSCAPE' : 'PORTRAIT';
+        }
+
+        let lastAlpha = 0, lastBeta = 0, lastGamma = 0;
+
+        function startSensors() {
+            window.addEventListener('deviceorientation', (event) => {
+                if (event.alpha !== null && event.beta !== null && event.gamma !== null) {
+                    if (!sensorActive) {
+                        sensorActive = true;
+                        elements.statusBadge.textContent = '✓ TRACKING ACTIVE';
+                        elements.statusBadge.className = 'status-badge connected';
+                        elements.orientationOverlay.style.display = 'block';
+                        elements.calibrateBtn.style.display = 'block';
+                        
+                        // Initialize quaternions
+                        const initialQuat = eulerToQuaternion(event.alpha, event.beta, event.gamma);
+                        currentQuaternion.copy(initialQuat);
+                        targetQuaternion.copy(initialQuat);
+                        smoothQuaternion.copy(initialQuat);
+                    }
+
+                    // Get raw sensor values
+                    let alpha = event.alpha || 0;
+                    let beta = event.beta || 0;
+                    let gamma = event.gamma || 0;
+
+                    // Store for display
+                    lastAlpha = alpha;
+                    lastBeta = beta;
+                    lastGamma = gamma;
+
+                    // Convert to quaternion (natural rotation representation)
+                    currentQuaternion = eulerToQuaternion(alpha, beta, gamma);
+                    
+                    // Apply calibration offset
+                    if (calibrated) {
+                        const inverseCalibration = calibrationQuaternion.clone().invert();
+                        targetQuaternion.multiplyQuaternions(inverseCalibration, currentQuaternion);
+                    } else {
+                        targetQuaternion.copy(currentQuaternion);
+                    }
+
+                    // Apply screen orientation correction
+                    const screenAngle = getScreenOrientation();
+                    const screenRotation = new THREE.Quaternion();
+                    screenRotation.setFromAxisAngle(new THREE.Vector3(0, 0, 1), -screenAngle * Math.PI / 180);
+                    targetQuaternion.multiply(screenRotation);
+
+                    // Update display values
+                    elements.alphaValue.textContent = alpha.toFixed(1) + '°';
+                    elements.betaValue.textContent = beta.toFixed(1) + '°';
+                    elements.gammaValue.textContent = gamma.toFixed(1) + '°';
+
+                    const orientation = determineOrientation();
+                    elements.orientationMain.textContent = orientation;
+                    elements.orientationText.textContent = orientation;
+                }
+            }, true);
+
+            // Handle screen rotation
+            const handleRotation = () => {
+                setTimeout(() => {
+                    const orientation = determineOrientation();
+                    elements.orientationMain.textContent = orientation;
+                    elements.orientationText.textContent = orientation;
+                }, 100);
+            };
+
+            window.addEventListener('resize', handleRotation);
+            window.addEventListener('orientationchange', handleRotation);
+
+            // Timeout check
+            setTimeout(() => {
+                if (!sensorActive) {
+                    elements.statusBadge.textContent = '⚠️ Sensors Unavailable';
+                    elements.statusBadge.style.background = '#f8d7da';
+                    elements.statusBadge.style.color = '#721c24';
+                }
+            }, 2000);
+        }
+
+        function calibrate() {
+            // Capture current orientation as "neutral" position
+            calibrationQuaternion = eulerToQuaternion(lastAlpha, lastBeta, lastGamma);
+            calibrated = true;
+
+            // Reset smooth quaternion to identity (neutral position)
+            smoothQuaternion.set(0, 0, 0, 1);
+            targetQuaternion.set(0, 0, 0, 1);
+
+            elements.calibrationStatus.textContent = 'YES ✓';
+            elements.statusBadge.textContent = '✓ CALIBRATED - SMOOTH';
+            elements.calibrateBtn.textContent = '✓ CALIBRATED!';
+
+            setTimeout(() => {
+                elements.calibrateBtn.textContent = '🔄 RECALIBRATE';
+            }, 2000);
+        }
+
+        async function enableSensors() {
+            elements.enableBtn.disabled = true;
+            elements.enableBtn.textContent = 'STARTING...';
+
+            try {
+                if (typeof DeviceOrientationEvent !== 'undefined' && 
+                    typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    
+                    const permission = await DeviceOrientationEvent.requestPermission();
+                    
+                    if (permission === 'granted') {
+                        startSensors();
+                        elements.enableBtn.style.display = 'none';
+                    } else {
+                        throw new Error('Permission denied');
+                    }
+                } else {
+                    startSensors();
+                    elements.enableBtn.style.display = 'none';
+                }
+            } catch (error) {
+                elements.enableBtn.disabled = false;
+                elements.enableBtn.textContent = '🔄 TRY AGAIN';
+                elements.statusBadge.textContent = '✗ PERMISSION DENIED';
+            }
+        }
+
+        // Initialize
+        initThreeJS();
+        elements.enableBtn.addEventListener('click', enableSensors);
+        elements.calibrateBtn.addEventListener('click', calibrate);
+
+        // Set device info
+        elements.deviceInfo.textContent = isIOS ? 'iOS' : isAndroid ? 'Android' : 'Desktop';
+
+        // Auto-start on Android
+        if (!isIOS) {
+            setTimeout(() => enableSensors(), 500);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (camera && renderer) {
+                const container = document.getElementById('canvas-container');
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            }
+        });
+    </script>
 </body>
 </html>

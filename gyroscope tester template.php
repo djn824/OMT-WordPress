@@ -286,6 +286,29 @@ model-viewer {
                 // 					let lastMoveTime = 0;
                 // 					let firstReading = true;
 
+
+                function handleDeviceMotion(event) {
+                    const gX = event.accelerationIncludingGravity.x;
+                    const gY = event.accelerationIncludingGravity.y;
+                    const gZ = event.accelerationIncludingGravity.z;
+
+                    // let pitch = Math.atan2(gY, gZ) * 57.2958;
+                    let roll = Math.atan2(-gX, Math.sqrt(gY * gY + gZ * gZ)) * 57.2958;
+
+                    // Smooth
+                    // smoothPitch = smoothPitch * smooth + pitch * (1 - smooth);
+                    smoothRoll = roll;
+
+                    // let rr = event.rotationRate;
+                    // if (rr) {
+                    //     yaw = (rr.alpha ?? 0);
+                    //     smoothYaw = smoothYaw * smooth + yaw * (1 - smooth);
+                    // }
+
+                    updateModel();
+                }
+
+
                 function detectPitch(event) {
                     // Raw orientation values
                     const pitch = event.beta ?? 0; // -180 ~ 180
@@ -297,7 +320,7 @@ model-viewer {
 
                     if (gyroNotSupportedFlag) {
                         // Smooth roll & yaw (DeviceOrientation fallback)
-                        smoothRoll = Number(roll);
+                        // smoothRoll = Number(roll);
                         smoothYaw = Number(yaw);
                     }
                     updateModel();
@@ -438,12 +461,10 @@ model-viewer {
                         isTesting = false;
                         return;
                     }
-                    model.src =
-                        "https://03a897595e3ab43aefc8b.admin.hardypress.com/wp-content/themes/onlinemictest_child-2/assets/glbs/phone2.glb";
+                    model.src = "<?=get_stylesheet_directory_uri();?>/assets/glbs/phone2.glb";
                     model.cameraControls = false;
 
-                    testBtn.src =
-                        "https://03a897595e3ab43aefc8b.admin.hardypress.com/wp-content/themes/onlinemictest_child-2/assets/images/Pause-Gyros.svg";
+                    testBtn.src = "<?=get_stylesheet_directory_uri();?>/assets/images/Pause-Gyros.svg";
                     a.resetBtn.style.display = "flex";
 
                     btnDiv.style.top = "90%";
@@ -460,7 +481,7 @@ model-viewer {
                         yawRollHandler = (event) => detectYawRoll(event);
 
                         // Start the gyroscope
-                        gyroscope.addEventListener('reading', yawRollHandler);
+                        if(!gyroNotSupportedFlag) gyroscope.addEventListener('reading', yawRollHandler);
                         gyroscope.start(); // Only start after permission is granted
                     } else {
                         gyroNotSupportedFlag = true;
@@ -469,17 +490,17 @@ model-viewer {
                     // 								a.model.cameraOrbit = '360deg 90deg';
                     pitchHandler = (event) => detectPitch(event);
                     window.addEventListener('deviceorientation', pitchHandler);
+                    if (gyroNotSupportedFlag)
+                        window.addEventListener('devicemotion', handleDeviceMotion);
                     // 						a.model.cameraOrbit = `360deg 90deg`;
                     // 						moveHandler = (event) => detectMove(event);
                     // 						window.addEventListener('devicemotion', moveHandler);
                 } else {
                     // 						moveLayer();
-                    model.src =
-                        "https://03a897595e3ab43aefc8b.admin.hardypress.com/wp-content/themes/onlinemictest_child-2/assets/glbs/fainter2.glb";
+                    model.src = "<?=get_stylesheet_directory_uri();?>/assets/glbs/fainter2.glb";
                     model.cameraControls = true;
 
-                    testBtn.src =
-                        "https://03a897595e3ab43aefc8b.admin.hardypress.com/wp-content/themes/onlinemictest_child-2/assets/images/StartGyros.svg";
+                    testBtn.src = "<?=get_stylesheet_directory_uri();?>/assets/images/StartGyros.svg";
                     a.resetBtn.style.display = "none";
 
                     btnDiv.style.top = "48%";
@@ -487,11 +508,13 @@ model-viewer {
                     btnDiv.style.transform = "translate(-49%, -48%)";
 
                     if (typeof Gyroscope !== 'undefined') {
-                        gyroscope.removeEventListener('reading', yawRollHandler);
+                        if(!gyroNotSupportedFlag) gyroscope.removeEventListener('reading', yawRollHandler);
                         gyroscope.stop();
                     }
 
                     window.removeEventListener('deviceorientation', pitchHandler);
+                    if (gyroNotSupportedFlag) 
+                        window.removeEventListener('devicemotion', handleDeviceMotion);
                     // 						window.removeEventListener('devicemotion', moveHandler);
                     // 						phoneObject.position.set(4, 7.8, 0);
                     a.pitch.innerHTML = "-";
