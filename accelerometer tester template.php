@@ -332,9 +332,9 @@ get_header();?>
 					}
 					
 					if(isTesting) {
-						model.src = "https://03a897595e3ab43aefc8b.admin.hardypress.com/wp-content/themes/onlinemictest_child-2/assets/glbs/phone2.glb";
+						model.src = "<?=get_stylesheet_directory_uri();?>/assets/glbs/phone2.glb";
 						
-						testBtn.src = "https://03a897595e3ab43aefc8b.admin.hardypress.com/wp-content/themes/onlinemictest_child-2/assets/images/Pause-Gyros.svg";
+						testBtn.src = "<?=get_stylesheet_directory_uri();?>/assets/images/Pause-Gyros.svg";
 						a.resetBtn.style.display = "flex";
 
 						btnDiv.style.top = "90%";
@@ -343,9 +343,9 @@ get_header();?>
 						moveHandler = (event) => detectMove(event);
 						window.addEventListener('devicemotion', moveHandler);
 					} else {
-						model.src = "https://03a897595e3ab43aefc8b.admin.hardypress.com/wp-content/themes/onlinemictest_child-2/assets/glbs/fainter2.glb";
+						model.src = "<?=get_stylesheet_directory_uri();?>/assets/glbs/fainter2.glb";
 						
-						testBtn.src = "https://03a897595e3ab43aefc8b.admin.hardypress.com/wp-content/themes/onlinemictest_child-2/assets/images/StartGyros.svg";
+						testBtn.src = "<?=get_stylesheet_directory_uri();?>/assets/images/StartGyros.svg";
 						a.resetBtn.style.display = "none";
 
 						btnDiv.style.top = "48%";

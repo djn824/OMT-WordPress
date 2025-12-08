@@ -793,7 +793,7 @@ get_header();?>
             a.fiveMin = window.document.getElementById("five-mins");
 
             // 				a.unlimited.addEventListener("click", function () {
-            // 					a.unlimited.src = "https://03a897595e3ab43aefc8b.admin.hardypress.com/wp-content/themes/onlinemictest_child-2/assets/images/" + (unlimited == false ? "unlimited2.png" : "unlimited1.png");
+            // 					a.unlimited.src = "<?=get_stylesheet_directory_uri();?>/assets/images/" + (unlimited == false ? "unlimited2.png" : "unlimited1.png");
             // 					unlimited = !unlimited;
             // 				});
 
@@ -882,18 +882,18 @@ get_header();?>
             a.continuousBtn.addEventListener("click", function() {
                 onStop();
                 a.continuousImg.src =
-                    "https://03a897595e3ab43aefc8b.admin.hardypress.com/wp-content/themes/onlinemictest_child-2/assets/images/Continuous2.svg";
+                    "<?=get_stylesheet_directory_uri();?>/assets/images/Continuous2.svg";
                 a.startStopImg.src =
-                    "https://03a897595e3ab43aefc8b.admin.hardypress.com/wp-content/themes/onlinemictest_child-2/assets/images/Start-Stop1.svg";
+                    "<?=get_stylesheet_directory_uri();?>/assets/images/Start-Stop1.svg";
 
                 vibrationPattern = "continuous";
             });
 
             a.startStopBtn.addEventListener("click", function() {
                 a.continuousImg.src =
-                    "https://03a897595e3ab43aefc8b.admin.hardypress.com/wp-content/themes/onlinemictest_child-2/assets/images/Continuous1.svg";
+                    "<?=get_stylesheet_directory_uri();?>/assets/images/Continuous1.svg";
                 a.startStopImg.src =
-                    "https://03a897595e3ab43aefc8b.admin.hardypress.com/wp-content/themes/onlinemictest_child-2/assets/images/Start-Stop2.svg";
+                    "<?=get_stylesheet_directory_uri();?>/assets/images/Start-Stop2.svg";
                 onStop();
 
                 vibrationPattern = "start-stop";
@@ -910,9 +910,9 @@ get_header();?>
                 a.customBtn.style.alignItems = "flex-end";
                 a.customBtn.style.flexDirection = "column";
                 a.customImg.src =
-                    "https://03a897595e3ab43aefc8b.admin.hardypress.com/wp-content/themes/onlinemictest_child-2/assets/images/Custom2.svg";
+                    "<?=get_stylesheet_directory_uri();?>/assets/images/Custom2.svg";
                 a.startStopImg.src =
-                    "https://03a897595e3ab43aefc8b.admin.hardypress.com/wp-content/themes/onlinemictest_child-2/assets/images/Start-Stop2.svg";
+                    "<?=get_stylesheet_directory_uri();?>/assets/images/Start-Stop2.svg";
                 a.customLabel.style.alignItems = "start";
                 onStop();
 
@@ -928,11 +928,11 @@ get_header();?>
                 a.customSliderGroup.style.display = "none";
                 a.customBtn.style.alignItems = "start";
                 a.customImg.src =
-                    "https://03a897595e3ab43aefc8b.admin.hardypress.com/wp-content/themes/onlinemictest_child-2/assets/images/Custom1.svg";
+                    "<?=get_stylesheet_directory_uri();?>/assets/images/Custom1.svg";
                 a.continuousImg.src =
-                    "https://03a897595e3ab43aefc8b.admin.hardypress.com/wp-content/themes/onlinemictest_child-2/assets/images/Continuous2.svg";
+                    "<?=get_stylesheet_directory_uri();?>/assets/images/Continuous2.svg";
                 a.startStopImg.src =
-                    "https://03a897595e3ab43aefc8b.admin.hardypress.com/wp-content/themes/onlinemictest_child-2/assets/images/Start-Stop1.svg";
+                    "<?=get_stylesheet_directory_uri();?>/assets/images/Start-Stop1.svg";
 
                 onStop();
                 vibrationPattern = "continuous";
