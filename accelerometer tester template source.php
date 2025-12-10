@@ -156,7 +156,7 @@ get_header();?>
 		let velocityX = 0, velocityY = 0, velocityZ = 0;
 		let positionX = 0, positionY = 0, positionZ = 0;
 		let filterAccX = 0, filterAccY = 0, filterAccZ = 0;
-		let alpha = 0.7;
+		let alpha = 0.8;
 		let accThreashold = 0.2;
 		const velThreshold = 0.05;
 		
@@ -255,7 +255,7 @@ get_header();?>
 						filterAccX = alpha * filterAccX + (1 - alpha) * acceleration.x;
 						
 						if (Math.abs(filterAccX) > accThreashold) {
-							velocityX += filterAccX * deltaTime;
+						velocityX += filterAccX * deltaTime;
 						}
 						
 						velocityX *= damping;
@@ -298,7 +298,7 @@ get_header();?>
 // 						if((Math.abs(filterAccZ) < accThreashold && Math.abs(velocityZ) < velThreshold))	velocityZ = 0;
 							    
 //     					if(acceleration.x != lastX && acceleration.x != 0){
-    					if (Math.abs(velocityX) > deadZone) {
+    					 if (Math.abs(velocityX) > deadZone) {
 							positionX += velocityX * deltaTime;
 							positionX = Math.max(-0.25, Math.min(0.15, positionX));
 						}
@@ -325,7 +325,7 @@ get_header();?>
 						a.axisY.innerHTML = positionY.toFixed(2);
 						a.axisZ.innerHTML = positionZ.toFixed(2);
 						
-						phoneObject.position.set(4+velocityX*100, 7.8+velocityY*100, velocityZ*100);
+						phoneObject.position.set(4+positionX*150, 7.8+positionY*150, positionZ*150);
 						a.model.scale = `${1 + Math.random() * 0.0001} ${1 + Math.random() * 0.0001} ${1 + Math.random() * 0.0001}`;
 						
 // 						a.model.requestUpdate();
