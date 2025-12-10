@@ -165,6 +165,7 @@ get_header();?>
 		
 		var a = function(){};
 		a__name__=!0;
+
 		a.main = function() {
 			window.addEventListener("DOMContentLoaded", function() {
 				a.testBtn = window.document.getElementById("test-btn");
@@ -240,7 +241,7 @@ get_header();?>
 					function detectMove(event) {						
 						const now = Date.now();
   						const acceleration = event.acceleration;
-  
+						return;
   						if (firstReading) {
     						lastX = acceleration.x;
     						lastY = acceleration.y;
@@ -249,7 +250,6 @@ get_header();?>
     						firstReading = false;
     						return;
   						}
-	
 						const deltaTime = (now - lastMoveTime) / 1000;
 						
 						filterAccX = alpha * filterAccX + (1 - alpha) * acceleration.x;
@@ -325,7 +325,7 @@ get_header();?>
 						a.axisY.innerHTML = positionY.toFixed(2);
 						a.axisZ.innerHTML = positionZ.toFixed(2);
 						
-						phoneObject.position.set(4+positionX*150, 7.8+positionY*150, positionZ*150);
+						phoneObject.position.set(4+velocityX*100, 7.8+velocityY*100, velocityZ*100);
 						a.model.scale = `${1 + Math.random() * 0.0001} ${1 + Math.random() * 0.0001} ${1 + Math.random() * 0.0001}`;
 						
 // 						a.model.requestUpdate();
