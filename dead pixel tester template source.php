@@ -1,10 +1,10 @@
-<?php
-    /* Template Name:Dead Pixel Test */
-get_header(); ?>
+<?php 
+/* Template Name:Dead Pixel Test */
+get_header();?>
 <style media="screen">
 	@media all and (max-width: 1024px) {
 		#sAs-menu-responsive span {
-			background-image: url(<?php echo get_stylesheet_directory_uri(); ?>/assets/images/toggle.png);
+			background-image: url(<?php echo get_stylesheet_directory_uri();?>/assets/images/toggle.png);
 		  	background-repeat: no-repeat;
 		  	background-size: contain;
 		  	display: block;
@@ -15,7 +15,7 @@ get_header(); ?>
 		  	height: 100%;
     	}
 	}
-
+	
 	.test-btn {
 		color: #ffffff;
 		background-color: #e25d26;
@@ -26,11 +26,11 @@ get_header(); ?>
 		height: 50px;
 		font-size: 24px;
   	}
-
+	
 	.test-btn:hover {
 		background-color: #e25d26dd;
 	}
-
+	
 	.control {
 		position: absolute;
       	background: rgba(255, 255, 255, 0.8);
@@ -45,9 +45,8 @@ get_header(); ?>
       	user-select: none;
 		transition: opacity 0.3s ease;
     }
-
+	
 	#colorName {
-		white-space: nowrap;
 		top: 70px;
 		left: 50%;
 		transform: translateX(-50%);
@@ -92,13 +91,13 @@ get_header(); ?>
       	padding: 10px 15px;
       	border-radius: 10px;
 		transition: opacity 0.3s ease;
-		max-width: 90vw;          /* prevents overflow on mobile */
+		max-width: 90vw;          /* prevents overflow on mobile */  
 		overflow-x: auto;         /* enables scrolling */
 		overflow-y: hidden;
 		white-space: nowrap;
 		scrollbar-width: none;    /* Firefox: hide scrollbar */
     }
-
+	
 	/* Chrome/Safari: hide scrollbar */
 	#colorPalette::-webkit-scrollbar {
 		display: none;
@@ -116,53 +115,33 @@ get_header(); ?>
     .color-btn.active {
       	box-shadow: 0 0 10px 3px white;
     }
-
+	
 	.hidden {
 		opacity: 0;
 		pointer-events: none;
 	}
-
+	
 	#test-screen {
 		position: relative;
 		display: none;
 		width: 100vw;
 		height: 100vw;
 	}
-
-html, body {
-    margin: 0;
-    padding: 0;
-}
-
-.ios-fullscreen-fix,
-.ios-fullscreen-fix body,
-.ios-fullscreen-fix #test-screen {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    overflow: hidden !important;
-    background: black;
-}
-
-
-
 </style>
 
 <div class="container-fluid">
 	<div style="justify-content: center; display: flex">
 		<button class="test-btn" id="test-btn">
-			<?php the_field("start_btn"); ?>
+			<?php the_field("start_btn");?>
 		</button>
 	</div>
 	<br/><br/>
 	<div class="wid-sm-100 wid-xs-100">
 		<div class="ct-row mar-bot-15 dis-flex">
-			<img class="tve_image" alt="" style="width: 64px;" src="<?php the_field('icon'); ?>" width="64" height="64">
+			<img class="tve_image" alt="" style="width: 64px;" src="<?php the_field('icon');?>" width="64" height="64">
 			<div class="webcam-1-text_">
 				<div class="icon-text-1">
-					<h3 class="ct-bold-text"><?php the_field('get_easily_started_title'); ?></h3>
+					<h3 class="ct-bold-text"><?php the_field('get_easily_started_title');?></h3>
 				</div>
 			</div>
 		</div>
@@ -171,21 +150,21 @@ html, body {
 				<ul>
 					<?php
 
-                        // check if the repeater field has rows of data
-                        if (have_rows('get_easily_started_steps')):
+                    // check if the repeater field has rows of data
+					if( have_rows('get_easily_started_steps') ):
 
-                            // loop through the rows of data
-                        while (have_rows('get_easily_started_steps')): the_row(); ?>
-											<li>
-												<span><?php the_sub_field('numbers'); ?></span>
-												<div>
-													<strong><?php the_sub_field('title'); ?></strong>
-												</div>
-											</li>
-										<?php endwhile;
-                                            else:
-                                            endif;
-                                        ?>
+                        // loop through the rows of data
+						while ( have_rows('get_easily_started_steps') ) : the_row();?>
+							<li>
+								<span><?php the_sub_field('numbers');?></span>
+								<div>
+									<strong><?php the_sub_field('title');?></strong>
+								</div>
+							</li>
+						<?php endwhile;
+					else :
+					endif;
+					?>
 				</ul>
 			</div>
 		</div>
@@ -193,10 +172,10 @@ html, body {
 
 	<div class="wid-sm-100 wid-xs-100">
 		<div class="ct-row mar-bot-15 dis-flex">
-			<img class="tve_image" alt="" style="width: 64px;" src="<?php the_field('red_icon'); ?>" width="64" height="64">
+			<img class="tve_image" alt="" style="width: 64px;" src="<?php the_field('red_icon');?>" width="64" height="64">
 			<div class="webcam-1-text_">
 				<div class="icon-text-1">
-					<h3 class="ct-bold-text" style="color: rgb(226, 92, 27)"><?php the_field('trouble-shooting_title'); ?></h3>
+					<h3 class="ct-bold-text" style="color: rgb(226, 92, 27)"><?php the_field('trouble-shooting_title');?></h3>
 				</div>
 			</div>
 		</div>
@@ -207,21 +186,21 @@ html, body {
 					<ul>
 						<?php
 
-                            // check if the repeater field has rows of data
-                            if (have_rows('leftside_guide_list')):
+						// check if the repeater field has rows of data
+						if( have_rows('leftside_guide_list') ):
 
-                                // loop through the rows of data
-                            while (have_rows('leftside_guide_list')): the_row(); ?>
-												<li>
-													<span class="fw-bold color-link">
-														<?php the_sub_field('left_side_list_title'); ?>
-													</span>
-												</li>
+							// loop through the rows of data
+							while ( have_rows('leftside_guide_list') ) : the_row();?>
+								<li>
+									<span class="fw-bold color-link">
+										<?php the_sub_field('left_side_list_title');?>
+									</span>
+								</li>
 
-											<?php endwhile;
-                                                else:
-                                                endif;
-                                            ?>
+							<?php endwhile;
+						else :
+						endif;
+						?>
 					</ul>
 				</div>
 
@@ -235,69 +214,69 @@ html, body {
 
 			</div>
 			<?php
-                $right_side_guide_list = get_field('rightside_guide_list');
-            if ($right_side_guide_list) {?>
+			$right_side_guide_list = get_field('rightside_guide_list');
+			if ($right_side_guide_list) { ?>
 				<div class="width-33_3 wid-md-50  wid-xs-100">
 					<div class="trouble-shooting-text-1 pd-1">
 						<ul>
 							<li>
 								<span class="fw-bold">
-									<?php echo $right_side_guide_list ?>
+									<?= $right_side_guide_list ?>
 								</span>
 							</li>
 						</ul>
 					</div>
 				</div>
 				<?php
-                }?>
+			} ?>
 			<div class="width-33_3 md-hidden">
 			</div>
 		</div>
 	</div>
-
+	
 	<div class="other-section">
 			<div class="read-more-section">
 				<div class="ct-row dis-flex">
 					<div class="width-50 wid-xs-100">
 						<div class="read-more-text-secction">
 							<div class="read-more-title clearfix" >
-								<h2><strong><?php the_field('more_about_title'); ?></strong></h2>
+								<h2><strong><?php the_field('more_about_title');?></strong></h2>
 							</div>
 							<?php
 
-                                // check if the repeater field has rows of data
-                                if (have_rows('test_content')):
+							// check if the repeater field has rows of data
+							if( have_rows('test_content') ):
 
-                                    // loop through the rows of data
-                                while (have_rows('test_content')): the_row(); ?>
-													<div class="read-more-1">
+								// loop through the rows of data
+								while ( have_rows('test_content') ) : the_row();?>
+									<div class="read-more-1">
 
 
-														<div class="read-more-subtitle clearfix">
-															<h3 class="mar-bot-20"><?php the_sub_field('heading'); ?></h3>
-														</div>
+										<div class="read-more-subtitle clearfix">
+											<h3 class="mar-bot-20"><?php the_sub_field('heading');?></h3>
+										</div>
 
-														<div class="read-more-text">
-															<p><?php the_sub_field('descp'); ?>
-														</p>
-													</div>
-												</div>
-											<?php endwhile;
-                                                else:
-                                                endif;
-                                            ?>
+										<div class="read-more-text">
+											<p><?php the_sub_field('descp');?>
+										</p>
+									</div>
+								</div>
+							<?php endwhile;
+						else :
+						endif;
+						?>
 					</div>
 				</div>
 
 				<div class="width-50">
 					<div class="img-section pad-left-15">
-						<img class="lazyload" src="<?php the_field('rightside_lazy_gif'); ?>" data-src="<?php the_field('rightside_image'); ?>"/>
+						<img class="lazyload" src="<?php the_field('rightside_lazy_gif');?>" data-src="<?php the_field('rightside_image');?>"/>
 					</div>
 				</div>
 			</div>
 		</div>
 	</div>
-
+	
 	<div id="test-screen">
 		<div id='colorName'></div>
 		<div id="exitBtn" class="control">✕</div>
@@ -320,10 +299,10 @@ html, body {
 		let index = 0;
 		let hideTimer = null;
 		let isHoveringControl = false;
-
+		
 		var a = function(){};
 		a__name__=!0;
-
+		
 		a.main = function() {
 			window.addEventListener('DOMContentLoaded', function() {
 				a.startBtn = window.document.getElementById('test-btn');
@@ -333,9 +312,9 @@ html, body {
 				a.nextBtn = window.document.getElementById('nextBtn');
 				a.colorPalette = window.document.getElementById('colorPalette');
 				a.colorNames = window.document.getElementById('colorName');
-
+				
 				const controls = [a.exitBtn, a.prevBtn, a.nextBtn, a.colorPalette, a.colorNames];
-
+				
 				colors.forEach((color, i) => {
 					const btn = document.createElement("div");
 				  	btn.classList.add("color-btn");
@@ -346,39 +325,17 @@ html, body {
 				  	});
 				  	a.colorPalette.appendChild(btn);
 				});
-
+				
 				a.colorBtns = window.document.querySelectorAll(".color-btn");
-
-				// async function enterFullscreen() {
-				// 	if(a.testScreen.requestFullscreen) {
-				// 		await a.testScreen.requestFullscreen();
-				// 	} else if (a.testScreen.webkitRequestFullscreen) {
-				// 		await a.testScreen.webkitRequestFullscreen();
-				// 	}
-				// }
-                
+				
 				async function enterFullscreen() {
-					const el = a.testScreen;
-
-					// Detect iPhone / iOS Safari
-					const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) 
-								|| (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-					if (!isIOS) {
-						// ANDROID or Desktop → Fullscreen API works
-						if (el.requestFullscreen) {
-							await el.requestFullscreen();
-						} else if (el.webkitRequestFullscreen) {
-							await el.webkitRequestFullscreen();
-						}
-						return;
+					if(a.testScreen.requestFullscreen) {
+						await a.testScreen.requestFullscreen();
+					} else if (a.testScreen.webkitRequestFullscreen) {
+						await a.testScreen.webkitRequestFullscreen();
 					}
-
-					// iPHONE FALLBACK → forced CSS fullscreen
-					document.documentElement.classList.add('ios-fullscreen-fix');
-					window.scrollTo(0, 1);
 				}
-
+				
 				function scrollToSelectedColor(id) {
 					const selected = a.colorBtns[id];
 					const palette = a.colorPalette;
@@ -393,7 +350,7 @@ html, body {
 						behavior: "smooth",
 					});
 				}
-
+				
 				function showColor() {
 // 					if (index < 0) index = colors.length - 1;
 					if (index >= colors.length) index = 0;
@@ -409,7 +366,7 @@ html, body {
 					} else {
 						a.colorNames.style.color = '#ffffff';
 					}
-
+				
 					scrollToSelectedColor(index);
 // 					if(index >= colors.length) {
 // 						exitFullscreen();
@@ -418,7 +375,7 @@ html, body {
 // 					a.testScreen.style.backgroundColor = colors[index];
 // 					index++;
 				}
-
+				
 				function startTest() {
 					a.startBtn.style.display = 'none';
 					a.testScreen.style.display = 'block';
@@ -428,7 +385,7 @@ html, body {
 						resetHideTimer();
 					});
 				}
-
+				
 				function exitFullscreen() {
 					if(window.document.exitFullscreen) {
 						window.document.exitFullscreen();
@@ -438,7 +395,7 @@ html, body {
 					a.testScreen.style.display = 'none';
 					a.startBtn.style.display = 'block';
 				}
-
+				
 				a.prevBtn.addEventListener("click", () => {
       				index-=2;
       				showColor();
@@ -450,7 +407,7 @@ html, body {
     			});
 
     			a.exitBtn.addEventListener("click", exitFullscreen);
-
+				
 				// Keyboard shortcuts
 				window.document.addEventListener("keydown", (e) => {
 					if (e.key === "ArrowLeft") index--;
@@ -458,7 +415,7 @@ html, body {
 				  	else if (e.key === "Escape") exitFullscreen();
 				  	showColor();
 				});
-
+				
 				// --- Mouse movement hiding system ---
 				function showControls() {
 					controls.forEach((el) => el.classList.remove("hidden"));
@@ -475,23 +432,23 @@ html, body {
 				  	if (hideTimer) clearTimeout(hideTimer);
 				  	hideTimer = setTimeout(hideControls, 500);
 				}
-
+				
 				a.testScreen.addEventListener("mousemove", resetHideTimer);
-
+				
 				a.testScreen.addEventListener('click', () => {
 					index++;
 					showColor();
 				});
-
+				
 				a.startBtn.addEventListener('click', startTest);
-
+				
 				window.document.addEventListener('fullscreenchange', () => {
 					if(!window.document.fullscreenElement) {
 						a.testScreen.style.display = 'none';
 						a.startBtn.style.display = 'block';
 					}
 				});
-
+				
 				controls.forEach((el) => {
 					el.addEventListener("mouseenter", () => {
 						isHoveringControl = true;
@@ -505,7 +462,7 @@ html, body {
 				});
 			});
 		}
-
+		
 		a.main();
 	})();
 </script>

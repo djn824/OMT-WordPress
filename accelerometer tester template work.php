@@ -148,22 +148,16 @@ get_header();?>
 
 <script>
 	(function() {
-		let limitValue = 0.12;
-		let amplifiedValue = 100;
 		let isTesting = false;
 		let moveHandler;
 		let phoneObject;
 		
 		let lastX = 0, lastY = 0, lastZ = 0;
-		let lastAccX = 0, lastAccY = 0, lastAccZ = 0;
 		let velocityX = 0, velocityY = 0, velocityZ = 0;
 		let positionX = 0, positionY = 0, positionZ = 0;
 		let filterAccX = 0, filterAccY = 0, filterAccZ = 0;
-		let alpha = 0.85;
-		let beta = 0;
-		let gamma = 0;
-		let damping = 0.85;
-		let accThreashold = 0.5;
+		let alpha = 0.7;
+		let accThreashold = 0.2;
 		const velThreshold = 0.05;
 		
 		let lastMoveTime = 0;
@@ -193,9 +187,27 @@ get_header();?>
 					phoneObject = threeScene.getObjectByName('Phone');
       			});
 				
+// 				document.addEventListener('keydown', function(event) {
+// 					if (event.key === 's') {
+// 						console.log('aefw');
+// 						phoneObject.position.set(4, 6, 7.8);
+// 							a.model.scale = `${1 + Math.random() * 0.0001} ${1 + Math.random() * 0.0001} ${1 + Math.random() * 0.0001}`;
+						
+// 						a.model.requestUpdate();
+// // 						phoneObject.position.y = 3;
+// 					}
+					
+// 					if (event.key === 'b') {
+// 						phoneObject.position.set(4, 3, 7.8);
+// 							a.model.scale = `${1 + Math.random() * 0.0001} ${1 + Math.random() * 0.0001} ${1 + Math.random() * 0.0001}`;
+						
+// 						a.model.requestUpdate();
+// 					}
+					
+// 				});
+				
 				a.resetBtn.addEventListener("click", function() {
 					lastX = 0, lastY = 0, lastZ = 0;
-					lastAccX = 0, lastAccY = 0, lastAccZ = 0;
 					velocityX = 0, velocityY = 0, velocityZ = 0;
 					positionX = 0, positionY = 0, positionZ = 0;
 					filterAccX = 0, filterAccY = 0, filterAccZ = 0;
@@ -214,7 +226,6 @@ get_header();?>
 					let btnDiv = window.document.getElementById("btn-div");
 					
 					lastX = 0, lastY = 0, lastZ = 0;
-					lastAccX = 0, lastAccY = 0, lastAccZ = 0;
 					velocityX = 0, velocityY = 0, velocityZ = 0;
 					positionX = 0, positionY = 0, positionZ = 0;
 					filterAccX = 0, filterAccY = 0, filterAccZ = 0;
@@ -222,131 +233,100 @@ get_header();?>
 					lastMoveTime = 0;
 					firstReading = true;
 					
+					const damping = 0.85; // Velocity damping factor (0.85 = 15% reduction per frame)
 					const maxVelocity = 0.3; // Reduced max velocity for smoother movement
-					const maxCount = 1;
-					const deadZone = 0.05; // Minimum velocity threshold
-					
-					let asum = { x: maxCount + 1, y: maxCount + 1, z: maxCount + 1 };
-					let count = 0;
-					let levelAcc = { x: 1, y: 1, z: 1 };
+					const deadZone = 0.01; // Minimum velocity threshold
 					
 					function detectMove(event) {						
 						const now = Date.now();
   						const acceleration = event.acceleration;
-
-						a.axisX.innerHTML = Number(positionX*2.0).toFixed(2);
-						a.axisY.innerHTML = Number(positionY*2.0).toFixed(2);
-						a.axisZ.innerHTML = Number(positionZ*2.0).toFixed(2);
-
-						phoneObject.position.set(4+positionX*amplifiedValue, 7.8+positionY*amplifiedValue, positionZ*amplifiedValue);
-						a.model.scale = `${1 + Math.random() * 0.0001} ${1 + Math.random() * 0.0001} ${1 + Math.random() * 0.0001}`;
-						velocityX *= damping;
-						velocityY *= damping;
-						velocityZ *= damping;
-
-						if(Math.abs(acceleration.x) <= accThreashold && Math.abs(acceleration.y) <= accThreashold && Math.abs(acceleration.z) <= accThreashold) {
-							count ++;
-							if(count > 5) {
-								velocityX = velocityY = velocityZ = 0;
-								lastAccX = acceleration.x;
-								lastAccY = acceleration.y;
-								lastAccZ = acceleration.z;
-								lastMoveTime = now;
-								return;
-							}
-							return;
-						}
-						count = 0;
+  
+  						if (firstReading) {
+    						lastX = acceleration.x;
+    						lastY = acceleration.y;
+    						lastZ = acceleration.z;
+							lastMoveTime = now;
+    						firstReading = false;
+    						return;
+  						}
 	
-						//const deltaTime = event.interval / 1000;
 						const deltaTime = (now - lastMoveTime) / 1000;
-
-						if(Math.abs(acceleration.x) > accThreashold) {
-							if(asum.x >= maxCount) {
-								levelAcc.x = acceleration.x;
-							}
-							if(Math.sign(acceleration.x) == Math.sign(levelAcc.x) ) {
-								filterAccX = acceleration.x;
-							} else {
-								filterAccX = 0;
-							}
-							asum.x = 0;
-						} else {
-							filterAccX = 0;
-							if(asum.x < maxCount) asum.x ++;
-						}
-
-						if(Math.abs(acceleration.y) > accThreashold) {
-							if(asum.y >= maxCount) {
-								levelAcc.y = acceleration.y;
-							}
-							if(Math.sign(acceleration.y) == Math.sign(levelAcc.y) ) {
-								filterAccY = acceleration.y * -1;
-							} else {
-								filterAccY = 0;
-							}
-							asum.y = 0;
-						} else {
-							filterAccY = 0;
-							if(asum.y < maxCount) asum.y ++;
-						}
-
-						if(Math.abs(acceleration.z) > accThreashold) {
-							if(asum.z >= maxCount) {
-								levelAcc.z = acceleration.z;
-							}
-							if(Math.sign(acceleration.z) == Math.sign(levelAcc.z) ) {
-								filterAccZ = acceleration.z;
-							} else {
-								filterAccZ = 0;
-							}
-							asum.z = 0;
-						} else {
-							filterAccZ = 0;
-							if(asum.z < maxCount) asum.z ++;
-						}
-
-						velocityX = velocityX * gamma + (velocityX + filterAccX * deltaTime) * (1 - gamma);
-						velocityY = velocityY * gamma + (velocityY + filterAccY * deltaTime) * (1 - gamma);
-						velocityZ = velocityZ * gamma + (velocityZ + filterAccZ * deltaTime) * (1 - gamma);
 						
-						if(Math.abs(velocityX) < deadZone) {
-							if(Math.abs(filterAccX)-Math.abs(lastAccX) < 0) {
-								velocityX = 0;
-							}
-						}
-
-						if(Math.abs(velocityY) < deadZone) {
-							if(Math.abs(filterAccY)-Math.abs(lastAccY) < 0) {
-								velocityY = 0;
-							}
-						}
-
-						if(Math.abs(velocityZ) < deadZone) {
-							if(Math.abs(filterAccZ)-Math.abs(lastAccZ) < 0) {
-								velocityZ = 0;
-							}
+						filterAccX = alpha * filterAccX + (1 - alpha) * acceleration.x;
+						
+						if (Math.abs(filterAccX) > accThreashold) {
+							velocityX += filterAccX * deltaTime;
 						}
 						
-
-// 						if(acceleration.x != lastX && acceleration.x != 0) {
-
-						positionX = positionX * beta + (positionX + velocityX * deltaTime + filterAccX * deltaTime * deltaTime / 2) * (1 - beta);
-						positionX = Math.max(-limitValue - 4 / amplifiedValue, Math.min(limitValue, positionX));
-					
+						velocityX *= damping;
+						
+						if (Math.abs(velocityX) < deadZone) velocityX = 0;
+   						velocityX = Math.max(-maxVelocity, Math.min(maxVelocity, velocityX));
+												
+// 						if((Math.abs(filterAccX) < accThreashold && Math.abs(velocityX) < velThreshold)){// || acceleration.x == 0){
+// 							velocityX = 0;
+// 						}
+						
+// 						if(Math.abs(velocityX) > 0.3 && acceleration.x == 0) {
+// 							velocityX = 0;
+// 							filterAccX = 0;
+// 						}
+						
+						filterAccY = alpha * filterAccY + (1 - alpha) * acceleration.y;
+// 						velocityY += filterAccY * deltaTime;
+						if(Math.abs(filterAccY) > accThreashold) {
+							velocityY += filterAccY * deltaTime;
+						}
+						
+						velocityY *= damping;
+						
+						if(Math.abs(velocityY) < deadZone)	velocityY = 0;
+						velocityY = Math.max(-maxVelocity, Math.min(maxVelocity, velocityY));
+// 						if((Math.abs(filterAccY) < accThreashold && Math.abs(velocityY) < velThreshold))	velocityY = 0;
+						
+						filterAccZ = alpha * filterAccZ + (1 - alpha) * acceleration.z;
+						if(Math.abs(filterAccZ) > accThreashold) {
+							velocityZ += filterAccZ * deltaTime;
+						}
+						
+						velocityZ *= damping;
+						
+						if(Math.abs(velocityZ) < deadZone)	velocityZ = 0;
+						velocityZ = Math.max(-maxVelocity, Math.min(maxVelocity, velocityZ));
+// 						velocityZ += filterAccZ * deltaTime;
+						
+// 						if((Math.abs(filterAccZ) < accThreashold && Math.abs(velocityZ) < velThreshold))	velocityZ = 0;
+							    
+//     					if(acceleration.x != lastX && acceleration.x != 0){
+    					if (Math.abs(velocityX) > deadZone) {
+							positionX += velocityX * deltaTime;
+							positionX = Math.max(-0.25, Math.min(0.15, positionX));
+						}
+						
 // 						if(acceleration.y != lastY && acceleration.y != 0) {
-						positionY = positionY * beta + (positionY + velocityY * deltaTime + filterAccY * deltaTime * deltaTime / 2) * (1 - beta);
-						positionY = Math.max(-limitValue - 7.8 / amplifiedValue, Math.min(limitValue, positionY));
-					
+						if (Math.abs(velocityY) > deadZone) {
+	    					positionY += velocityY * deltaTime;
+							positionY = Math.max(-0.25, Math.min(0.15, positionY));
+						}
+						
 // 						if(acceleration.z != lastZ && acceleration.z != 0) {
-						positionZ = positionZ * beta + (positionZ + velocityZ * deltaTime + filterAccZ * deltaTime * deltaTime / 2) * (1 - beta);
-						positionZ = Math.max(-limitValue, Math.min(limitValue, positionZ));
+						if (Math.abs(velocityZ) > deadZone) {
+	    					positionZ += velocityZ * deltaTime;
+							positionZ = Math.max(-0.15, Math.min(0.15, positionZ));
+						}
+    
+					    lastX = acceleration.x;
+    					lastY = acceleration.y;
+    					lastZ = acceleration.z;
 													
     					lastMoveTime = now;
 						
-						lastAccX = filterAccX;
-						lastAccY = filterAccY;
-						lastAccZ = filterAccZ;
+						a.axisX.innerHTML = positionX.toFixed(2);
+						a.axisY.innerHTML = positionY.toFixed(2);
+						a.axisZ.innerHTML = positionZ.toFixed(2);
+						
+						phoneObject.position.set(4+positionX*150, 7.8+positionY*150, positionZ*150);
+						a.model.scale = `${1 + Math.random() * 0.0001} ${1 + Math.random() * 0.0001} ${1 + Math.random() * 0.0001}`;
 						
 // 						a.model.requestUpdate();
 					}
@@ -360,26 +340,21 @@ get_header();?>
 						btnDiv.style.top = "90%";
 						btnDiv.style.left = "80%";
 
-						model.onload = () => {
-							console.log("Model loaded");
-							moveHandler = (event) => detectMove(event);
-							if (typeof DeviceMotionEvent.requestPermission === 'function') {
-								DeviceMotionEvent.requestPermission()
-									.then(response => {
-										if (response === 'granted') {
-											window.addEventListener('devicemotion', moveHandler);
-										} else {
-											alert("Motion permission was denied.");
-										}
-									})
-									.catch(console.error);
-							} else {
-								// Android or other devices
-								window.addEventListener('devicemotion', moveHandler);
-							}
-						};
-
-
+						moveHandler = (event) => detectMove(event);
+						if (typeof DeviceMotionEvent.requestPermission === 'function') {
+							DeviceMotionEvent.requestPermission()
+								.then(response => {
+									if (response === 'granted') {
+										window.addEventListener('devicemotion', moveHandler);
+									} else {
+										alert("Motion permission was denied.");
+									}
+								})
+								.catch(console.error);
+						} else {
+							// Android or other devices
+							window.addEventListener('devicemotion', moveHandler);
+						}
 					} else {
 						model.src = "<?=get_stylesheet_directory_uri();?>/assets/glbs/fainter2.glb";
 						
