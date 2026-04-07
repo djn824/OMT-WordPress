@@ -147,7 +147,66 @@ get_header();?>
 <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
 
 <script>
+	const markArr = [
+		{x: -1, y: -1, z: 1},
+		{x: -1, y: -1, z: 1},
+	]
+	const alphaArr = [		
+		{ x: 0.5, y: 0.5, z: 0.5 },
+		{ x: 0.6, y: 0.6, z: 0.6 },
+	];
+	const accThreasholdArr = [
+		{ x: 0.3, y: 0.7, z: 0.4 },
+		{ x: 0.3, y: 0.5, z: 0.3 },
+	];
+	const incAccArr = [
+		{ x: 1.1, y: 1.1, z: 1.1 }, //1.1, 1.1,1.1
+		{ x: 1.3, y: 1.3, z: 1.3 }, // 1.05,1.05,1.05
+	];
+	const decAccArr = [
+		{ x: 0.8, y: 0.8, z: 0.8 },
+		{ x: 0.84, y: 0.84, z: 0.84 },
+	];
+	const decValArr = [
+		{ x: 0.01, y: 0.01, z: 0.01 },
+		{ x: 0.01, y: 0.01, z: 0.01 },
+	];
+	const cntAccArr = [
+		{ x: 0, y: 0, z: 0 },
+		{ x: 0, y: 0, z: 0 },
+	];
+	const minDeltaTimeArr = [0.05, 0.05]; // Minimum time between updates in seconds
+	const maxCountArr = [3, 3];
+	const reductionRateArr = [
+		{ x: 4, y: 4, z: 4 },
+		{ x: 4, y: 4, z: 4 },
+	];
+
+	const dampingArr = [
+		{ x: 0.85, y: 0.85, z: 0.85 },
+		{ x: 0.85, y: 0.85, z: 0.85 },
+	]; // Velocity damping factor (0.85 = 15% reduction per frame)
+	const maxVelocityArr = [
+		{ x: 0.3, y: 0.3, z: 0.3 },
+		{ x: 0.3, y: 0.3, z: 0.3 },
+	]; // Reduced max velocity for smoother movement
+	const deadZoneArr = [
+		{ x: 0.04, y: 0.04, z: 0.04 },
+		{ x: 0.04, y: 0.04, z: 0.04 },
+	]; // Minimum velocity threshold
+
+	const maxAccArr = [
+		{ x: 8.7, y: 8.7, z: 8.7 }, // 7,7,7
+		{ x: 9, y: 9, z: 9 }, // 7,7,7
+	]; // Reduced max velocity for smoother movement
+
+
 	(function() {
+		
+		const isIOS = Number(/iPad|iPhone|iPod/.test(navigator.userAgent));
+
+		let limitValue = 0.12;
+		let amplifiedValue = 100;
 		let isTesting = false;
 		let moveHandler;
 		let phoneObject;
@@ -156,9 +215,21 @@ get_header();?>
 		let velocityX = 0, velocityY = 0, velocityZ = 0;
 		let positionX = 0, positionY = 0, positionZ = 0;
 		let filterAccX = 0, filterAccY = 0, filterAccZ = 0;
-		let alpha = 0.7;
-		let accThreashold = 0.2;
-		const velThreshold = 0.05;
+		
+		let mark = markArr[isIOS];
+		let alpha = alphaArr[isIOS];
+		let accThreashold = accThreasholdArr[isIOS];
+		let incAcc = incAccArr[isIOS];
+		let decAcc = decAccArr[isIOS];
+		let decVal = decValArr[isIOS];
+		let cntAcc = cntAccArr[isIOS];
+		let minDeltaTime = minDeltaTimeArr[isIOS];
+		let maxCount = maxCountArr[isIOS];
+		let reductionRate = reductionRateArr[isIOS];
+					
+		let damping = dampingArr[isIOS];
+		let maxVelocity = maxVelocityArr[isIOS];
+		let deadZone = deadZoneArr[isIOS];
 		
 		let lastMoveTime = 0;
 		let firstReading = true;
@@ -224,7 +295,9 @@ get_header();?>
 					let model = a.model;
 					let testBtn = a.testBtn;
 					let btnDiv = window.document.getElementById("btn-div");
-					
+					let maxAcc = maxAccArr[isIOS]; // Reduced max velocity for smoother movement
+
+					cntAcc = {x: 0, y: 0, z: 0};	
 					lastX = 0, lastY = 0, lastZ = 0;
 					velocityX = 0, velocityY = 0, velocityZ = 0;
 					positionX = 0, positionY = 0, positionZ = 0;
@@ -232,15 +305,11 @@ get_header();?>
 					
 					lastMoveTime = 0;
 					firstReading = true;
-					
-					const damping = 0.85; // Velocity damping factor (0.85 = 15% reduction per frame)
-					const maxVelocity = 0.3; // Reduced max velocity for smoother movement
-					const deadZone = 0.01; // Minimum velocity threshold
-					
+
 					function detectMove(event) {						
 						const now = Date.now();
   						const acceleration = event.acceleration;
-  
+
   						if (firstReading) {
     						lastX = acceleration.x;
     						lastY = acceleration.y;
@@ -251,68 +320,77 @@ get_header();?>
   						}
 	
 						const deltaTime = (now - lastMoveTime) / 1000;
+						if (deltaTime < minDeltaTime) {
+							return; // Skip this update if it's too soon
+  						}
 						
-						filterAccX = alpha * filterAccX + (1 - alpha) * acceleration.x;
+						// X axis
+						if (Math.abs(acceleration.x) > accThreashold.x) {
+							filterAccX = incAcc.x * filterAccX + acceleration.x * (1 - alpha.x);
+							filterAxcX = Math.max(-maxAcc.x, Math.min(maxAcc.x, filterAccX));
+							cntAcc.x = 0;
+						}								
+						else {
+							filterAccX = Math.max(0.1, decAcc.x - cntAcc.x * decVal.x) * filterAccX;								
+							if(cntAcc.x > maxCount) {
+								velocityX = 0;
+							} else cntAcc.x++;
+						} 
+						filterAccX = Math.max(-maxAcc.x, Math.min(maxAcc.x, filterAccX));							
+						velocityX += filterAccX * deltaTime * mark.x;
+						velocityX *= damping.x;						
+						if (Math.abs(velocityX) < deadZone.x) velocityX = 0;
+   						velocityX = Math.max(-maxVelocity.x, Math.min(maxVelocity.x, velocityX));
 						
-						if (Math.abs(filterAccX) > accThreashold) {
-							velocityX += filterAccX * deltaTime;
+						// Y axis
+						if (Math.abs(acceleration.y) > accThreashold.y) {
+							filterAccY = incAcc.y * filterAccY + acceleration.y * (1 - alpha.y);	
+							filterAccy = Math.max(-maxAcc.y, Math.min(maxAcc.y, filterAccY));
+							cntAcc.y = 0;
+						}								
+						else {
+							filterAccY = Math.max(0.1, decAcc.y - cntAcc.y * decVal.y) * filterAccY;							
+							if(cntAcc.y > maxCount) {
+								velocityY = 0;
+							} else cntAcc.y++;
+						}
+						filterAccY = Math.max(-maxAcc.y, Math.min(maxAcc.y, filterAccY));
+						velocityY += filterAccY * deltaTime * mark.y;	
+						velocityY *= damping.y;						
+						if(Math.abs(velocityY) < deadZone.y) velocityY = 0;
+						velocityY = Math.max(-maxVelocity.y, Math.min(maxVelocity.y, velocityY));
+						
+						// Z axis
+						if (Math.abs(acceleration.z) > accThreashold.z) {
+							filterAccZ = incAcc.z * filterAccZ + acceleration.z * (1 - alpha.z);	
+							filterAccZ = Math.max(-maxAcc.z, Math.min(maxAcc.z, filterAccZ));
+							cntAcc.z = 0;
+						}								
+						else {
+							filterAccZ = Math.max(0.1, decAcc.z - cntAcc.z * decVal.z) * filterAccZ;							
+							if(cntAcc.z > maxCount) {
+								velocityZ = 0;
+							} else cntAcc.z++;
+						}
+						filterAccZ = Math.max(-maxAcc.z, Math.min(maxAcc.z, filterAccZ));
+						velocityZ += filterAccZ * deltaTime * mark.z;				
+						velocityZ *= damping.z;						
+						if(Math.abs(velocityZ) < deadZone.z) velocityZ = 0;
+						velocityZ = Math.max(-maxVelocity.z, Math.min(maxVelocity.z, velocityZ));
+						
+    					if (Math.abs(velocityX) > deadZone.x) {
+							positionX += velocityX * deltaTime / reductionRate.x;
+							positionX = Math.max(-limitValue - 4 / amplifiedValue - 0.05, Math.min(limitValue, positionX));
 						}
 						
-						velocityX *= damping;
-						
-						if (Math.abs(velocityX) < deadZone) velocityX = 0;
-   						velocityX = Math.max(-maxVelocity, Math.min(maxVelocity, velocityX));
-												
-// 						if((Math.abs(filterAccX) < accThreashold && Math.abs(velocityX) < velThreshold)){// || acceleration.x == 0){
-// 							velocityX = 0;
-// 						}
-						
-// 						if(Math.abs(velocityX) > 0.3 && acceleration.x == 0) {
-// 							velocityX = 0;
-// 							filterAccX = 0;
-// 						}
-						
-						filterAccY = alpha * filterAccY + (1 - alpha) * acceleration.y;
-// 						velocityY += filterAccY * deltaTime;
-						if(Math.abs(filterAccY) > accThreashold) {
-							velocityY += filterAccY * deltaTime;
+						if (Math.abs(velocityY) > deadZone.y) {
+	    					positionY += velocityY * deltaTime / reductionRate.y;
+							positionY = Math.max(-limitValue - 7.8 / amplifiedValue, Math.min(limitValue, positionY));
 						}
 						
-						velocityY *= damping;
-						
-						if(Math.abs(velocityY) < deadZone)	velocityY = 0;
-						velocityY = Math.max(-maxVelocity, Math.min(maxVelocity, velocityY));
-// 						if((Math.abs(filterAccY) < accThreashold && Math.abs(velocityY) < velThreshold))	velocityY = 0;
-						
-						filterAccZ = alpha * filterAccZ + (1 - alpha) * acceleration.z;
-						if(Math.abs(filterAccZ) > accThreashold) {
-							velocityZ += filterAccZ * deltaTime;
-						}
-						
-						velocityZ *= damping;
-						
-						if(Math.abs(velocityZ) < deadZone)	velocityZ = 0;
-						velocityZ = Math.max(-maxVelocity, Math.min(maxVelocity, velocityZ));
-// 						velocityZ += filterAccZ * deltaTime;
-						
-// 						if((Math.abs(filterAccZ) < accThreashold && Math.abs(velocityZ) < velThreshold))	velocityZ = 0;
-							    
-//     					if(acceleration.x != lastX && acceleration.x != 0){
-    					if (Math.abs(velocityX) > deadZone) {
-							positionX += velocityX * deltaTime;
-							positionX = Math.max(-0.25, Math.min(0.15, positionX));
-						}
-						
-// 						if(acceleration.y != lastY && acceleration.y != 0) {
-						if (Math.abs(velocityY) > deadZone) {
-	    					positionY += velocityY * deltaTime;
-							positionY = Math.max(-0.25, Math.min(0.15, positionY));
-						}
-						
-// 						if(acceleration.z != lastZ && acceleration.z != 0) {
-						if (Math.abs(velocityZ) > deadZone) {
-	    					positionZ += velocityZ * deltaTime;
-							positionZ = Math.max(-0.15, Math.min(0.15, positionZ));
+						if (Math.abs(velocityZ) > deadZone.z) {
+	    					positionZ += velocityZ * deltaTime / reductionRate.z;
+							positionZ = Math.max(-limitValue+0.02, Math.min(limitValue-0.02, positionZ));
 						}
     
 					    lastX = acceleration.x;
@@ -325,7 +403,7 @@ get_header();?>
 						a.axisY.innerHTML = positionY.toFixed(2);
 						a.axisZ.innerHTML = positionZ.toFixed(2);
 						
-						phoneObject.position.set(4+positionX*150, 7.8+positionY*150, positionZ*150);
+						phoneObject.position.set(4+positionX*amplifiedValue, 7.8+positionY*amplifiedValue, positionZ*amplifiedValue);
 						a.model.scale = `${1 + Math.random() * 0.0001} ${1 + Math.random() * 0.0001} ${1 + Math.random() * 0.0001}`;
 						
 // 						a.model.requestUpdate();
@@ -340,21 +418,29 @@ get_header();?>
 						btnDiv.style.top = "90%";
 						btnDiv.style.left = "80%";
 
-						moveHandler = (event) => detectMove(event);
-						if (typeof DeviceMotionEvent.requestPermission === 'function') {
-							DeviceMotionEvent.requestPermission()
-								.then(response => {
-									if (response === 'granted') {
-										window.addEventListener('devicemotion', moveHandler);
-									} else {
-										alert("Motion permission was denied.");
-									}
-								})
-								.catch(console.error);
-						} else {
-							// Android or other devices
-							window.addEventListener('devicemotion', moveHandler);
+						model.onload = () => {
+							moveHandler = (event) => detectMove(event);
+							if (typeof DeviceMotionEvent.requestPermission === 'function') {
+								DeviceMotionEvent.requestPermission()
+									.then(response => {
+										if (response === 'granted') {
+											window.addEventListener('devicemotion', moveHandler);
+										} else {
+											alert("Motion permission was denied.");
+										}
+									})
+									.catch(console.error);
+							} else {
+								// Android or other devices
+								window.addEventListener('devicemotion', moveHandler);
+							}
 						}
+
+						model.onerror = () => {
+							alert("Failed to load 3D model. Please try again.");
+						}
+
+						
 					} else {
 						model.src = "<?=get_stylesheet_directory_uri();?>/assets/glbs/fainter2.glb";
 						
