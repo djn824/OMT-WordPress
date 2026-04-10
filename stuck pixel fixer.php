@@ -31,15 +31,31 @@ get_header(); ?>
 		background-color: #e25d26dd;
 	}
 
-	.control {
+	#fullscreenBtn {
 		position: absolute;
-		background: rgba(255, 255, 255, 0.8);
+		width: 40px;
+		height: 40px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		font-size: 1.5rem;
+		cursor: pointer;
+		user-select: none;
+		transition: opacity 0.3s ease;
+		z-index: 2147483646;
+	}
+
+	#exitBtn {
+		position: absolute;
+		background: #e25d26;
+		border: 1px solid #e25d26;
 		border-radius: 50%;
 		width: 40px;
 		height: 40px;
 		display: flex;
 		justify-content: center;
 		align-items: center;
+		color: #ffffff;
 		font-size: 1.5rem;
 		cursor: pointer;
 		user-select: none;
@@ -119,10 +135,10 @@ get_header(); ?>
 		margin-left: -110px;
 		margin-top: -110px;
 		padding: 10px;
-		background: #3f3f3f;
-		border-radius: 10px;
-		border: 1px solid rgba(255, 255, 255, 0.2);
-		box-shadow: 0 0 18px rgba(255, 255, 255, 0.22), 0 0 16px rgba(0, 0, 0, 0.75);
+		background: #436f8e;
+		border-radius: 4px;
+		border: 1px solid #436f8e;
+		box-shadow: 0 0 16px #436f8e, 0 0 14px #436f8e;
 		cursor: grab;
 		touch-action: none;
 		z-index: 2147483646;
@@ -137,8 +153,7 @@ get_header(); ?>
 		display: block;
 		width: 100%;
 		height: 100%;
-		background: #ffffff;
-		border-radius: 3px;
+		background: #000000;
 		filter: none;
 		image-rendering: pixelated;
 		image-rendering: crisp-edges;
@@ -293,8 +308,8 @@ get_header(); ?>
 
 	<div id="fix-screen">
 		<div id="fixHint"></div>
-		<div id="fullscreenBtn" class="control" title="Fullscreen">⛶</div>
-		<div id="exitBtn" class="control">✕</div>
+		<img id="fullscreenBtn" src="<?php echo get_stylesheet_directory_uri(); ?>/assets/images/Expand1.svg" alt="Fullscreen">
+		<div id="exitBtn">✕</div>
 		<div id="fix-patch" aria-label="Drag over stuck pixel">
             <!-- Fix Patch Canvas -->
 			<canvas id="fix-canvas" width="64" height="64"></canvas>
@@ -332,6 +347,7 @@ get_header(); ?>
 				var dragOffsetY = 0;
 				var lastRelativePos = { x: 0.5, y: 0.5 };
 				var hasMovedPatch = false;
+				var noiseRenderScale = 1;
 
 				var hintDefault = 'Drag the flashing square over the stuck pixel. Leave it running for at least 10 minutes.';
 				if (a.fixHint) {
@@ -348,10 +364,9 @@ get_header(); ?>
 					a.patch.style.height = s + 'px';
 					a.patch.style.marginLeft = (-s / 2) + 'px';
 					a.patch.style.marginTop = (-s / 2) + 'px';
-					var inner = Math.max(120, s - 20);
-					var d = inner;
-					a.canvas.width = d;
-					a.canvas.height = d;
+					var inner = Math.max(120, s - 2);
+					a.canvas.width = Math.round(inner * noiseRenderScale);
+					a.canvas.height = Math.round(inner * noiseRenderScale);
 					a.ctx.imageSmoothingEnabled = false;
 				}
 
@@ -367,6 +382,17 @@ get_header(); ?>
 					lastRelativePos = {
 						x: Math.max(0, Math.min(1, centerX / parent.width)),
 						y: Math.max(0, Math.min(1, centerY / parent.height))
+					};
+				}
+
+				function clampPatchPosition(parentRect, pw, ph, x, y) {
+					var minX = -(pw / 2);
+					var minY = -(ph / 2);
+					var maxX = parentRect.width - (pw / 2);
+					var maxY = parentRect.height - (ph / 2);
+					return {
+						x: Math.max(minX, Math.min(x, maxX)),
+						y: Math.max(minY, Math.min(y, maxY))
 					};
 				}
 
@@ -393,10 +419,9 @@ get_header(); ?>
 						}
 					}
 
-					x = Math.max(0, Math.min(x, parent.width - pw));
-					y = Math.max(0, Math.min(y, parent.height - ph));
-					a.patch.style.left = x + 'px';
-					a.patch.style.top = y + 'px';
+					var clamped = clampPatchPosition(parent, pw, ph, x, y);
+					a.patch.style.left = clamped.x + 'px';
+					a.patch.style.top = clamped.y + 'px';
 					a.patch.style.marginLeft = '0';
 					a.patch.style.marginTop = '0';
 					a.patch.style.transform = 'none';
@@ -406,10 +431,65 @@ get_header(); ?>
 				function updateControlPlacement() {
 					var parent = a.fixScreen.getBoundingClientRect();
 					var rect = a.patch.getBoundingClientRect();
-					if (!parent.height || !rect.height) return;
-					var patchCenterY = rect.top - parent.top + (rect.height / 2);
-					var isUpperHalf = patchCenterY < (parent.height / 2);
-					a.fixScreen.classList.toggle('controls-bottom', isUpperHalf);
+					if (!parent.width || !parent.height || !rect.width || !rect.height) return;
+
+					var currentBottom = a.fixScreen.classList.contains('controls-bottom');
+					var edgeOffset = 15; // Matches the fixed button edge offset in CSS.
+					var proximityPadding = 24; // Extra area around controls before switching sides.
+					var controlWidth = (a.exitBtn && a.exitBtn.offsetWidth) || 40;
+					var controlHeight = (a.exitBtn && a.exitBtn.offsetHeight) || 40;
+					var patchRect = {
+						left: rect.left - parent.left,
+						top: rect.top - parent.top,
+						right: rect.left - parent.left + rect.width,
+						bottom: rect.top - parent.top + rect.height
+					};
+
+					function intersectsExpandedRect(patch, area) {
+						var expanded = {
+							left: area.left - proximityPadding,
+							top: area.top - proximityPadding,
+							right: area.right + proximityPadding,
+							bottom: area.bottom + proximityPadding
+						};
+						return patch.left < expanded.right &&
+							patch.right > expanded.left &&
+							patch.top < expanded.bottom &&
+							patch.bottom > expanded.top;
+					}
+
+					function createControlArea(left, top) {
+						return {
+							left: left,
+							top: top,
+							right: left + controlWidth,
+							bottom: top + controlHeight
+						};
+					}
+
+					var rightX = parent.width - edgeOffset - controlWidth;
+					var bottomY = parent.height - edgeOffset - controlHeight;
+
+					var topLeftArea = createControlArea(edgeOffset, edgeOffset);
+					var topRightArea = createControlArea(rightX, edgeOffset);
+					var bottomLeftArea = createControlArea(edgeOffset, bottomY);
+					var bottomRightArea = createControlArea(rightX, bottomY);
+
+					var nearTopButtons = intersectsExpandedRect(patchRect, topLeftArea) ||
+						intersectsExpandedRect(patchRect, topRightArea);
+					var nearBottomButtons = intersectsExpandedRect(patchRect, bottomLeftArea) ||
+						intersectsExpandedRect(patchRect, bottomRightArea);
+
+					// Only switch when the patch is close to control zones.
+					// Keep current side while patch is in the middle area.
+					var moveButtonsToBottom = currentBottom;
+					if (nearTopButtons && !nearBottomButtons) {
+						moveButtonsToBottom = true;
+					} else if (nearBottomButtons && !nearTopButtons) {
+						moveButtonsToBottom = false;
+					}
+
+					a.fixScreen.classList.toggle('controls-bottom', moveButtonsToBottom);
 				}
 
 				function refreshPatchAfterViewportChange(useRelativeCenter) {
@@ -428,9 +508,10 @@ get_header(); ?>
 					var img = a.ctx.createImageData(w, h);
 					var d = img.data;
 					for (var i = 0; i < d.length; i += 4) {
-						d[i] = (20 + (Math.random() * 236)) | 0;
-						d[i + 1] = (20 + (Math.random() * 236)) | 0;
-						d[i + 2] = (20 + (Math.random() * 236)) | 0;
+						var mask = 1 + ((Math.random() * 7) | 0); // 1..7 => RGB bitmask
+						d[i] = (mask & 1) ? 255 : 0;
+						d[i + 1] = (mask & 2) ? 255 : 0;
+						d[i + 2] = (mask & 4) ? 255 : 0;
 						d[i + 3] = 255;
 					}
 					a.ctx.putImageData(img, 0, 0);
@@ -523,10 +604,16 @@ get_header(); ?>
 					a.patch.classList.add('dragging');
 					var p = clientPoint(e);
 					var rect = a.patch.getBoundingClientRect();
+					var parent = a.fixScreen.getBoundingClientRect();
+					var pw = rect.width || a.patch.offsetWidth;
+					var ph = rect.height || a.patch.offsetHeight;
 					dragOffsetX = p.x - rect.left;
 					dragOffsetY = p.y - rect.top;
-					a.patch.style.left = rect.left + 'px';
-					a.patch.style.top = rect.top + 'px';
+					var relLeft = rect.left - parent.left;
+					var relTop = rect.top - parent.top;
+					var clamped = clampPatchPosition(parent, pw, ph, relLeft, relTop);
+					a.patch.style.left = clamped.x + 'px';
+					a.patch.style.top = clamped.y + 'px';
 					a.patch.style.marginLeft = '0';
 					a.patch.style.marginTop = '0';
 					a.patch.style.transform = 'none';
@@ -537,14 +624,14 @@ get_header(); ?>
 					e.preventDefault();
 					var p = clientPoint(e);
 					var parent = a.fixScreen.getBoundingClientRect();
-					var pw = a.patch.offsetWidth;
-					var ph = a.patch.offsetHeight;
+					var rect = a.patch.getBoundingClientRect();
+					var pw = rect.width || a.patch.offsetWidth;
+					var ph = rect.height || a.patch.offsetHeight;
 					var x = p.x - dragOffsetX - parent.left;
 					var y = p.y - dragOffsetY - parent.top;
-					x = Math.max(0, Math.min(x, parent.width - pw));
-					y = Math.max(0, Math.min(y, parent.height - ph));
-					a.patch.style.left = x + 'px';
-					a.patch.style.top = y + 'px';
+					var clamped = clampPatchPosition(parent, pw, ph, x, y);
+					a.patch.style.left = clamped.x + 'px';
+					a.patch.style.top = clamped.y + 'px';
 					if (!hasMovedPatch) {
 						hasMovedPatch = true;
 						if (a.fixHint) {
@@ -595,10 +682,25 @@ get_header(); ?>
 				});
 
 				document.addEventListener('keydown', function (e) {
-					if (a.fixScreen.style.display !== 'block') return;
-					if (e.key === 'Escape' && document.fullscreenElement) {
-						document.exitFullscreen();
+					if (a.fixScreen.style.display !== 'block' || e.key !== 'Escape') return;
+					if (document.fullscreenElement) {
+						if (document.exitFullscreen) {
+							document.exitFullscreen();
+						} else if (document.webkitExitFullscreen) {
+							document.webkitExitFullscreen();
+						}
+						return;
 					}
+					if (document.documentElement.classList.contains('ios-fullscreen-fix')) {
+						document.documentElement.classList.remove('ios-fullscreen-fix');
+						if (a.fullscreenBtn) {
+							a.fullscreenBtn.src = '<?php echo get_stylesheet_directory_uri(); ?>/assets/images/Expand1.svg';
+						}
+						refreshPatchAfterViewportChange(true);
+						return;
+					}
+					e.preventDefault();
+					closeFixTool();
 				});
 
 				a.fixScreen.addEventListener('mousemove', resetHideTimer);
@@ -638,15 +740,13 @@ get_header(); ?>
 					if (!document.fullscreenElement) {
 						document.documentElement.classList.remove('ios-fullscreen-fix');
 						if (a.fullscreenBtn) {
-							a.fullscreenBtn.textContent = '⛶';
-							a.fullscreenBtn.title = 'Enter fullscreen';
+							a.fullscreenBtn.src = '<?php echo get_stylesheet_directory_uri(); ?>/assets/images/Expand1.svg';
 						}
 						if (a.fixScreen.style.display !== 'block') {
 							document.body.style.overflow = '';
 						}
 					} else if (a.fullscreenBtn) {
-						a.fullscreenBtn.textContent = '🗗';
-						a.fullscreenBtn.title = 'Exit fullscreen';
+						a.fullscreenBtn.src = '<?php echo get_stylesheet_directory_uri(); ?>/assets/images/Expand2.svg';
 					}
 					if (a.fixScreen.style.display === 'block') {
 						refreshPatchAfterViewportChange(true);
