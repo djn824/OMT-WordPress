@@ -1,0 +1,764 @@
+<?php /* Template Name:Pitch detector New*/
+get_header();?>
+
+<style>
+	#audio-start {
+		width: max-content !important;
+	}
+	#audio-start div{
+		padding: 14px 20px;
+		background: #e25c1b;
+		border-radius: 10px;
+		color: #fff;
+		height: 50px;
+		font-size: 18px;
+		font-weight: 500;
+		margin: 0 10px;
+		display: flex;
+		align-items: center;
+		gap: 15px;
+	}
+
+	#audio-start div img {
+		width: auto;
+		height: auto;
+	}
+	#pitch-wheel {
+		direction: ltr;
+	}
+	tspan {
+		font-size: 24px;
+	}
+</style>
+
+<div id="pitch-detector">
+	<div id="pitch-wheel">
+		<div id="pitch-wheel-needle"></div>
+		<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" fill-rule="evenodd"
+			 clip-rule="evenodd" stroke-linecap="round" stroke-linejoin="round"
+			 stroke-miterlimit="1.5">
+			<g transform="matrix(.9629 0 0 .9629 19 19)">
+				<clipPath id="a">
+					<path d="M512 0c282.58 0 512 229.42 512 512 0 282.58-229.42 512-512 512C229.42 1024 0 794.58 0 512 0 229.42 229.42 0 512 0zm0 13.325c275.226 0 498.68 223.449 498.68 498.675S787.226 1010.68 512 1010.68 13.325 787.226 13.325 512 236.774 13.325 512 13.325z"/>
+				</clipPath>
+				<g clip-path="url(#a)">
+					<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+						  stroke-width="1.05"
+						  transform="matrix(.98791 .02653 -.02659 .99024 19.996 -15.785)"/>
+					<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+						  stroke-width="1.05"
+						  transform="matrix(.94738 .28131 -.28198 .94962 173.361 -125.14)"/>
+					<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+						  stroke-width="1.05"
+						  transform="matrix(.8423 .51693 -.51815 .84428 349.805 -191.077)"/>
+					<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+						  stroke-width="1.05"
+						  transform="matrix(.6798 .71731 -.719 .6814 537.3 -209.1)"/>
+					<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+						  stroke-width="1.05"
+						  transform="matrix(.47098 .86882 -.87087 .4721 723.074 -177.98)"/>
+					<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+						  stroke-width="1.05"
+						  transform="matrix(.23007 .96111 -.96338 .23061 894.461 -99.84)"/>
+					<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+						  stroke-width="1.05"
+						  transform="matrix(-.02653 .98791 -.99024 -.02659 1039.786 19.996)"/>
+					<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+						  stroke-width="1.05"
+						  transform="matrix(-.28131 .94738 -.94962 -.28198 1149.14 173.361)"/>
+					<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+						  stroke-width="1.05"
+						  transform="matrix(-.51693 .8423 -.84428 -.51815 1215.077 349.805)"/>
+					<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+						  stroke-width="1.05"
+						  transform="matrix(-.71731 .6798 -.6814 -.719 1233.101 537.3)"/>
+					<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+						  stroke-width="1.05"
+						  transform="matrix(-.86882 .47098 -.4721 -.87087 1201.984 723.074)"/>
+					<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+						  stroke-width="1.05"
+						  transform="matrix(-.96111 .23007 -.23061 -.96338 1123.845 894.461)"/>
+					<g>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.98692 .05168 -.0518 .98924 33.597 -28.144)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.93991 .30535 -.30607 .94213 189.697 -133.558)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.82885 .53821 -.53948 .83081 367.763 -194.98)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="rotate(47.998 511.682 519.94) scale(.98827 .9906)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.4487 .88053 -.88261 .44976 740.577 -172.381)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.20552 .96666 -.96894 .206 909.919 -89.901)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.05168 .98692 -.98924 -.0518 1052.145 33.597)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.30535 .93991 -.94213 -.30607 1157.556 189.697)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.53821 .82885 -.83081 -.53948 1218.98 367.763)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="rotate(137.997 509.457 514.348) scale(.98827 .9906)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.88053 .4487 -.44976 -.88261 1196.384 740.577)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.96666 .20552 -.206 -.96894 1113.906 909.92)"/>
+					</g>
+					<g>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="rotate(4.502 539.425 589.62) scale(.98827 .9906)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.93158 .32989 -.33067 .93378 206.737 -141.788)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.81446 .55976 -.56108 .81638 386.351 -198.518)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.64183 .75148 -.75326 .64334 574.528 -206.829)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.42546 .892 -.8941 .42646 758.445 -166.152)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.1801 .97172 -.97401 .18052 925.565 -79.26)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.07754 .98522 -.98755 -.07772 1064.504 47.926)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.32989 .93158 -.93378 -.33067 1165.786 206.736)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.55976 .81446 -.81638 -.56108 1222.518 386.351)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.75148 .64183 -.64334 -.75326 1230.83 574.528)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.892 .42546 -.42646 -.8941 1190.154 758.445)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.97172 .1801 -.18052 -.97401 1103.264 925.566)"/>
+					</g>
+					<g>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="rotate(6.002 531.81 570.497) scale(.98827 .9906)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.92263 .35416 -.355 .9248 223.955 -149.555)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.79952 .58089 -.58226 .80141 404.994 -201.564)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.62194 .76803 -.76984 .6234 593.324 -204.946)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.40196 .90283 -.90496 .40291 776.112 -159.468)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.1546 .9761 -.9784 .15496 940.901 -68.232)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.1033 .98285 -.98517 -.10355 1076.463 62.547)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.35416 .92263 -.9248 -.355 1173.553 223.955)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.58089 .79952 -.80141 -.58226 1225.565 404.993)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.76803 .62194 -.6234 -.76984 1228.947 593.323)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.90283 .40196 -.40291 -.90496 1183.472 776.112)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.9761 .1546 -.15496 -.9784 1092.237 940.901)"/>
+					</g>
+					<g>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.97981 .129 -.1293 .98213 77.477 -64.034)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.91304 .3782 -.37909 .9152 241.372 -156.868)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.78404 .60162 -.60304 .7859 423.71 -204.12)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="rotate(52.5 511.422 519.284) scale(.98827 .9906)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.3782 .91304 -.9152 .37909 793.599 -152.325)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.129 .97981 -.98213 .1293 955.943 -56.805)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.129 .97981 -.98213 -.1293 1088.035 77.477)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.3782 .91304 -.9152 -.37909 1180.867 241.371)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.60162 .78404 -.7859 -.60304 1228.121 423.709)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="rotate(142.5 509.404 514.215) scale(.98827 .9906)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.91304 .3782 -.37909 -.9152 1176.328 793.6)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.97981 .129 -.1293 -.98213 1080.81 955.943)"/>
+					</g>
+					<g>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.9761 .1546 -.15496 .9784 92.705 -75.21)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.90283 .40196 -.40291 .90496 258.973 -163.723)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.76803 .62194 -.6234 .76984 442.485 -206.187)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.58089 .79952 -.80141 .58226 630.734 -199.707)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.35416 .92263 -.9248 .355 810.892 -144.726)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.1033 .98285 -.98517 .10355 970.68 -44.99)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.1546 .9761 -.9784 -.15496 1099.211 92.705)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.40196 .90283 -.90496 -.40291 1187.721 258.972)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.62194 .76803 -.76984 -.6234 1230.186 442.485)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.79952 .58089 -.58226 -.80141 1223.708 630.734)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.92263 .35416 -.355 -.9248 1168.728 810.892)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.98285 .1033 -.10355 -.98517 1068.994 970.68)"/>
+					</g>
+					<g>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.97172 .1801 -.18052 .97401 108.22 -85.985)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.892 .42546 -.42646 .8941 276.748 -170.115)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.75148 .64183 -.64334 .75326 461.31 -207.76)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.55976 .81446 -.81638 .56108 649.324 -196.355)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.32989 .93158 -.93378 .33067 827.981 -136.676)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.07754 .98522 -.98755 .07772 985.104 -32.79)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.1801 .97172 -.97401 -.18052 1109.986 108.22)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.42546 .892 -.8941 -.42646 1194.113 276.749)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.64183 .75148 -.75326 -.64334 1231.76 461.31)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.81446 .55976 -.56108 -.81638 1220.356 649.325)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.93158 .32989 -.33067 -.93378 1160.679 827.982)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.98522 .07754 -.07772 -.98755 1056.796 985.105)"/>
+					</g>
+					<g>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.96667 .20547 -.20596 .96895 124.012 -96.35)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.88055 .44866 -.44972 .88263 294.685 -176.04)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.73443 .66128 -.66284 .73616 480.168 -208.84)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="rotate(57 511.199 518.726) scale(.98827 .9906)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.3054 .9399 -.94212 .30611 844.853 -128.182)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.05172 .98691 -.98924 .05184 999.203 -20.22)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.20547 .96667 -.96895 -.20596 1120.351 124.012)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.44866 .88055 -.88263 -.44972 1200.038 294.685)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.66128 .73443 -.73616 -.66284 1232.84 480.168)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="rotate(147 509.352 514.085) scale(.98827 .9906)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.9399 .3054 -.30611 -.94212 1152.185 844.854)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.98691 .05172 -.05184 -.98924 1044.225 999.204)"/>
+					</g>
+					<g>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="rotate(13.501 519.096 538.57) scale(.98827 .9906)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.8685 .47156 -.47267 .87056 312.77 -181.492)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.71686 .68028 -.68188 .71856 499.048 -209.426)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.51637 .84264 -.84463 .51759 686.209 -188.197)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.28068 .94757 -.9498 .28135 861.497 -119.25)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(.02587 .98793 -.99026 .02593 1012.968 -7.284)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.2307 .96096 -.96323 -.23125 1130.3 140.07)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.47156 .8685 -.87056 -.47267 1205.491 312.77)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.68028 .71686 -.71856 -.68188 1233.427 499.048)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.84264 .51637 -.51759 -.84463 1212.199 686.208)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.94757 .28068 -.28135 -.9498 1143.254 861.498)"/>
+						<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+							  stroke-width="1.05"
+							  transform="matrix(-.98793 .02587 -.02593 -.99026 1031.29 1012.969)"/>
+					</g>
+				</g>
+			</g>
+			<g transform="matrix(.9629 0 0 .9629 19 19)">
+				<clipPath id="b">
+					<path d="M512 0c282.58 0 512 229.42 512 512 0 282.58-229.42 512-512 512C229.42 1024 0 794.58 0 512 0 229.42 229.42 0 512 0zm0 19.09c272.045 0 492.91 220.865 492.91 492.91S784.045 1004.91 512 1004.91 19.09 784.045 19.09 512 239.955 19.09 512 19.09z"/>
+				</clipPath>
+				<g clip-path="url(#b)">
+					<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+						  stroke-width="3.15" transform="matrix(.98827 0 0 .9906 6.007 -2.39)"/>
+					<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+						  stroke-width="3.15"
+						  transform="matrix(.9546 .25578 -.25639 .95685 156.382 -115.822)"/>
+					<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+						  stroke-width="3.15"
+						  transform="matrix(.85586 .49413 -.4953 .85789 330.992 -186.47)"/>
+					<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+						  stroke-width="3.15"
+						  transform="rotate(45 511.883 520.445) scale(.98827 .9906)"/>
+					<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+						  stroke-width="3.15"
+						  transform="matrix(.49413 .85586 -.85789 .4953 704.478 -183.397)"/>
+					<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+						  stroke-width="3.15"
+						  transform="matrix(.25578 .9546 -.95685 .25639 877.901 -109.885)"/>
+					<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+						  stroke-width="3.15"
+						  transform="matrix(0 .98827 -.9906 0 1026.39 6.007)"/>
+					<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+						  stroke-width="3.15"
+						  transform="matrix(-.25578 .9546 -.95685 -.25639 1139.82 156.382)"/>
+					<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+						  stroke-width="3.15"
+						  transform="matrix(-.49413 .85586 -.85789 -.4953 1210.47 330.992)"/>
+					<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+						  stroke-width="3.15"
+						  transform="rotate(135 509.493 514.44) scale(.98827 .9906)"/>
+					<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+						  stroke-width="3.15"
+						  transform="matrix(-.85586 .49413 -.4953 -.85789 1207.4 704.478)"/>
+					<path d="M512 2.412V1036.13" fill="none" stroke="#436f8e"
+						  stroke-width="3.15"
+						  transform="matrix(-.9546 .25578 -.25639 -.95685 1133.89 877.901)"/>
+				</g>
+			</g>
+			<text x="506.714" y="65.588"
+				  font-family="'OpenSans-CondensedBold','Open Sans Condensed',sans-serif"
+				  font-weight="700" font-stretch="condensed" font-size="48" fill="#436f8e"
+				  transform="rotate(-15 601.218 451.802) scale(.96289)">B
+			</text>
+			<text x="493.003" y="65.588"
+				  font-family="'OpenSans-CondensedBold','Open Sans Condensed',sans-serif"
+				  font-weight="700" font-stretch="condensed" font-size="48" fill="#436f8e"
+				  transform="rotate(-30 553.068 472) scale(.96289)">A#
+			</text>
+			<text x="506.058" y="65.588"
+				  font-family="'OpenSans-CondensedBold','Open Sans Condensed',sans-serif"
+				  font-weight="700" font-stretch="condensed" font-size="48" fill="#436f8e"
+				  transform="rotate(-45 536.647 482.786) scale(.96289)">A <tspan>440Hz</tspan>
+			</text>
+			<text x="492.792" y="65.588"
+				  font-family="'OpenSans-CondensedBold','Open Sans Condensed',sans-serif"
+				  font-weight="700" font-stretch="condensed" font-size="48" fill="#436f8e"
+				  transform="rotate(-60 528.146 488.4) scale(.96289)">G#
+			</text>
+			<text x="505.847" y="65.588"
+				  font-family="'OpenSans-CondensedBold','Open Sans Condensed',sans-serif"
+				  font-weight="700" font-stretch="condensed" font-size="48" fill="#436f8e"
+				  transform="rotate(-75 522.802 490.348) scale(.96289)">G
+			</text>
+			<text x="496.003" y="65.588"
+				  font-family="'OpenSans-CondensedBold','Open Sans Condensed',sans-serif"
+				  font-weight="700" font-stretch="condensed" font-size="48" fill="#436f8e"
+				  transform="matrix(0 -.9629 .9629 0 25.408 1012.636)">F#
+			</text>
+			<text x="509.058" y="65.588"
+				  font-family="'OpenSans-CondensedBold','Open Sans Condensed',sans-serif"
+				  font-weight="700" font-stretch="condensed" font-size="48" fill="#436f8e"
+				  transform="rotate(-105 516.124 494.863) scale(.96289)">F
+			</text>
+			<text x="508.659" y="65.588"
+				  font-family="'OpenSans-CondensedBold','Open Sans Condensed',sans-serif"
+				  font-weight="700" font-stretch="condensed" font-size="48" fill="#436f8e"
+				  transform="rotate(-120 513.756 495.824) scale(.96289)">E
+			</text>
+			<text x="492.429" y="65.588"
+				  font-family="'OpenSans-CondensedBold','Open Sans Condensed',sans-serif"
+				  font-weight="700" font-stretch="condensed" font-size="48" fill="#436f8e"
+				  transform="rotate(-135 511.724 497.086) scale(.96289)">D#
+			</text>
+			<text x="505.484" y="65.588"
+				  font-family="'OpenSans-CondensedBold','Open Sans Condensed',sans-serif"
+				  font-weight="700" font-stretch="condensed" font-size="48" fill="#436f8e"
+				  transform="rotate(-150 509.9 497.815) scale(.96289)">D
+			</text>
+			<text x="494.714" y="65.588"
+				  font-family="'OpenSans-CondensedBold','Open Sans Condensed',sans-serif"
+				  font-weight="700" font-stretch="condensed" font-size="48" fill="#436f8e"
+				  transform="rotate(-165 508.202 498.69) scale(.96289)">C#
+			</text>
+			<text x="507.769" y="65.588"
+				  font-family="'OpenSans-CondensedBold','Open Sans Condensed',sans-serif"
+				  font-weight="700" font-stretch="condensed" font-size="48" fill="#436f8e"
+				  transform="rotate(-180 506.563 499.539) scale(.96289)">C
+			</text>
+			<text x="506.714" y="65.588"
+				  font-family="'OpenSans-CondensedBold','Open Sans Condensed',sans-serif"
+				  font-weight="700" font-stretch="condensed" font-size="48" fill="#436f8e"
+				  transform="rotate(165 504.562 500.319) scale(.96289)">B
+			</text>
+			<text x="493.003" y="65.588"
+				  font-family="'OpenSans-CondensedBold','Open Sans Condensed',sans-serif"
+				  font-weight="700" font-stretch="condensed" font-size="48" fill="#436f8e"
+				  transform="rotate(150 501.766 501.126) scale(.96289)">A#
+			</text>
+			<text x="506.058" y="65.588"
+				  font-family="'OpenSans-CondensedBold','Open Sans Condensed',sans-serif"
+				  font-weight="700" font-stretch="condensed" font-size="48" fill="#436f8e"
+				  transform="rotate(135 500.384 501.992) scale(.96289)">A
+			</text>
+			<text x="492.792" y="65.588"
+				  font-family="'OpenSans-CondensedBold','Open Sans Condensed',sans-serif"
+				  font-weight="700" font-stretch="condensed" font-size="48" fill="#436f8e"
+				  transform="rotate(120 498.86 502.96) scale(.96289)">G#
+			</text>
+			<text x="505.847" y="65.588"
+				  font-family="'OpenSans-CondensedBold','Open Sans Condensed',sans-serif"
+				  font-weight="700" font-stretch="condensed" font-size="48" fill="#436f8e"
+				  transform="rotate(105 495.871 504.084) scale(.96289)">G
+			</text>
+			<text x="496.003" y="65.588"
+				  font-family="'OpenSans-CondensedBold','Open Sans Condensed',sans-serif"
+				  font-weight="700" font-stretch="condensed" font-size="48" fill="#436f8e"
+				  transform="matrix(0 .9629 -.9629 0 999.56 11.361)">F#
+			</text>
+			<text x="509.058" y="65.588"
+				  font-family="'OpenSans-CondensedBold','Open Sans Condensed',sans-serif"
+				  font-weight="700" font-stretch="condensed" font-size="48" fill="#436f8e"
+				  transform="rotate(75 490.152 507.259) scale(.96289)">F
+			</text>
+			<text x="508.659" y="65.588"
+				  font-family="'OpenSans-CondensedBold','Open Sans Condensed',sans-serif"
+				  font-weight="700" font-stretch="condensed" font-size="48" fill="#436f8e"
+				  transform="rotate(60 484.47 509.799) scale(.96289)">E
+			</text>
+			<text x="492.429" y="65.588"
+				  font-family="'OpenSans-CondensedBold','Open Sans Condensed',sans-serif"
+				  font-weight="700" font-stretch="condensed" font-size="48" fill="#436f8e"
+				  transform="rotate(45 476.476 513.84) scale(.96289)">D#
+			</text>
+			<text x="505.484" y="65.588"
+				  font-family="'OpenSans-CondensedBold','Open Sans Condensed',sans-serif"
+				  font-weight="700" font-stretch="condensed" font-size="48" fill="#436f8e"
+				  transform="rotate(30 459.547 521.646) scale(.96289)">D
+			</text>
+			<text x="494.714" y="65.588"
+				  font-family="'OpenSans-CondensedBold','Open Sans Condensed',sans-serif"
+				  font-weight="700" font-stretch="condensed" font-size="48" fill="#436f8e"
+				  transform="rotate(15 411.4 544.534) scale(.96289)">C#
+			</text>
+			<text x="507.769" y="65.588"
+				  font-family="'OpenSans-CondensedBold','Open Sans Condensed',sans-serif"
+				  font-weight="700" font-stretch="condensed" font-size="48" fill="#436f8e"
+				  transform="matrix(.9629 0 0 .9629 11.847 24.923)">C
+			</text>
+		</svg>
+	</div>
+	<div id="pitch-freq">
+		<div id="pitch-audio-start">
+			<button id="audio-pause" class="audio-button">
+				<div class="shockwave"></div>
+				<img src="<?= get_template_directory_uri();?>/assets/image/pitch-detector/pause.svg" alt="Pause Audio"/></button>
+			<button id="audio-start" class="audio-button">
+				<div>
+					<img src="<?php echo get_stylesheet_directory_uri();?>/../../uploads/2023/10/play-1.svg">
+					<span style="color:white"><?= get_field('start_test_title') ?></span>
+				</div>
+			</button>
+			<div id="pitch-freq-text">
+				<div><span class="note" style="color:#e25c1b">C</span><sub class="octave"
+																		   style="color:#e25c1b">3</sub>
+				</div>
+				<div><span class="freq"></span> <span class="unit" style="opacity:.67">Hz</span>
+				</div>
+			</div>
+			<div class="audio-block-2">
+				<div>
+					<h3><strong><?= get_field('privacy_title') ?></strong></h3>
+					<p><strong><?= get_field('privacy_description') ?></strong></p>
+				</div>
+			</div>
+		</div>
+	</div>
+	<link rel="stylesheet" href="<?= get_template_directory_uri();?>/assets/css/pitch-detector/style.css">
+	<script src="<?= get_template_directory_uri();?>/assets/js/pitch-detector/vendor/aubiojs/build/aubio.js"></script>
+	<script src="<?= get_stylesheet_directory_uri();?>/assets/js/pitch-detector/index.js"></script>
+</div>
+<div class="wid-sm-100 wid-xs-100">
+	<div class="ct-row mar-bot-15 dis-flex">
+		<img class="tve_image" alt="" style="width: 64px;" src="<?php the_field('mouse_icon');?>" width="64" height="64">
+		<div class="webcam-1-text_">
+			<div class="icon-text-1">
+				<h3 class="ct-bold-text"><?php the_field('get_easily_started_title');?></h3>
+			</div>
+		</div>
+	</div>
+	<div class="ct-row">
+		<div class="new-webcam-desc">
+			<ul>
+				<?php
+
+				// check if the repeater field has rows of data
+				if( have_rows('get_easily_started_steps') ):
+
+				// loop through the rows of data
+				while ( have_rows('get_easily_started_steps') ) : the_row();?>
+				<li>
+					<span><?php the_sub_field('numbers');?></span>
+					<div>
+						<strong><?php the_sub_field('title');?></strong>
+					</div>
+				</li>
+				<?php endwhile;
+				else :
+				endif;
+				?>
+			</ul>
+		</div>
+	</div>
+</div>
+
+<div class="wid-sm-100 wid-xs-100">
+	<div class="ct-row mar-bot-15 dis-flex">
+		<img class="tve_image" alt="" style="width: 64px;" src="<?php the_field('red_mouse_icon');?>" width="64" height="64">
+		<div class="webcam-1-text_">
+			<div class="icon-text-1">
+				<h3 class="ct-bold-text" style="color: rgb(226, 92, 27)"><?php the_field('trouble-shooting_title');?></h3>
+			</div>
+		</div>
+	</div>
+
+	<div class="trouble-shooting-2 dis-flex">
+		<div class="width-33_3 wid-md-50 wid-xs-100">
+			<div class="trouble-shooting-text-1 pd-1">
+				<ul>
+					<?php
+
+					// check if the repeater field has rows of data
+					if( have_rows('leftside_guide_list') ):
+
+					// loop through the rows of data
+					while ( have_rows('leftside_guide_list') ) : the_row();?>
+					<li>
+						<span class="fw-bold color-link">
+							<?php the_sub_field('left_side_list_title');?>
+						</span>
+					</li>
+
+					<?php endwhile;
+					else :
+					endif;
+					?>
+				</ul>
+			</div>
+
+			<div align="center">
+				<style>
+					.OMT_MOINSBD_Middle { width: 300px; height: 250px; }
+					@media(min-width: 500px) { .OMT_MOINSBD_Middle { width: 300px; height: 250px; } }
+					@media(min-width: 800px) { .OMT_MOINSBD_Middle { width: 300px; height: 250px; } }
+				</style>
+			</div>
+
+		</div>
+		<?php
+		$right_side_guide_list = get_field('rightside_guide_list');
+		if ($right_side_guide_list) { ?>
+		<div class="width-33_3 wid-md-50  wid-xs-100">
+			<div class="trouble-shooting-text-1 pd-1">
+				<ul>
+					<li>
+						<span class="fw-bold">
+							<?= $right_side_guide_list ?>
+						</span>
+					</li>
+				</ul>
+			</div>
+		</div>
+		<?php
+									} ?>
+		<div class="width-33_3 md-hidden">
+		</div>
+	</div>
+</div>
+
+<div class="other-section">
+	<div class="ct-row mic-settings-title">
+		<span><?php the_field('links_title');?></span>
+	</div>
+	<div class="mic-settings-section">
+		<div class="mic-settings-menu width-50 wid-md-100">
+			<ul>
+				<?php
+
+				// check if the repeater field has rows of data
+				if( have_rows('links_table') ):
+
+				// loop through the rows of data
+				while ( have_rows('links_table') ) : the_row();?>
+				<li class="dis-flex">
+
+					<div class="webcam-icon">
+
+						<img class="tve_image" alt=""  src="<?php the_field('mouse_icon');?>" data-attachment-id="8509" width="24" height="24" style="margin-right: 10px;">
+
+					</div>
+					<div>
+						<a href="<?php the_sub_field('url');?>">
+							<?php the_sub_field('link_name');?></a>
+					</div>
+
+				</li>
+				<?php endwhile;
+				else :
+				endif;
+				?>
+			</ul>
+		</div>
+	</div>
+	<div class="read-more-section">
+		<div class="ct-row dis-flex">
+			<div class="width-50 wid-xs-100">
+				<div class="read-more-text-secction">
+					<div class="read-more-title clearfix" >
+						<h2><strong><?php the_field('more_about_title');?></strong></h2>
+					</div>
+					<?php
+
+					// check if the repeater field has rows of data
+					if( have_rows('test_content') ):
+
+					// loop through the rows of data
+					while ( have_rows('test_content') ) : the_row();?>
+					<div class="read-more-1">
+
+
+						<div class="read-more-subtitle clearfix">
+							<h3 class="mar-bot-20"><?php the_sub_field('heading');?></h3>
+						</div>
+
+						<div class="read-more-text">
+							<p><?php the_sub_field('descp');?>
+							</p>
+						</div>
+					</div>
+					<?php endwhile;
+					else :
+					endif;
+					?>
+				</div>
+			</div>
+
+			<div class="width-50">
+				<div class="img-section pad-left-15">
+					<img class="lazyload" src="<?php the_field('rightside_lazy_gif');?>" data-src="<?php the_field('rightside_image');?>"/>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+</div>
+
+</div>
+
+</article>
+
+</div>
+
+</div>
+<?php get_footer();

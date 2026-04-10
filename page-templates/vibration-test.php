@@ -1,0 +1,1262 @@
+<?php
+/* Template Name:Vibration Tester*/
+get_header();?>
+<style media="screen">
+@media all and (max-width: 1024px) {
+    #sAs-menu-responsive span {
+        background-image: url(<?php echo get_stylesheet_directory_uri();
+        ?>/assets/images/toggle.png);
+        background-repeat: no-repeat;
+        background-size: contain;
+        display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+}
+
+.style-heading {
+    font-family: Raleway;
+    font-weight: bold;
+    font-size: 18px;
+    color: #E35D26;
+    align-self: center;
+}
+
+.five-mins {
+    /* 		font-family: Raleway; */
+    font-size: 16px;
+    font-weight: bold;
+    color: #4A6B8A;
+    margin-right: -15px;
+    /* RTL-friendly margin */
+    /* 		margin-inline-end: -15px; */
+}
+
+.style-unlimited-label {
+    font-family: Raleway;
+    font-weight: bold;
+    font-size: 18px;
+    color: #688CA4;
+    align-items: center;
+}
+
+.style-btn-label {
+    font-family: Raleway;
+    font-weight: semi-bold;
+    font-size: 15px;
+    color: #688CA4;
+    /* 		padding-top: 10px; */
+    /* RTL-friendly text alignment */
+    text-align: start;
+}
+
+.custom-slider-label {
+    font-family: Raleway;
+    font-weight: bold;
+    font-size: 14px;
+    color: #426F8D;
+    align-self: center;
+}
+
+.custom-slider {
+    margin-top: -1rem;
+}
+
+.slider-container {
+    position: relative;
+    width: 100%;
+    /*             max-width: 600px;
+            margin: 50px auto; */
+    /*             padding: 0 20px; */
+}
+
+.slider {
+    -webkit-appearance: none;
+    /* 		 appearance: none; */
+    width: 100%;
+    height: 9px;
+    background: #F3631D80;
+    border-color: transparent;
+    border-radius: 100px;
+    outline: none;
+    box-shadow: -4px -4px 6px rgba(255, 255, 255, 0.5), 4px 4px 6px rgba(226, 92, 27, 0.2), inset 0px 4px 6px rgba(226, 92, 27, 0.5);
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 1px;
+    height: 1px;
+    /* 		 border-radius: 12px; */
+    /* 		 border-color: #426F8D; */
+    /* 		 border: 4px solid #426F8D; */
+    /* 		 box-shadow: 0px 0px 30px rgba(0, 0, 0, 0.2); */
+    /* 		 background: #426F8D; */
+    background: transparent;
+    /* 		 color: #EEEEEE; */
+    /* 		 font-size: 15px; */
+    cursor: pointer;
+}
+
+.slider-thumb {
+    position: absolute;
+    width: 45px;
+    height: 23px;
+    background: #4A6B8A;
+    border-radius: 12px;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #EEEEEE;
+    font-family: Raleway;
+    font-size: 15px;
+    font-weight: semi-bold;
+    user-select: none;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    z-index: 2;
+}
+
+/* RTL-specific slider fixes */
+[dir="rtl"] .slider {
+    direction: rtl;
+}
+
+[dir="rtl"] .slider-thumb {
+    direction: ltr;
+}
+
+[dir="rtl"] .slider-thumb {
+    transform: scaleX(-1) translate(50%, -50%);
+}
+
+.pattern-item {
+    width: 88px;
+}
+
+.pattern-cursor {
+    cursor: pointer;
+    user-select: none;
+}
+
+/* Fix pattern item containers */
+.pattern-item-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+/* Ensure pattern items are centered */
+#continuous,
+#start-stop,
+#custom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.note-message {
+    display: none;
+    padding: 10px;
+    background-color: #E35D26;
+    color: #EEEEEE;
+    border: 1px solid #E35D26;
+    border-radius: 2px;
+    font-family: Raleway;
+    font-weight: bold;
+    font-size: 18px;
+}
+	
+.iphone-warning-box {
+    display: none;
+    padding: 10px;
+    background-color: #4A6B8A;
+    color: #EEEEEE;
+    border: 1px solid #4A6B8A;
+    border-radius: 2px;
+    font-family: Raleway;
+    font-weight: bold;
+    font-size: 18px;
+	margin-top: 10px;
+}	
+
+[dir="rtl"] .note-message {
+    text-align: right;
+    direction: rtl;
+}
+	
+[dir="rtl"] .iphone-warning-box {
+    background: #4A6B8A;
+    direction: rtl;
+}
+
+.image-container {
+    position: relative;
+    display: inline-block;
+    /* 		margin-top: -2vh;
+		margin-bottom: 2vh; */
+}
+
+.image-container img {
+    display: block;
+}
+
+.phone-btn-style {
+    position: absolute;
+    top: 55%;
+    left: 50%;
+    transform: translate(-50%, -55%);
+    width: 20%;
+}
+
+.phone-text {
+    font-weight: semi-bold;
+    font-size: 16px;
+    color: #FFFFFF;
+    font-style: Raleway;
+    text-align: center;
+}
+
+.phone-style {
+    position: relative;
+    left: 50%;
+    transform: translate(-50%, 0%);
+}
+
+.tool-title {
+    font-family: Open Sans Condensed;
+    font-weight: bold;
+    font-size: 29px;
+    color: #E35D26;
+}
+
+.all-options {
+    width: 103px;
+}
+
+.vector {
+    width: 30%;
+    align-items: center;
+    justify-content: center;
+}
+
+.phone {
+    width: 40%
+}
+
+/* 	.vectorL-Sliding {
+  		position: absolute;
+  		-webkit-animation: slideL 2s linear infinite; 
+         		animation: slideL 2s linear infinite;
+	}
+	
+	.vectorR-Sliding {
+  		position: absolute;
+  		-webkit-animation: slideR 2s linear infinite; 
+         animation: slideR 2s linear infinite;
+	}
+
+	.delay1 {
+  		-webkit-animation-delay: 1s; 
+    	  animation-delay: 1s;
+	}
+	
+	@-webkit-keyframes slideL {
+    	0% { opacity:0; transform: translateX(-100%); width: 1%;}  
+   		25% { opacity:1; transform: translateX(-50%); width: 2%; } 
+		50% { opacity:1; transform: translateX(0%); width: 14%; } 
+   		75% { opacity:1; transform: translateX(50%); width: 16%; }  
+  		100% { opacity:0; transform: translateX(100%); width: 18%; } 
+	}
+
+	@keyframes slideL {
+    	0% { opacity:0; transform: translateX(-100%); width: 2%;}  
+   		25% { opacity:1; transform: translateX(-50%); width: 4%; } 
+		50% { opacity:1; transform: translateX(0%); width: 6%; } 
+   		75% { opacity:1; transform: translateX(50%); width: 8%; }  
+  		100% { opacity:0; transform: translateX(100%); width: 10%; } 
+	}
+	
+	@-webkit-keyframes slideR {
+    	0% { opacity:0; transform: translateX(100%); width: 1%;}  
+   		25% { opacity:1; transform: translateX(50%); width: 2%; } 
+		50% { opacity:1; transform: translateX(0%); width: 14%; } 
+   		75% { opacity:1; transform: translateX(-50%); width: 16%; }  
+  		100% { opacity:0; transform: translateX(-100%); width: 18%; } 
+	}
+
+	@keyframes slideR {
+    	0% { opacity:0; transform: translateX(100%); width: 2%;}  
+   		25% { opacity:1; transform: translateX(50%); width: 4%; } 
+		50% { opacity:1; transform: translateX(0%); width: 6%; } 
+   		75% { opacity:1; transform: translateX(-50%); width: 8%; }  
+  		100% { opacity:0; transform: translateX(-100%); width: 10%; } 
+	} */
+
+#custom-title-group,
+#custom-slider-group,
+#testing-phone,
+#five-mins {
+    /* 	#vector-L2,
+	#vector-R2{ */
+    /* 	#phone-bg{ */
+    display: none;
+}
+
+/* RTL-specific styles */
+[dir="rtl"] .five-mins {
+    margin-inline-end: 0;
+    margin-inline-start: -15px;
+}
+
+/* RTL-friendly flexbox alignment */
+[dir="rtl"] .d-flex.justify-content-between {
+    flex-direction: row-reverse;
+}
+
+[dir="rtl"] .d-flex.align-items-start.justify-content-end {
+    justify-content: start;
+}
+
+/* RTL pattern items alignment */
+[dir="rtl"] .pattern-item {
+    text-align: center;
+}
+
+[dir="rtl"] .style-btn-label {
+    text-align: center;
+}
+
+[dir="rtl"] #pattern-group {
+    direction: rtl;
+    /* Keep the grid layout LTR */
+}
+
+[dir="rtl"] #pattern-group .col-4,
+[dir="rtl"] #pattern-group .col-8,
+[dir="rtl"] #pattern-group .col-sm-3,
+[dir="rtl"] #pattern-group .col-sm-9,
+[dir="rtl"] #pattern-group .col-md-2,
+[dir="rtl"] #pattern-group .col-md-10,
+[dir="rtl"] #pattern-group .col-lg-3,
+[dir="rtl"] #pattern-group .col-lg-9,
+[dir="rtl"] #pattern-group .col-xl-2,
+[dir="rtl"] #pattern-group .col-xl-10 {
+    direction: rtl;
+    /* But keep the content RTL */
+}
+
+/* Ensure pattern items are properly centered in RTL */
+[dir="rtl"] #continuous,
+[dir="rtl"] #start-stop,
+[dir="rtl"] #custom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+/* RTL phone container adjustments */
+[dir="rtl"] .phone-container {
+    flex-direction: row;
+}
+
+[dir="rtl"] .phone-container .col-12.col-lg-7 {
+    order: 2;
+}
+
+[dir="rtl"] .phone-container .col-6.col-lg-5,
+[dir="rtl"] .phone-container .col-12.col-lg-5 {
+    order: 1;
+}
+
+.d-flex.align-items-center.justify-content-between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* RTL-specific fix */
+[dir="rtl"] .d-flex.align-items-center.justify-content-between {
+    flex-direction: row-reverse;
+}
+
+/* Alternative approach - more specific targeting */
+[dir="rtl"] .d-flex.justify-content-between {
+    flex-direction: row-reverse;
+}
+
+/* If you want to be even more specific to avoid affecting other elements */
+[dir="rtl"] .d-flex.align-items-center.justify-content-between .style-heading {
+    order: 2;
+}
+
+[dir="rtl"] .d-flex.align-items-center.justify-content-between .d-flex.align-items-start {
+    order: 1;
+}
+
+@media all and (max-width: 991px) {
+    .phone-container {
+        flex-direction: column-reverse;
+    }
+
+    .image-container {
+        margin-top: -2vh;
+        margin-bottom: 2vh;
+    }
+
+    [dir="rtl"] #phone-bg,
+    [dir="rtl"] #testing-phone {
+        position: relative !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        width: 100% !important;
+        order: unset !important;
+    }
+}
+
+@media all and (min-width: 992px) {
+    .phone-btn-style {
+        width: 25%;
+    }
+
+    .phone-style {
+        height: 38vh;
+    }
+}
+
+@media all and (min-width: 601px) and (max-width: 991px) {
+    .phone-btn-style {
+        width: 14%;
+    }
+}
+</style>
+
+
+<style>
+.container-fluid {
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+/* Popup */
+.iphone-vib-notice {
+    color: #E35D26;
+    position: absolute;
+    top: 50%;
+    left: -45%;
+    width: 90vw;
+    padding: 18px 14px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.75);
+    /* backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px); */
+
+    /* ⚠️ Emoji background */
+    background-image: url("data:image/svg+xml;utf8,\<svg xmlns='http://www.w3.org/2000/svg' width='180' height='200'><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='140' opacity='0.25'>⚠️</text></svg>");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 140px;
+    box-shadow: 3px 5px 7px 5px rgba(0, 0, 0, 0.5);
+    display: none;
+    animation: fadeIn 1.25s ease-out forwards;
+    text-align: left;
+    margin-bottom: 10px;
+    line-height: 1;
+}
+
+.font-bold {
+    font-weight: 600;
+}
+
+
+.iphone-vib-notice p,
+.iphone-vib-notice li,
+.iphone-vib-notice h3 {
+    /* letter-spacing: 1px; */
+    text-align: left;
+}
+
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+        transform: translate(0%, -50%) scale(0.92);
+    }
+
+    60% {
+        opacity: 1;
+        transform: translate(0%, -50%) scale(1.02);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translate(0%, -50%) scale(1);
+    }
+}
+
+/* Typography */
+.iphone-vib-notice h3 {
+    color: #E35D26;
+    font-size: 17px;
+    margin-bottom: 0;
+    font-weight: 700;
+}
+
+.iphone-vib-notice p {
+    font-size: 15px;
+    margin: 2px 0;
+}
+
+.iphone-vib-notice ul {
+    margin: 0 0 0 20px;
+}
+
+.iphone-vib-notice li {
+    font-size: 15px;
+    margin-bottom: 0;
+}
+
+/* Responsive Enhancements */
+@media (max-width: 500px) {
+    .iphone-vib-notice {
+        padding: 16px 12px;
+    }
+
+    .iphone-vib-notice h3 {
+        font-size: 17px;
+    }
+}
+</style>
+
+<div class="container-fluid toon-container">
+
+    <div class="row d-flex phone-container justify-content-between align-items-center">
+        <div class="col-12 col-lg-7 col-xl-7 col-xxl-7">
+            <div class="align-items-center">
+                <div class="d-flex align-items-center justify-content-between">
+                    <!-- 					<p class="style-heading"><?php the_field('test_time_label');?></p> -->
+                    <h5 class="style-heading"><?php the_field('test_time_label');?></h5>
+                    <div class="d-flex align-items-start justify-content-end">
+                        <p class="five-mins" id="five-mins"><?php the_field('five_mins_label');?></p>
+                        <!-- 						<img class="img-fluid pt-1 skip-lazy" src="<?=get_stylesheet_directory_uri();?>/assets/images/unlimited1.png" alt="" id="unlimited"> -->
+                    </div>
+                </div>
+                <div class="w-full slider-container">
+                    <input type="range" min="1" max="300" value="5" step="0.1" class="slider" id="time-range">
+                    <div id="time-range-thumb" class="slider-thumb">5s</div>
+                </div>
+            </div>
+            <br />
+            <div>
+                <h5 class="style-heading" id="vibration-pattern"><?php the_field('vibration_pattern_label');?></h5>
+                <div class="dis-flex align-items-center justify-content-between" id="custom-title-group">
+                    <h5 class="style-heading"><?php the_field('custom_pattern_label');?></h5>
+                    <img class="img-fluid all-options skip-lazy pattern-cursor"
+                        src="<?=get_stylesheet_directory_uri();?>/assets/images/AllOptions.svg" id="all-options" alt="">
+                </div>
+                <div class="row" id="pattern-group">
+                    <div class="col-4 col-sm-3 col-md-2 col-lg-3 col-xl-2 d-flex-column pattern-item text-left"
+                        id="continuous">
+                        <img class="pattern-item img-fluid skip-lazy pattern-cursor"
+                            src="<?=get_stylesheet_directory_uri();?>/assets/images/Continuous2.svg" alt="">
+                        <p class="style-btn-label px-2 pattern-cursor"><?php the_field('continuous_label');?></p>
+                    </div>
+                    <div class="col-4 col-sm-3 col-md-2 col-lg-3 col-xl-2 align-items-center" id="start-stop">
+                        <img class="pattern-item img-fluid skip-lazy pattern-cursor"
+                            src="<?=get_stylesheet_directory_uri();?>/assets/images/Start-Stop1.svg" alt="">
+                        <p class="style-btn-label px-2 pattern-cursor"><?php the_field('start_stop_label');?></p>
+                    </div>
+                    <div class="col-8 col-sm-9 col-md-10 col-lg-9 col-xl-10" id="custom-slider-group">
+                        <p class="style-heading custom-slider-label"><?php the_field('vibration_label');?></p>
+                        <div class="w-full custom-slider slider-container">
+                            <input type="range" min="0.2" max="10" value="3" step="0.1" class="slider"
+                                id="vibration-range">
+                            <div id="vibration-range-thumb" class="slider-thumb">3s</div>
+                        </div>
+                        <p class="style-heading custom-slider-label pt-1"><?php the_field('stop_label');?></p>
+                        <div class="w-full custom-slider slider-container">
+                            <input type="range" min="0.2" max="10" value="2" step="0.1" class="slider" id="stop-range">
+                            <div id="stop-range-thumb" class="slider-thumb">2s</div>
+                        </div>
+                    </div>
+                    <div class="col-4 col-sm-3 col-md-2 col-lg-3 col-xl-2" id="custom">
+                        <div>
+                            <img class="pattern-item img-fluid skip-lazy pattern-cursor"
+                                src="<?=get_stylesheet_directory_uri();?>/assets/images/Custom1.svg" alt="">
+                            <div class="style-btn-label px-2 pattern-cursor" id="custom-label">
+                                &nbsp;<?php the_field('custom_label');?></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <br />
+            <div class="note-message d-none d-lg-block d-xl-block">
+                <?php the_field('note');?>
+            </div>
+			<div class="iphone-warning-box d-none d-lg-block d-xl-block">
+                <?php the_field('iphone_warning_box');?>
+            </div>
+        </div>
+
+        <div class="col-6 col-lg-5 col-xl-5 col-xxl-5 text-center align-items-center image-container" id="phone-bg">
+            <div class="iphone-vib-notice col-md-12" role="alert">
+                <?php the_field('vibration_not_supported');?>
+            </div>
+            <div class="justify-content-center d-flex">
+                <img class="img-fluid skip-lazy" src="<?=get_stylesheet_directory_uri();?>/assets/images/StartPhone.svg"
+                    alt="" id="stop-phone">
+            </div>
+            <div class="phone-btn-style flex-column justify-content-center">
+                <center><img class="img-fluid skip-lazy"
+                        src="<?=get_stylesheet_directory_uri();?>/assets/images/Play.svg" alt="" id="start-btn">
+                </center>
+                <p class="phone-text" id="start-label">
+                    <?php the_field('start_phone_label');?></p>
+            </div>
+        </div>
+        <div class="col-12 col-lg-5 col-xl-5 col-xxl-5 text-center align-items-center image-container"
+            id="testing-phone">
+            <div class="justify-content-center d-flex">
+                <!-- 				<div class="vector d-flex">
+					<img class="img-fluid skip-lazy vectorL-Sliding" src="<?=get_stylesheet_directory_uri();?>/assets/images/VectorL.svg" alt="">
+					<img class="img-fluid skip-lazy vectorL-Sliding" src="<?=get_stylesheet_directory_uri();?>/assets/images/VectorL.svg" alt="" id="vector-L2">
+				</div> -->
+                <img class="img-fluid skip-lazy"
+                    src="<?=get_stylesheet_directory_uri();?>/assets/images/vibrationPhone.gif" alt=""
+                    id="vibration-phone">
+                <!-- 				<div class="vector d-flex">
+					<img class="img-fluid skip-lazy vectorR-Sliding" src="<?=get_stylesheet_directory_uri();?>/assets/images/VectorR.svg" alt="">
+					<img class="img-fluid skip-lazy vectorR-Sliding" src="<?=get_stylesheet_directory_uri();?>/assets/images/VectorR.svg" alt="" id="vector-R2">
+				</div> -->
+            </div>
+            <div class="phone-btn-style flex-column justify-content-center">
+                <center><img class="img-fluid skip-lazy"
+                        src="<?=get_stylesheet_directory_uri();?>/assets/images/Stop.svg" alt="" id="stop-btn"></center>
+                <p class="phone-text d-flex justify-content-center" id="stop-label">
+                    <?php the_field('testing_phone_label');?></p>
+            </div>
+        </div>
+    </div>
+    <br />
+    <div class="row d-flex phone-container justify-content-between align-items-center">
+        <div class="col-12 col-lg-7 col-xl-8">
+            <div class="align-items-center">
+                <p class="tool-title"><?php the_field('tool_title');?></p>
+            </div>
+            <p class="fs-16 d-flex justify-content-between">
+                <?php the_field('tool_dec');?>
+            </p>
+        </div>
+    </div>
+    <div class="read-more-section">
+        <div class="ct-row dis-flex">
+            <div class="width-50 wid-xs-100">
+                <div class="read-more-text-secction">
+                    <div class="read-more-title clearfix">
+                        <h2><strong><?php the_field('more_about_title');?></strong></h2>
+                    </div>
+                    <?php
+
+					if( have_rows('test_content') ):
+
+					while ( have_rows('test_content') ) : the_row();?>
+                    <div class="read-more-1">
+
+
+                        <div class="read-more-subtitle clearfix">
+                            <h3 class="mar-bot-20"><?php the_sub_field('heading');?></h3>
+                        </div>
+
+                        <div class="read-more-text">
+                            <p><?php the_sub_field('descp');?>
+                            </p>
+                        </div>
+                    </div>
+                    <?php endwhile;
+					else :
+					endif;
+					?>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+</div>
+</div>
+</article>
+</div>
+</div>
+
+
+<script>
+(function() {
+    let url = window.location.pathname;
+    let direction = url.toLowerCase().includes("/ar") ? 'left' : 'right';
+    let isRTL = url.toLowerCase().includes("/ar") || document.dir === 'rtl' || document.documentElement.dir ===
+        'rtl';
+    let isTesting = false;
+    let stopTimer;
+
+    var a = function() {};
+    a__name__ = !0;
+    a.main = function() {
+
+        // const platform types
+        const platFormType = {
+            ios: "iOS Device",
+            android: "Android Device",
+            windows: "Windows",
+            mac: "Mac OS",
+            linux: "Linux OS",
+            unknown: "Unknown OS"
+        };
+
+        // Detect platform function (iOS, Android, Windows, Mac, or Linux)
+        function getPlatform() {
+            const platform = navigator.platform.toLowerCase();
+            console.log("platform: " + platform);
+            if (/iphone|ipod|ipad/.test(platform)) return platFormType.ios; // iPhone, iPad, or iPod
+            if (/android/.test(platform)) return platFormType.android; // Android               
+            if (/windows/.test(platform)) return platFormType.windows; // Windows OS               
+            if (/mac/.test(platform)) return platFormType.mac; // macOS               
+            if (/linux/.test(platform)) return platFormType.linux; // Linux       
+            return platFormType.unknown; // Unknown platform
+        }
+
+        // is Vibration API supported
+        function isVibrationSupported() {
+            return "vibrate" in navigator;
+        }
+
+        // Vibration Tester
+        function onVibrate(vibrationPattern) {
+            if (isVibrationSupported()) {
+                console.log("Vibration is supported on this device: " + getPlatform());
+                return navigator.vibrate(vibrationPattern);
+            } else {
+                console.log("Vibration is NOT supported on this device: " + getPlatform());
+                if (navigator.haptic) {
+                    // For iOS 13 and later, with Haptic feedback API
+                    const haptic = navigator.haptic;
+
+                    // Light, medium, and heavy feedback
+                    haptic.selection(); // Light vibration (selection feedback)
+                    haptic.impact('medium'); // Impact feedback (medium) - 'light', 'medium', 'heavy'.
+                    haptic.notification(
+                        'success'); // Notification feedback (success) - 'success', 'warning', 'error'.
+                } else {
+                    console.log("Haptic Feedback API is not supported on this device");
+                }
+            }
+        }
+
+        function onStop() {
+            // 				const v1 = onVibrate(0);
+            // 				const v2 = onVibrate([]);
+            onVibrate(1);
+            clearTimeout(stopTimer);
+            // 				console.log(v1);
+            // 				console.log(v2);
+            a.testingPhone.style.display = "none";
+            a.phoneBG.style.display = "block";
+            // 				document.getElementById("vector-L2").style.display = "none";
+            // 				document.getElementById("vector-R2").style.display = "none";
+        }
+
+        let vibrationPattern = "continuous";
+        // 			let unlimited = false;
+
+        function startTimeout() {
+            clearTimeout(stopTimer);
+            stopTimer = setTimeout(() => {
+                onVibrate(1);
+                console.log('out');
+                a.testingPhone.style.display = "none";
+                a.phoneBG.style.display = "block";
+                // 					document.getElementById("vector-L2").style.display = "none";
+                // 					document.getElementById("vector-R2").style.display = "none";
+            }, document.getElementById("time-range").value * 1000);
+        }
+
+        window.addEventListener("DOMContentLoaded", function() {
+            a.customBtn = window.document.getElementById("custom");
+            a.vibrationPatternLabel = window.document.getElementById("vibration-pattern");
+            a.customTitleGroup = window.document.getElementById("custom-title-group");
+            a.customSliderGroup = window.document.getElementById("custom-slider-group");
+            a.continuousBtn = window.document.getElementById("continuous");
+            a.startStopBtn = window.document.getElementById("start-stop");
+            a.allOptionsBtn = window.document.getElementById("all-options");
+            a.patternGroup = window.document.getElementById("pattern-group");
+            a.customImg = a.customBtn.querySelector('img');
+            a.customLabel = window.document.getElementById('custom-label');
+            a.startStopImg = a.startStopBtn.querySelector('img');
+            a.continuousImg = a.continuousBtn.querySelector('img');
+            a.timeRange = window.document.getElementById("time-range");
+            a.timeRangeThumb = window.document.getElementById("time-range-thumb");
+            a.vibrationRange = window.document.getElementById("vibration-range");
+            a.vibrationRangeThumb = window.document.getElementById("vibration-range-thumb");
+            a.stopRange = window.document.getElementById("stop-range");
+            a.stopRangeThumb = window.document.getElementById("stop-range-thumb");
+            a.startBtn = window.document.getElementById("start-btn");
+            a.stopBtn = window.document.getElementById("stop-btn");
+            a.phoneBG = window.document.getElementById("phone-bg");
+            a.testingPhone = window.document.getElementById("testing-phone");
+            a.vibrationPhone = window.document.getElementById("vibration-phone");
+            a.fiveMin = window.document.getElementById("five-mins");
+
+            // 				a.unlimited.addEventListener("click", function () {
+            // 					a.unlimited.src = "<?=get_stylesheet_directory_uri();?>/assets/images/" + (unlimited == false ? "unlimited2.png" : "unlimited1.png");
+            // 					unlimited = !unlimited;
+            // 				});
+
+            // 				function onStop() {
+            // 					onVibrate(0);
+            // 					onVibrate([]);
+            // 					console.log("000000");
+            // 					a.testingPhone.style.display = "none";
+            // 					a.phoneBG.style.display = "flex";
+            // 	// 				document.getElementById("vector-L2").style.display = "none";
+            // 	// 				document.getElementById("vector-R2").style.display = "none";
+            // 					clearTimeout(stopTimer);
+            // 				}
+
+            a.startBtn.addEventListener("click", function() {
+                onVibrate(0);
+                console.log('play');
+                const phoneHeight = document.getElementById("stop-phone").height;
+                a.vibrationPhone.style.height = phoneHeight + 'px';
+                const btnHeight = document.getElementById("start-btn").height;
+                a.stopBtn.style.height = btnHeight + 'px';
+                a.testingPhone.style.display = "block";
+                a.phoneBG.style.display = "none";
+                console.log(vibrationPattern);
+                let time = a.timeRange.value * 1000;
+
+                // 					setTimeout(() => {
+                // 						document.getElementById("vector-L2").style.display = "flex";
+                // 						document.getElementById("vector-R2").style.display = "flex";
+                // 					}, 1000);
+
+                if (vibrationPattern == "continuous") {
+                    console.log(time);
+                    onVibrate([time]);
+                } else if (vibrationPattern == "start-stop") {
+                    let vib = [];
+
+                    while (time > 0) {
+                        if (time < 1000) {
+                            vib.push(time);
+                            time = 0;
+                        } else {
+                            vib.push(1000);
+                            time -= 1000;
+                        }
+                    };
+
+                    console.log(vib);
+                    onVibrate(vib);
+                } else if (vibrationPattern == "custom") {
+                    let vib = [];
+                    const vibrationTime = a.vibrationRange.value * 1000;
+                    const stopTime = a.stopRange.value * 1000;
+                    let counter = 0;
+
+                    while (time > 0) {
+                        counter += 1;
+                        if (counter % 2 == 0) {
+                            if (time < stopTime) {
+                                vib.push(time);
+                                time = 0;
+                            } else {
+                                vib.push(stopTime);
+                                time -= stopTime;
+                            }
+                        } else {
+                            if (time < vibrationTime) {
+                                vib.push(time);
+                                time = 0;
+                            } else {
+                                vib.push(vibrationTime);
+                                time -= vibrationTime;
+                            }
+                        }
+                    }
+                    console.log(vib);
+                    onVibrate(vib);
+                }
+                startTimeout();
+            });
+
+            a.stopBtn.addEventListener("click", function() {
+                onStop();
+            });
+
+            a.continuousBtn.addEventListener("click", function() {
+                onStop();
+                a.continuousImg.src =
+                    "<?=get_stylesheet_directory_uri();?>/assets/images/Continuous2.svg";
+                a.startStopImg.src =
+                    "<?=get_stylesheet_directory_uri();?>/assets/images/Start-Stop1.svg";
+
+                vibrationPattern = "continuous";
+            });
+
+            a.startStopBtn.addEventListener("click", function() {
+                a.continuousImg.src =
+                    "<?=get_stylesheet_directory_uri();?>/assets/images/Continuous1.svg";
+                a.startStopImg.src =
+                    "<?=get_stylesheet_directory_uri();?>/assets/images/Start-Stop2.svg";
+                onStop();
+
+                vibrationPattern = "start-stop";
+            });
+
+            a.customBtn.addEventListener("click", function() {
+                a.vibrationPatternLabel.style.display = "none";
+                a.customTitleGroup.style.display = "flex";
+
+                a.continuousBtn.style.display = "none";
+                a.startStopBtn.style.display = "none";
+                a.customSliderGroup.style.display = "block";
+                a.customBtn.style.display = "flex";
+                a.customBtn.style.alignItems = "flex-end";
+                a.customBtn.style.flexDirection = "column";
+                a.customImg.src =
+                    "<?=get_stylesheet_directory_uri();?>/assets/images/Custom2.svg";
+                a.startStopImg.src =
+                    "<?=get_stylesheet_directory_uri();?>/assets/images/Start-Stop2.svg";
+                a.customLabel.style.alignItems = "start";
+                onStop();
+
+                vibrationPattern = "custom";
+            });
+
+            a.allOptionsBtn.addEventListener("click", function() {
+                a.vibrationPatternLabel.style.display = "flex";
+                a.customTitleGroup.style.display = "none";
+
+                a.continuousBtn.style.display = "flex";
+                a.startStopBtn.style.display = "flex";
+                a.customSliderGroup.style.display = "none";
+                a.customBtn.style.alignItems = "start";
+                a.customImg.src =
+                    "<?=get_stylesheet_directory_uri();?>/assets/images/Custom1.svg";
+                a.continuousImg.src =
+                    "<?=get_stylesheet_directory_uri();?>/assets/images/Continuous2.svg";
+                a.startStopImg.src =
+                    "<?=get_stylesheet_directory_uri();?>/assets/images/Start-Stop1.svg";
+
+                onStop();
+                vibrationPattern = "continuous";
+            });
+			
+			a.timeRange.max = 10;
+			updateTimeRange();
+			
+			// 1. Continuous Button Click
+			a.continuousBtn.addEventListener("click", function() {
+				onStop();
+				a.continuousImg.src = "<?=get_stylesheet_directory_uri();?>/assets/images/Continuous2.svg";
+				a.startStopImg.src = "<?=get_stylesheet_directory_uri();?>/assets/images/Start-Stop1.svg";
+				vibrationPattern = "continuous";
+
+				// Set max to 10 and ensure current value is within that limit
+				a.timeRange.max = 10; 
+				if (Number(a.timeRange.value) > 10) {
+					a.timeRange.value = 10;
+				}
+				updateTimeRange(); // This refreshes the thumb position and background 
+			});
+
+			// 2. Start-Stop Button Click
+			a.startStopBtn.addEventListener("click", function() {
+				a.continuousImg.src = "<?=get_stylesheet_directory_uri();?>/assets/images/Continuous1.svg";
+				a.startStopImg.src = "<?=get_stylesheet_directory_uri();?>/assets/images/Start-Stop2.svg";
+				onStop();
+				vibrationPattern = "start-stop";
+
+				// Restore original max
+				a.timeRange.max = 300;
+				updateTimeRange();
+			});
+
+			// 3. Custom Button Click
+			a.customBtn.addEventListener("click", function() {
+				vibrationPattern = "custom";
+
+				// Restore original max
+				a.timeRange.max = 300;
+				updateTimeRange();
+			});
+
+			// 4. "All Options" (Return from Custom mode)
+			a.allOptionsBtn.addEventListener("click", function() {
+				vibrationPattern = "continuous";
+
+				// Set max back to 10 for continuous
+				a.timeRange.max = 10;
+				if (Number(a.timeRange.value) > 10) {
+					a.timeRange.value = 10;
+				}
+				updateTimeRange();
+			});
+
+            function updateTimeRange() {
+                onStop();
+                let slider = a.timeRange;
+                const value = Number(slider.value);
+                const vibrationValue = Number(a.vibrationRange.value);
+                const stopValue = Number(a.stopRange.value);
+
+                if (value == 300) {
+                    a.fiveMin.style.display = "flex";
+                } else {
+                    a.fiveMin.style.display = "none";
+                }
+
+                if (value < vibrationValue + stopValue) {
+                    if (stopValue > 0.2) {
+                        a.stopRange.value = value - vibrationValue;
+                        updateStopRange();
+                    } else {
+                        a.vibrationRange.value = value - 0.2;
+                        updateVibrationRange();
+                    }
+                }
+                let percent = ((slider.value - slider.min) / (slider.max - slider.min)) * 100;
+                let thumbPercent = isRTL ? 100 - percent : percent;
+
+                let bgGradient =
+                    `linear-gradient(to ${direction}, #F3631D 0%, #F3631D ${percent}%, #F3631D80 ${percent}%, #F3631D80 100%)`;
+                slider.style.background = bgGradient;
+                a.timeRangeThumb.innerHTML = value + 's';
+                a.timeRangeThumb.style.left = `calc(${thumbPercent}% + (${8 - thumbPercent * 0.16}px))`
+            }
+
+            updateTimeRange();
+
+            a.timeRange.addEventListener("input", updateTimeRange);
+
+            let isDragging = false;
+            let startX, sliderLeft;
+
+            function startDrag(e) {
+                let thumb = this;
+                isDragging = true;
+                startX = (e.clientX || e.touches[0].clientX) - a.timeRangeThumb.offsetLeft;
+                sliderLeft = a.timeRange.getBoundingClientRect().left;
+
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+                document.addEventListener('touchmove', onMouseMove);
+                document.addEventListener('touchend', onMouseUp);
+            }
+
+            a.timeRangeThumb.addEventListener('mousedown', startDrag);
+            a.timeRangeThumb.addEventListener('touchstart', startDrag);
+
+            function onMouseMove(e) {
+                let slider = a.timeRange;
+
+                if (!isDragging) return;
+
+                const sliderWidth = a.timeRange.offsetWidth;
+                const newX = (e.clientX || e.touches[0].clientX) - startX;
+                let percent = Math.max(0, Math.min(100, ((newX) / sliderWidth) * 100));
+                percent = isRTL ? 100 - percent : percent;
+
+                const value = (percent * (a.timeRange.max - slider.min) / 100) + Number(a.timeRange
+                    .min);
+                a.timeRange.value = value;
+                updateTimeRange();
+            }
+
+            function onMouseUp() {
+                isDragging = false;
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+            }
+
+
+            function updateVibrationRange() {
+                onStop();
+                let slider = a.vibrationRange;
+                const value = Number(slider.value);
+                let percent = ((slider.value - slider.min) / (slider.max - slider.min)) * 100;
+                let thumbPercent = isRTL ? 100 - percent : percent;
+                let bgGradient =
+                    `linear-gradient(to ${direction}, #F3631D 0%, #F3631D ${percent}%, #F3631D80 ${percent}%, #F3631D80 100%)`;
+                slider.style.background = bgGradient;
+                a.vibrationRangeThumb.innerHTML = slider.value + 's';
+                a.vibrationRangeThumb.style.left =
+                    `calc(${thumbPercent}% + (${8 - thumbPercent * 0.16}px))`;
+
+                const timeValue = Number(a.timeRange.value);
+                const stopValue = Number(a.stopRange.value);
+                if (timeValue < value + stopValue) {
+                    a.timeRange.value = value + stopValue;
+                    updateTimeRange();
+                }
+            }
+
+            updateVibrationRange();
+
+            a.vibrationRange.addEventListener("input", updateVibrationRange);
+
+            let isDraggingVib = false;
+            let startVibX, sliderLeftVib;
+
+            function startDragVib(e) {
+                let thumb = this;
+                isDraggingVib = true;
+                startVibX = (e.clientX || e.touches[0].clientX) - a.vibrationRangeThumb.offsetLeft;
+                sliderLeftVib = a.vibrationRange.getBoundingClientRect().left;
+
+                document.addEventListener('mousemove', onMouseMoveVib);
+                document.addEventListener('mouseup', onMouseUpVib);
+                document.addEventListener('touchmove', onMouseMoveVib);
+                document.addEventListener('touchend', onMouseUpVib);
+            }
+
+            a.vibrationRangeThumb.addEventListener('mousedown', startDragVib);
+            a.vibrationRangeThumb.addEventListener('touchstart', startDragVib);
+
+            // 				a.vibrationRangeThumb.addEventListener('mousedown', (e) => {
+            // 					let thumb = this;
+            // 					isDraggingVib = true;
+            // 					startVibX = e.clientX - a.vibrationRangeThumb.offsetLeft;
+            // 					sliderLeftVib = a.vibrationRange.getBoundingClientRect().left;
+
+            // 					document.addEventListener('mousemove', onMouseMoveVib);
+            // 					document.addEventListener('mouseup', onMouseUpVib);
+            // 				});
+
+            function onMouseMoveVib(e) {
+                let slider = a.vibrationRange;
+
+                if (!isDraggingVib) return;
+
+                const sliderWidth = a.vibrationRange.offsetWidth;
+                const newX = (e.clientX || e.touches[0].clientX) - startVibX;
+                let percent = Math.max(0, Math.min(100, ((newX) / sliderWidth) * 100));
+                percent = isRTL ? 100 - percent : percent;
+
+                const value = (percent * (a.vibrationRange.max - slider.min) / 100) + Number(a
+                    .vibrationRange.min);
+                a.vibrationRange.value = value;
+                updateVibrationRange();
+            }
+
+            function onMouseUpVib() {
+                isDraggingVib = false;
+                document.removeEventListener('mousemove', onMouseMoveVib);
+                document.removeEventListener('mouseup', onMouseUpVib);
+            }
+
+
+            function updateStopRange() {
+                onStop();
+                let slider = a.stopRange;
+                const value = Number(slider.value);
+                let percent = ((slider.value - slider.min) / (slider.max - slider.min)) * 100;
+                let thumbPercent = isRTL ? 100 - percent : percent;
+                let bgGradient =
+                    `linear-gradient(to ${direction}, #F3631D 0%, #F3631D ${percent}%, #F3631D80 ${percent}%, #F3631D80 100%)`;
+                slider.style.background = bgGradient;
+                a.stopRangeThumb.innerHTML = slider.value + 's';
+                a.stopRangeThumb.style.left = `calc(${thumbPercent}% + (${8 - thumbPercent * 0.16}px))`;
+
+                const timeValue = Number(a.timeRange.value);
+                const vibrationValue = Number(a.vibrationRange.value);
+                if (timeValue < value + vibrationValue) {
+                    a.timeRange.value = value + vibrationValue;
+                    updateTimeRange();
+                }
+            }
+
+            updateStopRange();
+
+            a.stopRange.addEventListener("input", updateStopRange);
+
+            let isDraggingStp = false;
+            let startStpX, sliderLeftStp;
+
+            function startDragStp(e) {
+                let thumb = this;
+                isDraggingStp = true;
+                startStpX = (e.clientX || e.touches[0].clientX) - a.stopRangeThumb.offsetLeft;
+                sliderLeftStp = a.stopRange.getBoundingClientRect().left;
+
+                document.addEventListener('mousemove', onMouseMoveStp);
+                document.addEventListener('mouseup', onMouseUpStp);
+                document.addEventListener('touchmove', onMouseMoveStp);
+                document.addEventListener('touchend', onMouseUpStp);
+            }
+
+            a.stopRangeThumb.addEventListener('mousedown', startDragStp);
+            a.stopRangeThumb.addEventListener('touchstart', startDragStp);
+
+            // 				a.stopRangeThumb.addEventListener('mousedown', (e) => {
+            // 					let thumb = this;
+            // 					isDraggingStp = true;
+            // 					startStpX = e.clientX - a.stopRangeThumb.offsetLeft;
+            // 					sliderLeftStp = a.stopRange.getBoundingClientRect().left;
+
+            // 					document.addEventListener('mousemove', onMouseMoveStp);
+            // 					document.addEventListener('mouseup', onMouseUpStp);
+            // 				});
+
+            function onMouseMoveStp(e) {
+                let slider = a.stopRange;
+
+                if (!isDraggingStp) return;
+
+                const sliderWidth = a.stopRange.offsetWidth;
+                const newX = (e.clientX || e.touches[0].clientX) - startStpX;
+                let percent = Math.max(0, Math.min(100, ((newX) / sliderWidth) * 100));
+                percent = isRTL ? 100 - percent : percent;
+
+                const value = (percent * (a.stopRange.max - slider.min) / 100) + Number(a.stopRange
+                    .min);
+                a.stopRange.value = value;
+                updateStopRange();
+            }
+
+            function onMouseUpStp() {
+                isDraggingStp = false;
+                document.removeEventListener('mousemove', onMouseMoveStp);
+                document.removeEventListener('mouseup', onMouseUpStp);
+            }
+        });
+    };
+
+    a.main()
+})();
+</script>
+
+<script>
+(function() {
+    var isiPhone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    isiPhone = !!isiPhone && !navigator.vibrate && !navigator.haptic;
+    if (!isiPhone) return;
+
+    var notice = document.querySelector('.iphone-vib-notice');
+    var startTest = document.querySelector('#start-btn');
+    var startLabel = document.querySelector('#start-label');
+
+    notice.style.display = 'block';
+    startTest.style.display = 'none';
+    startLabel.style.display = 'none';
+
+})();
+</script>
+<?php get_footer();?>
