@@ -64,23 +64,60 @@ get_header(); ?>
 	}
 
 	#fixHint {
-		top: 70px;
-		left: 50%;
-		transform: translateX(-50%);
-		font-size: clamp(14px, 3vw, 22px);
-		font-weight: 600;
 		position: absolute;
-		display: flex;
-		justify-content: center;
-		align-items: center;
+		top: 0;
+		left: 0;
+		font-size: clamp(16px, 2vw, 18px);
+		font-weight: 600;
 		user-select: none;
-		color: #ffffff;
-		text-align: center;
-		max-width: 92vw;
+		color: #0c2f57;
+		background: #ffffff;
+		border-radius: 10px;
+		box-shadow: 0 8px 26px rgba(0, 0, 0, 0.35);
+		text-align: left;
+		max-width: min(440px, calc(100vw - 30px));
 		white-space: normal;
-		line-height: 1.35;
-		padding: 0 12px;
+		line-height: 1.25;
+		padding: 20px 24px;
 		pointer-events: none;
+		opacity: 0;
+		visibility: hidden;
+		transform: translateY(10px);
+		transition: opacity 0.55s ease, transform 0.55s ease, visibility 0s linear 0.55s;
+		z-index: 2147483646;
+	}
+
+	#fixHint::before {
+		content: '';
+		position: absolute;
+		top: 50%;
+		left: -14px;
+		width: 0;
+		height: 0;
+		transform: translateY(-50%);
+		border-top: 12px solid transparent;
+		border-bottom: 12px solid transparent;
+		border-right: 14px solid #ffffff;
+	}
+
+	#fixHint.arrow-right::before {
+		left: auto;
+		right: -14px;
+		border-right: 0;
+		border-left: 14px solid #ffffff;
+	}
+
+	#fixHint.is-visible {
+		opacity: 1;
+		visibility: visible;
+		transform: translateY(0);
+		transition: opacity 0.35s ease, transform 0.35s ease;
+	}
+
+	#fixHint.is-faded {
+		opacity: 0;
+		transform: translateY(10px);
+		visibility: hidden;
 	}
 
 	#exitBtn {
@@ -339,8 +376,9 @@ get_header(); ?>
 				a.ctx = a.canvas.getContext('2d', { alpha: false });
 
 				var hideTimer = null;
+				var hintFadeTimer = null;
 				var isHoveringControl = false;
-				var controls = [a.exitBtn, a.fullscreenBtn, a.fixHint];
+				var controls = [a.exitBtn, a.fullscreenBtn];
 				var rafId = null;
 				var dragging = false;
 				var dragOffsetX = 0;
@@ -349,9 +387,48 @@ get_header(); ?>
 				var hasMovedPatch = false;
 				var noiseRenderScale = 1;
 
-				var hintDefault = 'Drag the flashing square over the stuck pixel. Leave it running for at least 10 minutes.';
+				var hintDefault = '<?php the_field('pixel_fixer_instructions'); ?>';
 				if (a.fixHint) {
 					a.fixHint.textContent = hintDefault;
+				}
+
+				function clearHintFadeTimer() {
+					if (hintFadeTimer) {
+						clearTimeout(hintFadeTimer);
+						hintFadeTimer = null;
+					}
+				}
+
+				function positionHint() {
+					if (!a.fixHint || !a.patch || a.fixScreen.style.display !== 'block') return;
+					var patchRect = a.patch.getBoundingClientRect();
+					var screenRect = a.fixScreen.getBoundingClientRect();
+					var gap = 32;
+					var hintWidth = a.fixHint.offsetWidth || 320;
+					var hintHeight = a.fixHint.offsetHeight || 120;
+					var left = patchRect.right - screenRect.left + gap;
+					var top = patchRect.top - screenRect.top + ((patchRect.height - hintHeight) / 2);
+					var maxLeft = screenRect.width - hintWidth - 15;
+					var maxTop = screenRect.height - hintHeight - 15;
+					if (left > maxLeft) {
+						left = Math.max(15, patchRect.left - screenRect.left - hintWidth - gap);
+						a.fixHint.classList.add('arrow-right');
+					} else {
+						a.fixHint.classList.remove('arrow-right');
+					}
+					a.fixHint.style.left = Math.max(15, Math.min(maxLeft, left)) + 'px';
+					a.fixHint.style.top = Math.max(15, Math.min(maxTop, top)) + 'px';
+				}
+
+				function showHintTemporarily() {
+					if (!a.fixHint) return;
+					clearHintFadeTimer();
+					a.fixHint.classList.remove('is-faded');
+					a.fixHint.classList.add('is-visible');
+					positionHint();
+					hintFadeTimer = setTimeout(function () {
+						a.fixHint.classList.add('is-faded');
+					}, 5000);
 				}
 
 				function patchSize() {
@@ -426,6 +503,7 @@ get_header(); ?>
 					a.patch.style.marginTop = '0';
 					a.patch.style.transform = 'none';
 					updateControlPlacement();
+					positionHint();
 				}
 
 				function updateControlPlacement() {
@@ -549,6 +627,7 @@ get_header(); ?>
 
 				function closeFixTool() {
 					stopFlash();
+					clearHintFadeTimer();
 					if (document.exitFullscreen) {
 						document.exitFullscreen();
 					} else if (document.webkitExitFullscreen) {
@@ -565,6 +644,9 @@ get_header(); ?>
 					a.patch.style.top = '50%';
 					a.patch.style.marginLeft = '';
 					a.patch.style.marginTop = '';
+					if (a.fixHint) {
+						a.fixHint.classList.remove('is-visible', 'is-faded', 'arrow-right');
+					}
 					layoutPatch();
 				}
 
@@ -632,13 +714,9 @@ get_header(); ?>
 					var clamped = clampPatchPosition(parent, pw, ph, x, y);
 					a.patch.style.left = clamped.x + 'px';
 					a.patch.style.top = clamped.y + 'px';
-					if (!hasMovedPatch) {
-						hasMovedPatch = true;
-						if (a.fixHint) {
-							a.fixHint.style.display = 'none';
-						}
-					}
+					if (!hasMovedPatch) hasMovedPatch = true;
 					updateControlPlacement();
+					positionHint();
 				}
 
 				function endDrag() {
@@ -651,9 +729,6 @@ get_header(); ?>
 					a.fixScreen.style.display = 'block';
 					document.body.style.overflow = 'hidden';
 					hasMovedPatch = false;
-					if (a.fixHint) {
-						a.fixHint.style.display = '';
-					}
 					layoutPatch();
 					a.patch.style.left = '50%';
 					a.patch.style.top = '50%';
@@ -661,6 +736,7 @@ get_header(); ?>
 					a.patch.style.marginTop = (-patchSize() / 2) + 'px';
 					loopFlash();
 					updateControlPlacement();
+					showHintTemporarily();
 					resetHideTimer();
 				}
 
