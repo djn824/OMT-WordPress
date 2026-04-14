@@ -389,9 +389,9 @@ get_header();?>
 							<div class="needle-weight" id="needleWeight">
 								<img class="img-fluid skip-lazy" src="<?=get_stylesheet_directory_uri();?>/assets/images/needle-weight.svg" alt="">
 							</div>
-							<div class="weight-point" id="weight-point">
-								<img class="img-fluid skip-lazy" src="<?=get_stylesheet_directory_uri();?>/assets/images/metronome-weight-point.svg" alt="">
-							</div>
+						</div>
+						<div class="weight-point" id="weight-point">
+							<img class="img-fluid skip-lazy" src="<?=get_stylesheet_directory_uri();?>/assets/images/metronome-weight-point.svg" alt="">
 						</div>
 					</div>
 					<div class="minus-btn">
@@ -723,7 +723,7 @@ get_header();?>
 			pointImg.style.height = 'auto';
 			pointEl.style.width   = pointSize + 'px';
 			pointEl.style.height  = 'auto';
-			const pointBottom = -Math.round(wrapperW * 0.005);
+			const pointBottom = Math.round(wrapperW * 0.020);
 			pointEl.style.bottom = pointBottom + 'px';
 		}
 
@@ -869,14 +869,24 @@ get_header();?>
 	function setNeedlePivot(){
   		if (!rotator || !pivotEl) return;
 
-  		// Compute pivot position relative to the rotator box
-  		const r = rotator.getBoundingClientRect();
-  		const p = pivotEl.getBoundingClientRect();
+  		// Use stable layout coordinates (not rotator's transformed box),
+  		// so zoom/resize while swinging does not skew the pivot.
+  		const needleRect = needle.getBoundingClientRect();
+  		const pivotRect  = pivotEl.getBoundingClientRect();
 
-  		const pivotX = (p.left + p.width/2) - r.left;
-  		const pivotY = (p.top  + p.height/2) - r.top;
+  		const rotatorLeft = needleRect.left + rotator.offsetLeft;
+  		const rotatorTop  = needleRect.top + rotator.offsetTop;
+  		const pivotX = (pivotRect.left + pivotRect.width / 2) - rotatorLeft;
+  		const pivotY = (pivotRect.top  + pivotRect.height / 2) - rotatorTop;
 
   		rotator.style.transformOrigin = `${Math.round(pivotX * 100) / 100}px ${Math.round(pivotY * 100) / 100}px`;
+	}
+
+	if (window.visualViewport) {
+		window.visualViewport.addEventListener('resize', () => {
+			scaleNeedle();
+			setNeedlePivot();
+		});
 	}
 
 	// Animate back/forth: one full cycle (left->right->left) = 2 beats
