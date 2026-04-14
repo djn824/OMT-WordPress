@@ -71,6 +71,84 @@ get_header();?>
 		height: 100%;
 		object-fit: cover;
 	}
+
+	.video-loading-overlay {
+		position: absolute;
+		inset: 0;
+		z-index: 40;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		/* background: rgba(0, 0, 0, 0.72); */
+		color: #fff;
+		font-size: 2rem;
+		font-weight: 600;
+		text-align: center;
+		padding: 12px;
+		pointer-events: none;
+		opacity: 0;
+		visibility: hidden;
+		transition: opacity 0.2s ease, visibility 0.2s;
+	}
+
+	.video-loading-overlay.is-visible {
+		opacity: 1;
+		visibility: visible;
+		pointer-events: auto;
+	}
+
+	.video-loading-inner {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 14px;
+        background-color: #436f8e;
+        border-radius: 5px;
+        padding: 10px;
+	}
+
+	.video-loading-row {
+		display: inline-flex;
+		align-items: baseline;
+		flex-wrap: wrap;
+		justify-content: center;
+	}
+
+	.video-loading-bar-svg {
+		width: min(220px, 72vw);
+		height: 8px;
+		color: #436f8e;
+		display: block;
+	}
+
+	.video-loading-bar-svg .video-loading-bar-track {
+		fill: white;
+		opacity: 0.22;
+	}
+
+	.video-loading-bar-svg .video-loading-bar-nub {
+		fill: white;
+		animation: video-loading-bar-slide 1.35s ease-in-out infinite;
+		transform-box: fill-box;
+		transform-origin: center;
+	}
+
+	@keyframes video-loading-bar-slide {
+		0% { transform: translateX(-42px) scaleX(1); }
+		50% { transform: translateX(52px) scaleX(1.15); }
+		100% { transform: translateX(142px) scaleX(1); }
+	}
+
+	.video-loading-dots::after {
+		content: "";
+		/* animation: video-viz-dots 1.2s steps(1, end) infinite; */
+	}
+
+	@keyframes video-viz-dots {
+		0% { content: "."; }
+		33.33% { content: ".."; }
+		66.66% { content: "..."; }
+	}
 	
 	.video-controls button {
 		min-width: 44px;
@@ -460,6 +538,25 @@ get_header();?>
       					<span class="arrow arrow-right" style="padding-left: 0px">&gt;</span>
     				</div>
   				</div>
+
+				<div id="video-loading-overlay" class="video-loading-overlay" aria-live="polite" aria-hidden="true">
+					<span class="video-loading-inner">
+						<span class="video-loading-row">
+							<span class="video-loading-label"><?php the_field('video_loading_label'); ?></span><span class="video-loading-dots" aria-hidden="true"></span>
+						</span>
+						<svg class="video-loading-bar-svg" viewBox="0 0 120 8" aria-hidden="true" focusable="false">
+							<defs>
+								<clipPath id="video-loading-bar-clip">
+									<rect x="0" y="0" width="120" height="8" rx="4" ry="4" />
+								</clipPath>
+							</defs>
+							<rect class="video-loading-bar-track" x="0" y="0" width="120" height="8" rx="4" ry="4" />
+							<g clip-path="url(#video-loading-bar-clip)">
+								<rect class="video-loading-bar-nub" x="0" y="0" width="36" height="8" rx="4" ry="4" />
+							</g>
+						</svg>
+					</span>
+				</div>
 			</div>
 
 			<div class="video-controls" style="margin-top:15px; display:flex; align-items:center; gap:10px; justify-content:center;">
@@ -651,7 +748,30 @@ get_header();?>
 				a.videoRightText = window.document.getElementById("video-right-text");
 				a.fpsLeftSelect = window.document.getElementById('fps-left');
 				a.fpsRightSelect = window.document.getElementById('fps-right');
-				
+				a.videoLoadingOverlay = window.document.getElementById('video-loading-overlay');
+
+				let videoLoadingToken = 0;
+
+				function beginVideoLoading() {
+					videoLoadingToken++;
+					const token = videoLoadingToken;
+					if (a.videoLoadingOverlay) {
+						a.videoLoadingOverlay.classList.add('is-visible');
+						a.videoLoadingOverlay.setAttribute('aria-hidden', 'false');
+						a.videoLoadingOverlay.setAttribute('aria-busy', 'true');
+					}
+					return token;
+				}
+
+				function endVideoLoading(token) {
+					if (token !== videoLoadingToken) return;
+					if (a.videoLoadingOverlay) {
+						a.videoLoadingOverlay.classList.remove('is-visible');
+						a.videoLoadingOverlay.setAttribute('aria-hidden', 'true');
+						a.videoLoadingOverlay.removeAttribute('aria-busy');
+					}
+				}
+
 				const FPS_TO_VIDEO = {
 					12: "horse-12.mp4",
 					24: "horse-24.mp4",
@@ -758,7 +878,9 @@ get_header();?>
 						if (video.readyState >= 4) {
 							resolve();
 						} else {
-							video.addEventListener("canplaythrough", resolve, { once: true });
+							const done = function () { resolve(); };
+							video.addEventListener("canplaythrough", done, { once: true });
+							video.addEventListener("error", done, { once: true });
 						}
 					});
 				}
@@ -772,35 +894,38 @@ get_header();?>
 				}
 				
 				async function loadVideosFromDropdown() {
-					const leftFPS = a.fpsLeftSelect.value;
-					const rightFPS = a.fpsRightSelect.value;
+					const loadToken = beginVideoLoading();
+					try {
+						const leftFPS = a.fpsLeftSelect.value;
+						const rightFPS = a.fpsRightSelect.value;
 
-					a.videoLeft.pause();
-					a.videoRight.pause();
-					
-					a.playBtn.textContent = "▶";
+						a.videoLeft.pause();
+						a.videoRight.pause();
 
-					a.videoLeftSource.src =
-						"<?=get_stylesheet_directory_uri();?>/assets/video/" + FPS_TO_VIDEO[leftFPS];
-					a.videoRightSource.src =
-						"<?=get_stylesheet_directory_uri();?>/assets/video/" + FPS_TO_VIDEO[rightFPS];
+						a.playBtn.textContent = "▶";
 
-					a.videoLeft.load();
-					a.videoRight.load();
+						a.videoLeftSource.src =
+							"<?=get_stylesheet_directory_uri();?>/assets/video/" + FPS_TO_VIDEO[leftFPS];
+						a.videoRightSource.src =
+							"<?=get_stylesheet_directory_uri();?>/assets/video/" + FPS_TO_VIDEO[rightFPS];
 
-					await Promise.all([
-						waitForCanPlayThrough(a.videoLeft),
-						waitForCanPlayThrough(a.videoRight)
-					]);
+						a.videoLeft.load();
+						a.videoRight.load();
 
-					// Sync start
-					a.videoLeft.currentTime = 0;
-					a.videoRight.currentTime = 0;
+						await Promise.all([
+							waitForCanPlayThrough(a.videoLeft),
+							waitForCanPlayThrough(a.videoRight)
+						]);
 
-					// Sync slider
-					duration = Math.min(a.videoLeft.duration, a.videoRight.duration);
-					a.slider.max = Math.floor(duration * 1000);
-					a.slider.value = 0;
+						a.videoLeft.currentTime = 0;
+						a.videoRight.currentTime = 0;
+
+						duration = Math.min(a.videoLeft.duration, a.videoRight.duration);
+						a.slider.max = Math.floor(duration * 1000);
+						a.slider.value = 0;
+					} finally {
+						endVideoLoading(loadToken);
+					}
 				}
 				
 				a.fpsLeftSelect.addEventListener("change", loadVideosFromDropdown);
@@ -839,28 +964,35 @@ get_header();?>
 							const videoFPS = getVideoFPS(fps);
 							a.fpsLeftSelect.value = videoFPS[0];
 							a.fpsRightSelect.value = videoFPS[1];
-							a.videoLeftSource.src = `<?=get_stylesheet_directory_uri();?>/assets/video/horse-${videoFPS[0]}.mp4`;
-							a.videoRightSource.src = `<?=get_stylesheet_directory_uri();?>/assets/video/horse-${videoFPS[1]}.mp4`;
-							
-							a.videoLeft.pause();
-							a.videoRight.pause();
-							
-							a.videoLeft.currentTime = 0;
-							a.videoRight.currentTime = 0;
-							
-							a.videoLeft.load();
-							a.videoRight.load();
-							
-							await Promise.all([
-								waitForCanPlayThrough(a.videoLeft),
-								waitForCanPlayThrough(a.videoRight)
-							]);
-							
-							a.videoLeft.currentTime = 0;
-							a.videoRight.currentTime = 0;
-							
-							a.videoBox.style.display = "block";
-							playVideos();
+
+							const loadToken = beginVideoLoading();
+							try {
+								a.videoBox.style.display = "block";
+
+								a.videoLeftSource.src = `<?=get_stylesheet_directory_uri();?>/assets/video/horse-${videoFPS[0]}.mp4`;
+								a.videoRightSource.src = `<?=get_stylesheet_directory_uri();?>/assets/video/horse-${videoFPS[1]}.mp4`;
+
+								a.videoLeft.pause();
+								a.videoRight.pause();
+
+								a.videoLeft.currentTime = 0;
+								a.videoRight.currentTime = 0;
+
+								a.videoLeft.load();
+								a.videoRight.load();
+
+								await Promise.all([
+									waitForCanPlayThrough(a.videoLeft),
+									waitForCanPlayThrough(a.videoRight)
+								]);
+
+								a.videoLeft.currentTime = 0;
+								a.videoRight.currentTime = 0;
+
+								playVideos();
+							} finally {
+								endVideoLoading(loadToken);
+							}
 						}
 					}
 				}
