@@ -614,6 +614,9 @@ get_header();?>
 	let pointerId = null;
 	let isPlaying = false;
 	let rafId     = null;
+	let currentAngle = 0;
+	let returnTimer = null;
+	const RETURN_TO_CENTER_MS = 220;
 	
 	// ── Audio Setup ───────────────────────────────────────────────
 	const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -892,6 +895,11 @@ get_header();?>
 	// Animate back/forth: one full cycle (left->right->left) = 2 beats
 	function startSwing(){
   		if (!rotator) return;
+		if (returnTimer) {
+			clearTimeout(returnTimer);
+			returnTimer = null;
+		}
+		rotator.style.transition = 'none';
   		setNeedlePivot();
 		
 		// TOGGLE CSS SHAPES INSTEAD OF IMAGE SRC
@@ -919,6 +927,7 @@ get_header();?>
 
 			const swingDeg = bpmToAmplitude(currentBPM); // <-- dynamic amplitude
 			const angle = s * swingDeg;
+			currentAngle = angle;
 
 			rotator.style.transform = `rotate(${angle}deg)`;
 			// Detect endpoint and play click
@@ -948,8 +957,22 @@ get_header();?>
   		if (rafId) cancelAnimationFrame(rafId);
   		rafId = null;
 
-  		// return to center
-  		if (rotator) rotator.style.transform = 'rotate(0deg)';
+  		// Return quickly with a short ease-out instead of snapping.
+  		if (rotator) {
+			if (returnTimer) {
+				clearTimeout(returnTimer);
+				returnTimer = null;
+			}
+
+			rotator.style.transition = `transform ${RETURN_TO_CENTER_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`;
+			rotator.style.transform = 'rotate(0deg)';
+
+			returnTimer = setTimeout(() => {
+				rotator.style.transition = 'none';
+				currentAngle = 0;
+				returnTimer = null;
+			}, RETURN_TO_CENTER_MS + 30);
+  		}
 	}
 	
 	if (playBtn) {
