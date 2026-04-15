@@ -1102,6 +1102,20 @@ get_header();?>
 			state.fireAfterglow = 1.0;
 		}
 
+		function isInsidePressButton(clientX, clientY) {
+			if (!state._geom) return false;
+
+			const rect = canvas.getBoundingClientRect();
+			const x = clientX - rect.left;
+			const y = clientY - rect.top;
+
+			const dx = x - state._geom.cx;
+			const dy = y - state._geom.cy;
+			const r = state._geom.innerR || 74;
+
+			return (dx * dx + dy * dy) <= (r * r);
+		}
+
 		window.addEventListener("keydown", (e) => {
 			if (e.code === "Space") e.preventDefault();
 			if (e.code !== "Space") return;
@@ -1110,11 +1124,15 @@ get_header();?>
 		});
 
 		canvas.addEventListener("pointerdown", (e) => {
+			if (!isInsidePressButton(e.clientX, e.clientY)) return;
 			e.preventDefault();
 			registerPress();
 		}, { passive: false });
 
 		canvas.addEventListener("touchstart", (e) => {
+			const touch = e.changedTouches && e.changedTouches[0];
+			if (!touch) return;
+			if (!isInsidePressButton(touch.clientX, touch.clientY)) return;
 			e.preventDefault();
 			registerPress();
 		}, { passive: false });
@@ -1334,7 +1352,7 @@ get_header();?>
 		  	// ----- FIRE CONTROL (must be inside draw, not outside) -----
 		  	const growth = Math.max(0, state.scale - 1);
 			
-			state._geom = { cx, cy, ringOuterR, w, h };
+			state._geom = { cx, cy, ringOuterR, innerR, w, h };
 
 		  	// ---- growthPct based on REAL drawn size (after clamping) ----
 		  	const outwardNow = Math.max(0, ringOuterR - ringInnerR - ringThickness);
