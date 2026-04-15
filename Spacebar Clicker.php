@@ -132,6 +132,49 @@ get_header();?>
 	  	letter-spacing: 0.2px;
 	  	line-height: 1;
 	}
+	@media (max-width: 991px){
+		.circle-box{
+			margin-top: 90px;
+			margin-bottom: 90px;
+		}
+		.ring-embed{
+			height: 360px;
+		}
+		.cps-box{
+			width: 200px;
+			padding: 9px 10px;
+		}
+	}
+	@media (max-width: 767px){
+		.circle-box{
+			margin-top: 56px;
+			margin-bottom: 56px;
+		}
+		.ring-embed{
+			height: 300px;
+			max-width: 100%;
+		}
+		#ringCanvas{
+			height: calc(100% + 240px);
+			top: -100px;
+		}
+		.cps-box{
+			left: 60%;
+			right: auto;
+			transform: translateX(-50%);
+			top: -30px;
+			width: min(92vw, 240px);
+		}
+		.cps-title{
+			font-size: 15px;
+		}
+		.cps-label{
+			font-size: 14px;
+		}
+		.cps-value{
+			font-size: 20px;
+		}
+	}
 
 </style>
 
@@ -1218,7 +1261,8 @@ get_header();?>
 			const rect = canvas.getBoundingClientRect();
 			const hostRect = canvas.parentElement.getBoundingClientRect();
 			const maxOuterR = Math.min(rect.width, hostRect.height) * 0.5 - OUTER_PAD;
-			const innerR = 74;
+			const baseSize = Math.min(rect.width, hostRect.height);
+			const innerR = clamp(baseSize * 0.20, 52, 74);
 
 			const maxScale = Math.max(1, (maxOuterR / innerR) * 1.55); // bigger overall ceiling than before
 
@@ -1321,7 +1365,8 @@ get_header();?>
 			const cy = offsetY + hostRect.height / 2;
 
 			// ---- Inner circle size ----
-			const innerR = 74;
+			const baseSize = Math.min(w, hostRect.height);
+			const innerR = clamp(baseSize * 0.20, 52, 74);
 
 			// ✅ ATTACHMENT: ring touches inner circle (no gap)
 			const ATTACH_GAP = 0;
@@ -1457,7 +1502,8 @@ get_header();?>
 			ctx.fillStyle = "rgba(255,255,255,0.95)";
 			ctx.textAlign = "center";
 			ctx.textBaseline = "middle";
-			ctx.font = "700 18px Raleway, sans-serif";
+			const labelFontPx = Math.round(clamp(innerR * 0.24, 13, 18));
+			ctx.font = `700 ${labelFontPx}px Raleway, sans-serif`;
 			ctx.shadowBlur = 6;
 			ctx.shadowColor = "rgba(0,0,0,0.25)";
 			ctx.fillText(<?php echo json_encode(get_field('press_label')); ?>, cx, cy);
