@@ -470,38 +470,9 @@ get_header();?>
 				</div>
 			</div>
 			<div class="wid-sm-100 wid-xs-100">
-				<div class="ct-row mar-bot-15 dis-flex">
-					<img class="tve_image" alt="" style="width: 64px;" src="<?php the_field('red_icon'); ?>" width="64" height="64">
-					<div class="webcam-1-text_">
-						<div class="icon-text-1">
-							<h3 class="ct-bold-text" style="color: rgb(226, 92, 27)"><?php the_field('trouble-shooting_title'); ?></h3>
-						</div>
-					</div>
-				</div>
 
 				<div class="trouble-shooting-2 dis-flex">
 					<div>
-						<div class="trouble-shooting-text-1 pd-1">
-							<ul>
-								<?php
-
-									// check if the repeater field has rows of data
-									if (have_rows('leftside_guide_list')):
-
-										// loop through the rows of data
-									while (have_rows('leftside_guide_list')): the_row(); ?>
-														<li>
-															<span class="fw-bold color-link">
-																<?php the_sub_field('left_side_list_title'); ?>
-															</span>
-														</li>
-
-													<?php endwhile;
-														else:
-														endif;
-													?>
-							</ul>
-						</div>
 
 						<div align="center">
 							<style>
