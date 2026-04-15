@@ -291,36 +291,44 @@ get_header(); ?>
 		</div>
 	</div>
 
+
 	<div class="other-section">
-		<div class="read-more-section">
-			<div class="ct-row dis-flex">
-				<div class="width-50 wid-xs-100">
-					<div class="read-more-text-secction">
-						<div class="read-more-title clearfix" >
-							<h2><strong><?php the_field('more_about_title'); ?></strong></h2>
-						</div>
-						<?php
+			<div class="read-more-section">
+				<div class="ct-row dis-flex">
+					<div class="width-50 wid-xs-100">
+						<div class="read-more-text-secction">
+							<div class="read-more-title clearfix" >
+								<h2><strong><?php the_field('more_about_title'); ?></strong></h2>
+							</div>
+							<?php
 
-							// check if the repeater field has rows of data
-							if (have_rows('test_content')):
+                                // check if the repeater field has rows of data
+                                if (have_rows('test_content')):
 
-								// loop through the rows of data
-							while (have_rows('test_content')): the_row(); ?>
-								<div class="read-more-1">
+                                    // loop through the rows of data
+                                while (have_rows('test_content')): the_row(); ?>
+													<div class="read-more-1">
 
 
-									<div class="read-more-subtitle clearfix">
-										<h3 class="mar-bot-20"><?php the_sub_field('heading'); ?></h3>
-									</div>
+														<div class="read-more-subtitle clearfix">
+															<h3 class="mar-bot-20"><?php the_sub_field('heading'); ?></h3>
+														</div>
 
-									<div class="read-more-text">
-										<p><?php the_sub_field('descp'); ?></p>
-									</div>
-								</div>
-							<?php endwhile;
-								else:
-								endif;
-						?>
+														<div class="read-more-text">
+															<p><?php the_sub_field('descp'); ?>
+														</p>
+													</div>
+												</div>
+											<?php endwhile;
+                                                else:
+                                                endif;
+                                            ?>
+					</div>
+				</div>
+
+				<div class="width-50">
+					<div class="img-section pad-left-15">
+						<img class="lazyload" src="<?php the_field('rightside_lazy_gif'); ?>" data-src="<?php the_field('rightside_image'); ?>"/>
 					</div>
 				</div>
 			</div>
