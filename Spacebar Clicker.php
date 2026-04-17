@@ -147,16 +147,18 @@ get_header();?>
 	}
 	@media (max-width: 767px){
 		.circle-box{
-			margin-top: 56px;
-			margin-bottom: 56px;
+			margin-top: 72px;
+			margin-bottom: 88px;
 		}
 		.ring-embed{
-			height: 300px;
+			height: 320px;
 			max-width: 100%;
 		}
 		#ringCanvas{
-			height: calc(100% + 240px);
-			top: -100px;
+			left: -110px;
+			width: calc(100% + 220px);
+			height: calc(100% + 360px);
+			top: -160px;
 		}
 		.cps-box{
 			left: 60%;
@@ -370,6 +372,34 @@ get_header();?>
 
 		function lerp(a,b,t){ return a + (b-a)*t; }
 
+		function getMobileCanvasScale() {
+			return window.matchMedia("(max-width: 767px)").matches ? 0.6 : 1;
+		}
+
+		function getMobileFireScale() {
+			return window.matchMedia("(max-width: 767px)").matches ? 0.5 : 1;
+		}
+
+		function getMobileSpiralScale() {
+			return window.matchMedia("(max-width: 767px)").matches ? 0.1 : 1;
+		}
+
+		function getMobileSpiralItemScale() {
+			return window.matchMedia("(max-width: 767px)").matches ? 0.8 : 1;
+		}
+
+		function getMobilePressScale() {
+			return window.matchMedia("(max-width: 767px)").matches ? 1.12 : 1;
+		}
+
+		function isMobileNavigator() {
+			const nav = window.navigator || {};
+			const ua = (nav.userAgent || "").toLowerCase();
+			const hasTouch = ("ontouchstart" in window) || (nav.maxTouchPoints > 0);
+			const mobileUA = /android|iphone|ipad|ipod|mobile|tablet/.test(ua);
+			return hasTouch && mobileUA;
+		}
+
 		function hexToRgb(hex){
 			const h = hex.replace("#","");
         	return {
@@ -557,11 +587,13 @@ get_header();?>
 
 		function spawnFireSwirl(cx, cy, ringOuterR, w, h, cps){
 			const tHot = clamp01((cps - 6) / 4);
+			const swirlRadiusScale = getMobileSpiralScale();
+			const swirlItemScale = getMobileSpiralItemScale();
 
 		  	// placement around circle
 		  	const ang = Math.random() * Math.PI * 2;
-		  	const minR = ringOuterR + 55;
-		  	const maxR = Math.min((Math.min(w, h) * 0.5) - 35, ringOuterR + 220);
+		  	const minR = ringOuterR + (55 * swirlRadiusScale);
+		  	const maxR = Math.min((Math.min(w, h) * 0.5) - (35 * swirlRadiusScale), ringOuterR + (220 * swirlRadiusScale));
 		  	const r = minR + Math.random() * Math.max(40, (maxR - minR));
 
 		  	let x = cx + Math.cos(ang) * r;
@@ -569,15 +601,15 @@ get_header();?>
 		  	x = Math.max(40, Math.min(w - 40, x));
 		  	y = Math.max(40, Math.min(h - 40, y));
 
-		  	const scale = lerp(0.55, 0.95, tHot) * (0.85 + Math.random() * 0.3);
+		  	const scale = lerp(0.55, 0.95, tHot) * (0.85 + Math.random() * 0.3) * swirlItemScale;
 		  	const hue = Math.random() * 360;
 
 		  	// spiral resolution (lower = faster, still smooth)
 		  	const steps = 34 + Math.floor(Math.random() * 10); // ~42-56 (was 64-86)
 		  	const turns = 1.15 + Math.random() * 0.75;
-		  	const baseR = 10 + Math.random() * 14;
-		  	const growR = 60 + Math.random() * 110;
-		  	const ribbon = 12 + Math.random() * 12;
+		  	const baseR = (10 + Math.random() * 14) * swirlItemScale;
+		  	const growR = (60 + Math.random() * 110) * swirlItemScale;
+		  	const ribbon = (12 + Math.random() * 12) * swirlItemScale;
 
 		  	// stable jitter
 		  	const jitter = new Float32Array(steps + 1);
@@ -853,8 +885,9 @@ get_header();?>
 		function spawnStream(dt, cx, cy, ringInnerR, ringOuterR, s01, growthPct) {
 			const intensity = state.fire;
   			if (intensity <= 0.001) return;
+			const fireScale = getMobileFireScale();
 
-  			const streamLen = (ringOuterR - ringInnerR) * 0.33 + 22 * intensity;
+  			const streamLen = ((ringOuterR - ringInnerR) * 0.33 + 22 * intensity) * fireScale;
 
 		  	const emitRate = lerp(12, 140, intensity) * (0.55 + 0.85 * s01); // /sec
 		  	const toEmit = emitRate * dt;
@@ -879,7 +912,7 @@ get_header();?>
 
 				const life = lerp(0.18, 0.55, intensity) * (0.85 + Math.random() * 0.5);
 
-				const size = lerp(2.2, 7.5, intensity) * (0.75 + Math.random() * 0.8);
+				const size = lerp(2.2, 7.5, intensity) * (0.75 + Math.random() * 0.8) * fireScale;
 
 				// hue: force it hotter (yellowish), especially near max
 				// 55 ~ yellow, but blend slightly toward orange for depth
@@ -1006,6 +1039,7 @@ get_header();?>
 			// emission depends on current fire and tap rate
 			const intensity = state.fire; // 0..1
 			if (intensity <= 0.001) return;
+			const fireScale = getMobileFireScale();
 
 		  	// how many to emit this frame
 		  	const emitRate = lerp(20, 500, intensity) * (0.5 + s01); // particles/sec
@@ -1036,7 +1070,7 @@ get_header();?>
 				const dy = ny + (Math.random() - 0.5) * chaos;
 
 				// speed depends on intensity and speed
-				const sp = lerp(80, 900, intensity) * (0.6 + 0.7 * s01) * (0.7 + Math.random()*0.6);
+				const sp = lerp(80, 900, intensity) * fireScale * (0.6 + 0.7 * s01) * (0.7 + Math.random()*0.6);
 
 				const vx = dx * sp;
 				const vy = dy * sp;
@@ -1045,7 +1079,7 @@ get_header();?>
 				const life = lerp(0.25, 1.15, intensity) * (0.7 + Math.random()*0.7);
 
 				// size & glow
-				const size = lerp(1.0, 6.0, intensity) * (0.6 + Math.random()*0.8);
+				const size = lerp(1.0, 6.0, intensity) * (0.6 + Math.random()*0.8) * fireScale;
 
 				// warmness based on speed
 				const hue = fireHueFromState(s01, growthPct);
@@ -1130,7 +1164,8 @@ get_header();?>
 			state.tapStreak += 1;
 			state.cpsTimes.push(now);
 
-			const windowMs = 1250;
+			const windowMs = 10;
+			state.tapTimes.push(now);
 			while (state.tapTimes.length && state.tapTimes[0] < now - windowMs) {
 				state.tapTimes.shift();
 			}
@@ -1160,6 +1195,7 @@ get_header();?>
 		}
 
 		window.addEventListener("keydown", (e) => {
+			if (isMobileNavigator()) return;
 			if (e.code === "Space") e.preventDefault();
 			if (e.code !== "Space") return;
 			if (e.repeat) return;
@@ -1167,12 +1203,15 @@ get_header();?>
 		});
 
 		canvas.addEventListener("pointerdown", (e) => {
+			if (!isMobileNavigator()) return;
+			if (e.pointerType === "mouse") return;
 			if (!isInsidePressButton(e.clientX, e.clientY)) return;
 			e.preventDefault();
 			registerPress();
 		}, { passive: false });
 
 		canvas.addEventListener("touchstart", (e) => {
+			if (!isMobileNavigator()) return;
 			const touch = e.changedTouches && e.changedTouches[0];
 			if (!touch) return;
 			if (!isInsidePressButton(touch.clientX, touch.clientY)) return;
@@ -1260,9 +1299,11 @@ get_header();?>
 
 			const rect = canvas.getBoundingClientRect();
 			const hostRect = canvas.parentElement.getBoundingClientRect();
-			const maxOuterR = Math.min(rect.width, hostRect.height) * 0.5 - OUTER_PAD;
-			const baseSize = Math.min(rect.width, hostRect.height);
-			const innerR = clamp(baseSize * 0.20, 52, 74);
+			const uiScale = getMobileCanvasScale();
+			const pressScale = getMobilePressScale();
+			const maxOuterR = (Math.min(hostRect.width, hostRect.height) * 0.5 - OUTER_PAD) * uiScale;
+			const baseSize = Math.min(hostRect.width, hostRect.height) * uiScale;
+			const innerR = clamp(baseSize * 0.20 * pressScale, 46, 76);
 
 			const maxScale = Math.max(1, (maxOuterR / innerR) * 1.55); // bigger overall ceiling than before
 
@@ -1353,6 +1394,9 @@ get_header();?>
     	function draw(dt, s01) {
       		const rect = canvas.getBoundingClientRect();
 			const hostRect = canvas.parentElement.getBoundingClientRect(); // ring-embed
+			const uiScale = getMobileCanvasScale();
+			const pressScale = getMobilePressScale();
+			const offsetX = hostRect.left - rect.left; // how far the container is from canvas left
 			const offsetY = hostRect.top - rect.top; // how far the container is from canvas top
 			const w = rect.width;
 			const h = rect.height;
@@ -1361,24 +1405,24 @@ get_header();?>
 			
 			if (swirls.length)	drawSwirls(state.t);
 
-			const cx = w / 2;
+			const cx = offsetX + hostRect.width / 2;
 			const cy = offsetY + hostRect.height / 2;
 
 			// ---- Inner circle size ----
-			const baseSize = Math.min(w, hostRect.height);
-			const innerR = clamp(baseSize * 0.20, 52, 74);
+			const baseSize = Math.min(hostRect.width, hostRect.height) * uiScale;
+			const innerR = clamp(baseSize * 0.20 * pressScale, 46, 76);
 
 			// ✅ ATTACHMENT: ring touches inner circle (no gap)
 			const ATTACH_GAP = 0;
 
 			// how much free space we have from center to the canvas edge
-			const maxOuterR = Math.min(w, hostRect.height) * 0.5 - OUTER_PAD;
+			const maxOuterR = (Math.min(hostRect.width, hostRect.height) * 0.5 - OUTER_PAD) * uiScale;
 
 			// outward growth from taps
-			const outwardGrow = 220 * Math.max(0, state.scale - 1);
+			const outwardGrow = 220 * uiScale * Math.max(0, state.scale - 1);
 
 			// ring thickness grows a bit with speed
-			const ringThicknessIdle = 18;
+			const ringThicknessIdle = 18 * uiScale;
 			const ringThickness = ringThicknessIdle + 18 * s01;
 
 			// ring radii (attached)
