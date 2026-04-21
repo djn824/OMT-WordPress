@@ -5,10 +5,10 @@ get_header();?>
 	.piano-tool-wrap {
 		max-width: 960px;
 		margin: 20px auto 40px;
-		padding: 20px;
+		/* padding: 20px;
 		background: #f7f9fc;
 		border: 1px solid #d8e0eb;
-		border-radius: 12px;
+		border-radius: 12px; */
 	}
 
 	.piano-tool-wrap h2 {
@@ -44,12 +44,97 @@ get_header();?>
 		font-size: 13px;
 		color: #526273;
 	}
+
+	.piano-practice-panel {
+		margin-bottom: 16px;
+		padding: 0;
+	}
+
+	.piano-practice-header {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 10px 14px;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 10px;
+	}
+
+	.piano-practice-actions {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		flex-wrap: wrap;
+	}
+
+	.piano-practice-actions button {
+		padding: 8px 12px;
+		border: 1px solid #2f5f97;
+		background: #3d78be;
+		color: #fff;
+		border-radius: 6px;
+		cursor: pointer;
+		font-size: 13px;
+	}
+
+	.piano-practice-actions button:hover {
+		background: #3367a1;
+	}
+
+	.piano-volume-control {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 13px;
+		color: #2f3b48;
+	}
+
+	.piano-volume-control input[type="range"] {
+		width: 150px;
+	}
+
+	.piano-flow-wrap {
+		background: #ffffff;
+		border: 1px solid #c7d3e0;
+		border-radius: 1px;
+		overflow: hidden;
+	}
+
+	#note-flow-canvas {
+		display: block;
+		width: 100%;
+		max-width: 920px;
+		height: auto;
+		background: linear-gradient(to bottom, #f9fbff 0%, #eef4fc 100%);
+	}
+
+	.piano-flow-hint {
+		margin-top: 8px;
+		font-size: 12px;
+		color: #5f6f80;
+	}
 </style>
 
 <div class="container-fluid">	
 	<div class="piano-tool-wrap">
 		<h2>Piano Typing Tool</h2>
 		<p>Click or tap the keys, or use your keyboard: A S D F G H J K L ; and W E T Y U O P.</p>
+		<div class="piano-practice-panel">
+			<div class="piano-practice-header">
+				<strong>Random Practice Notes</strong>
+				<div class="piano-practice-actions">
+					<button type="button" id="generate-random-list">Generate Random List</button>
+					<label class="piano-volume-control" for="piano-volume">
+						Volume
+						<input type="range" id="piano-volume" min="0.05" max="1" step="0.05" value="0.25" />
+						<span id="piano-volume-value">25%</span>
+					</label>
+				</div>
+			</div>
+			<div class="piano-flow-wrap">
+				<canvas id="note-flow-canvas" width="920" height="160" aria-label="Falling random notes"></canvas>
+			</div>
+			<div class="piano-flow-hint">Notes flow down to their correct piano key positions.</div>
+		</div>
 		<div class="piano-canvas-wrap">
 			<canvas id="piano-canvas" width="920" height="280" aria-label="Interactive piano keyboard"></canvas>
 		</div>
@@ -214,6 +299,17 @@ get_header();?>
 		var ctx = canvas.getContext('2d');
 		var audioContext = null;
 		var activeNotes = {};
+		var flowCanvas = document.getElementById('note-flow-canvas');
+		var flowCtx = flowCanvas ? flowCanvas.getContext('2d') : null;
+		var generateListBtn = document.getElementById('generate-random-list');
+		var volumeInput = document.getElementById('piano-volume');
+		var volumeValue = document.getElementById('piano-volume-value');
+		var masterVolume = 0.25;
+		var flowSpeed = 120;
+		var flowGap = 64;
+		var fallingNotes = [];
+		var animationFrameId = null;
+		var lastFrameTime = 0;
 		var keyMap = {
 			a: 'C4', w: 'C#4', s: 'D4', e: 'D#4', d: 'E4',
 			f: 'F4', t: 'F#4', g: 'G4', y: 'G#4', h: 'A4',
@@ -243,6 +339,131 @@ get_header();?>
 
 		var whiteKeys = notes.filter(function (n) { return n.type === 'white'; });
 		var blackKeys = notes.filter(function (n) { return n.type === 'black'; });
+
+		function generateRandomNoteList(totalNotes) {
+			var count = totalNotes || 12;
+			var picks = [];
+			for (var i = 0; i < count; i++) {
+				var randomIndex = Math.floor(Math.random() * notes.length);
+				picks.push(notes[randomIndex].note);
+			}
+			return picks;
+		}
+
+		function buildFallingNotesFromList(list) {
+			var laneTop = -24;
+			var sequence = [];
+			for (var i = 0; i < list.length; i++) {
+				var noteName = list[i];
+				var geometry = keyGeometry[noteName];
+				if (!geometry) {
+					continue;
+				}
+				sequence.push({
+					note: noteName,
+					x: geometry.x + (geometry.w / 2),
+					y: laneTop - (i * flowGap)
+				});
+			}
+			return sequence;
+		}
+
+		function drawFlowLane() {
+			if (!flowCtx || !flowCanvas) {
+				return;
+			}
+			flowCtx.clearRect(0, 0, flowCanvas.width, flowCanvas.height);
+
+			flowCtx.strokeStyle = '#d8e3f1';
+			flowCtx.lineWidth = 1;
+			for (var i = 0; i < whiteKeys.length; i++) {
+				var g = keyGeometry[whiteKeys[i].note];
+				flowCtx.beginPath();
+				flowCtx.moveTo(g.x, 0);
+				flowCtx.lineTo(g.x, flowCanvas.height);
+				flowCtx.stroke();
+			}
+			flowCtx.beginPath();
+			flowCtx.moveTo(flowCanvas.width - 1, 0);
+			flowCtx.lineTo(flowCanvas.width - 1, flowCanvas.height);
+			flowCtx.stroke();
+
+			flowCtx.strokeStyle = '#4f6f96';
+			flowCtx.lineWidth = 2;
+			flowCtx.beginPath();
+			flowCtx.moveTo(0, flowCanvas.height - 14);
+			flowCtx.lineTo(flowCanvas.width, flowCanvas.height - 14);
+			flowCtx.stroke();
+
+			flowCtx.fillStyle = '#4f6f96';
+			flowCtx.font = '12px Arial, sans-serif';
+			flowCtx.textAlign = 'left';
+			flowCtx.fillText('Hit line', 8, flowCanvas.height - 18);
+		}
+
+		function drawFallingNotes() {
+			if (!flowCtx) {
+				return;
+			}
+			for (var i = 0; i < fallingNotes.length; i++) {
+				var falling = fallingNotes[i];
+				var g = keyGeometry[falling.note];
+				if (!g) {
+					continue;
+				}
+				var blockWidth = g.type === 'black' ? 26 : 38;
+				var blockHeight = 18;
+				var x = falling.x - (blockWidth / 2);
+				var y = falling.y;
+				flowCtx.fillStyle = g.type === 'black' ? '#2d3f57' : '#6f9fd5';
+				flowCtx.fillRect(x, y, blockWidth, blockHeight);
+				flowCtx.strokeStyle = '#1e2f44';
+				flowCtx.lineWidth = 1;
+				flowCtx.strokeRect(x, y, blockWidth, blockHeight);
+			}
+		}
+
+		function animateFlow(timestamp) {
+			if (!flowCtx || !flowCanvas) {
+				return;
+			}
+			if (!lastFrameTime) {
+				lastFrameTime = timestamp;
+			}
+			var dt = (timestamp - lastFrameTime) / 1000;
+			lastFrameTime = timestamp;
+
+			var highestY = Infinity;
+			for (var i = 0; i < fallingNotes.length; i++) {
+				if (fallingNotes[i].y < highestY) {
+					highestY = fallingNotes[i].y;
+				}
+			}
+			for (var j = 0; j < fallingNotes.length; j++) {
+				var item = fallingNotes[j];
+				item.y += flowSpeed * dt;
+				if (item.y > flowCanvas.height + 20) {
+					item.y = highestY - flowGap;
+					highestY = item.y;
+				}
+			}
+
+			drawFlowLane();
+			drawFallingNotes();
+			animationFrameId = window.requestAnimationFrame(animateFlow);
+		}
+
+		function renderRandomNoteList() {
+			if (!flowCanvas || !flowCtx) {
+				return;
+			}
+			var list = generateRandomNoteList(14);
+			fallingNotes = buildFallingNotesFromList(list);
+			lastFrameTime = 0;
+			if (!animationFrameId) {
+				animationFrameId = window.requestAnimationFrame(animateFlow);
+			}
+		}
 
 		function ensureAudioContext() {
 			if (!audioContext) {
@@ -375,7 +596,7 @@ get_header();?>
 			oscillator.type = 'sine';
 			oscillator.frequency.value = noteData.freq;
 			gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
-			gainNode.gain.exponentialRampToValueAtTime(0.25, audioContext.currentTime + 0.02);
+			gainNode.gain.exponentialRampToValueAtTime(masterVolume, audioContext.currentTime + 0.02);
 			oscillator.connect(gainNode);
 			gainNode.connect(audioContext.destination);
 			oscillator.start();
@@ -441,6 +662,23 @@ get_header();?>
 		canvas.addEventListener('touchstart', onPointerDown, { passive: false });
 		canvas.addEventListener('touchend', onPointerUp);
 
+		if (generateListBtn) {
+			generateListBtn.addEventListener('click', renderRandomNoteList);
+		}
+
+		if (volumeInput) {
+			volumeInput.addEventListener('input', function () {
+				var volume = parseFloat(volumeInput.value);
+				if (isNaN(volume)) {
+					return;
+				}
+				masterVolume = volume;
+				if (volumeValue) {
+					volumeValue.textContent = Math.round(volume * 100) + '%';
+				}
+			});
+		}
+
 		document.addEventListener('keydown', function (evt) {
 			if (evt.repeat) {
 				return;
@@ -463,8 +701,12 @@ get_header();?>
 		window.addEventListener('resize', function () {
 			keyGeometry = buildKeyGeometry();
 			drawPiano();
+			fallingNotes = buildFallingNotesFromList(fallingNotes.map(function (item) { return item.note; }));
+			drawFlowLane();
+			drawFallingNotes();
 		});
 
+		renderRandomNoteList();
 		drawPiano();
 	})();
 </script>
