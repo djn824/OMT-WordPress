@@ -1180,18 +1180,15 @@ get_header();?>
 			state.fireAfterglow = 1.0;
 		}
 
-		function isInsidePressButton(clientX, clientY) {
-			if (!state._geom) return false;
-
-			const rect = canvas.getBoundingClientRect();
-			const x = clientX - rect.left;
-			const y = clientY - rect.top;
-
-			const dx = x - state._geom.cx;
-			const dy = y - state._geom.cy;
-			const r = state._geom.innerR || 74;
-
-			return (dx * dx + dy * dy) <= (r * r);
+		let lastMobilePressAt = 0;
+		function registerMobileCanvasPress(e) {
+			if (!isMobileNavigator()) return;
+			if (e.pointerType === "mouse") return;
+			const now = performance.now();
+			if ((now - lastMobilePressAt) < 60) return;
+			lastMobilePressAt = now;
+			e.preventDefault();
+			registerPress();
 		}
 
 		window.addEventListener("keydown", (e) => {
@@ -1203,20 +1200,11 @@ get_header();?>
 		});
 
 		canvas.addEventListener("pointerdown", (e) => {
-			if (!isMobileNavigator()) return;
-			if (e.pointerType === "mouse") return;
-			if (!isInsidePressButton(e.clientX, e.clientY)) return;
-			e.preventDefault();
-			registerPress();
+			registerMobileCanvasPress(e);
 		}, { passive: false });
 
 		canvas.addEventListener("touchstart", (e) => {
-			if (!isMobileNavigator()) return;
-			const touch = e.changedTouches && e.changedTouches[0];
-			if (!touch) return;
-			if (!isInsidePressButton(touch.clientX, touch.clientY)) return;
-			e.preventDefault();
-			registerPress();
+			registerMobileCanvasPress(e);
 		}, { passive: false });
 
 
