@@ -299,6 +299,8 @@ get_header();?>
 		var ctx = canvas.getContext('2d');
 		var audioContext = null;
 		var activeNotes = {};
+		var masterGainNode = null;
+		var pianoConvolver = null;
 		var flowCanvas = document.getElementById('note-flow-canvas');
 		var flowCtx = flowCanvas ? flowCanvas.getContext('2d') : null;
 		var generateListBtn = document.getElementById('generate-random-list');
@@ -468,10 +470,104 @@ get_header();?>
 		function ensureAudioContext() {
 			if (!audioContext) {
 				audioContext = new (window.AudioContext || window.webkitAudioContext)();
+				masterGainNode = audioContext.createGain();
+				masterGainNode.gain.value = 0.9;
+				masterGainNode.connect(audioContext.destination);
+				pianoConvolver = audioContext.createConvolver();
+				pianoConvolver.buffer = createImpulseResponse(1.8, 2.4);
+				pianoConvolver.connect(masterGainNode);
 			}
 			if (audioContext.state === 'suspended') {
 				audioContext.resume();
 			}
+		}
+
+		function createImpulseResponse(duration, decay) {
+			var sampleRate = audioContext.sampleRate;
+			var length = Math.floor(sampleRate * duration);
+			var impulse = audioContext.createBuffer(2, length, sampleRate);
+			for (var channel = 0; channel < impulse.numberOfChannels; channel++) {
+				var data = impulse.getChannelData(channel);
+				for (var i = 0; i < length; i++) {
+					var t = i / length;
+					data[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, decay);
+				}
+			}
+			return impulse;
+		}
+
+		function createPianoVoice(noteData) {
+			var now = audioContext.currentTime;
+			var fundamental = noteData.freq;
+			var output = audioContext.createGain();
+			var toneFilter = audioContext.createBiquadFilter();
+			var dryGain = audioContext.createGain();
+			var wetGain = audioContext.createGain();
+			var harmonicRatios = [1, 2, 3, 4];
+			var harmonicLevels = [1, 0.42, 0.2, 0.1];
+			var oscillators = [];
+			var gains = [];
+
+			toneFilter.type = 'lowpass';
+			toneFilter.frequency.value = 5600;
+			toneFilter.Q.value = 0.7;
+
+			output.gain.setValueAtTime(0.0001, now);
+			output.gain.exponentialRampToValueAtTime(Math.max(0.01, masterVolume), now + 0.01);
+			output.gain.exponentialRampToValueAtTime(Math.max(0.004, masterVolume * 0.5), now + 0.15);
+			output.gain.exponentialRampToValueAtTime(0.0001, now + 2.8);
+
+			for (var i = 0; i < harmonicRatios.length; i++) {
+				var osc = audioContext.createOscillator();
+				var gain = audioContext.createGain();
+				var detuneSpread = (Math.random() - 0.5) * 3.5;
+				osc.type = i === 0 ? 'triangle' : 'sine';
+				osc.frequency.value = fundamental * harmonicRatios[i];
+				osc.detune.value = detuneSpread;
+				gain.gain.setValueAtTime(harmonicLevels[i], now);
+				osc.connect(gain);
+				gain.connect(toneFilter);
+				osc.start(now);
+				oscillators.push(osc);
+				gains.push(gain);
+			}
+
+			// Short, filtered noise burst to mimic hammer strike.
+			var noiseBuffer = audioContext.createBuffer(1, Math.floor(audioContext.sampleRate * 0.03), audioContext.sampleRate);
+			var noiseData = noiseBuffer.getChannelData(0);
+			for (var n = 0; n < noiseData.length; n++) {
+				noiseData[n] = (Math.random() * 2 - 1) * 0.45;
+			}
+			var noiseSource = audioContext.createBufferSource();
+			var noiseFilter = audioContext.createBiquadFilter();
+			var noiseGain = audioContext.createGain();
+			noiseSource.buffer = noiseBuffer;
+			noiseFilter.type = 'bandpass';
+			noiseFilter.frequency.value = 2900;
+			noiseFilter.Q.value = 0.8;
+			noiseGain.gain.setValueAtTime(0.0001, now);
+			noiseGain.gain.exponentialRampToValueAtTime(Math.max(0.002, masterVolume * 0.2), now + 0.004);
+			noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
+			noiseSource.connect(noiseFilter);
+			noiseFilter.connect(noiseGain);
+			noiseGain.connect(toneFilter);
+			noiseSource.start(now);
+			noiseSource.stop(now + 0.035);
+
+			toneFilter.connect(output);
+			output.connect(dryGain);
+			output.connect(wetGain);
+			dryGain.gain.value = 0.88;
+			wetGain.gain.value = 0.2;
+			dryGain.connect(masterGainNode);
+			wetGain.connect(pianoConvolver);
+
+			return {
+				output: output,
+				oscillators: oscillators,
+				noiseSource: noiseSource,
+				noiseGain: noiseGain
+			};
 		}
 
 		function buildKeyGeometry() {
@@ -591,19 +687,10 @@ get_header();?>
 			}
 
 			ensureAudioContext();
-			var oscillator = audioContext.createOscillator();
-			var gainNode = audioContext.createGain();
-			oscillator.type = 'sine';
-			oscillator.frequency.value = noteData.freq;
-			gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
-			gainNode.gain.exponentialRampToValueAtTime(masterVolume, audioContext.currentTime + 0.02);
-			oscillator.connect(gainNode);
-			gainNode.connect(audioContext.destination);
-			oscillator.start();
+			var voice = createPianoVoice(noteData);
 
 			activeNotes[noteData.note] = {
-				oscillator: oscillator,
-				gainNode: gainNode
+				voice: voice
 			};
 
 			drawPiano();
@@ -615,10 +702,13 @@ get_header();?>
 				return;
 			}
 			var now = audioContext.currentTime;
-			entry.gainNode.gain.cancelScheduledValues(now);
-			entry.gainNode.gain.setValueAtTime(entry.gainNode.gain.value, now);
-			entry.gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
-			entry.oscillator.stop(now + 0.07);
+			var voice = entry.voice;
+			voice.output.gain.cancelScheduledValues(now);
+			voice.output.gain.setValueAtTime(Math.max(0.00012, voice.output.gain.value), now);
+			voice.output.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+			for (var i = 0; i < voice.oscillators.length; i++) {
+				voice.oscillators[i].stop(now + 0.24);
+			}
 			delete activeNotes[noteName];
 			drawPiano();
 		}
