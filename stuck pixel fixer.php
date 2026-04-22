@@ -107,6 +107,10 @@ get_header(); ?>
 		border-left: 14px solid #ffffff;
 	}
 
+	#fixHint.arrow-hidden::before {
+		display: none;
+	}
+
 	#fixHint.is-visible {
 		opacity: 1;
 		visibility: visible;
@@ -118,6 +122,23 @@ get_header(); ?>
 		opacity: 0;
 		transform: translateY(10px);
 		visibility: hidden;
+	}
+
+	@media all and (max-width: 768px) {
+		#fixHint {
+			font-size: clamp(13px, 3.8vw, 16px);
+			line-height: 1.35;
+			padding: clamp(10px, 3vw, 14px) clamp(12px, 3.4vw, 16px);
+			width: fit-content;
+			max-width: calc(100vw - 20px);
+			border-radius: 8px;
+			box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+		}
+
+		#fixHint::before,
+		#fixHint.arrow-right::before {
+			display: none;
+		}
 	}
 
 	#exitBtn {
@@ -398,18 +419,82 @@ get_header(); ?>
 					var gap = 32;
 					var hintWidth = a.fixHint.offsetWidth || 320;
 					var hintHeight = a.fixHint.offsetHeight || 120;
-					var left = patchRect.right - screenRect.left + gap;
-					var top = patchRect.top - screenRect.top + ((patchRect.height - hintHeight) / 2);
-					var maxLeft = screenRect.width - hintWidth - 15;
-					var maxTop = screenRect.height - hintHeight - 15;
-					if (left > maxLeft) {
-						left = Math.max(15, patchRect.left - screenRect.left - hintWidth - gap);
+					var patchLeft = patchRect.left - screenRect.left;
+					var patchTop = patchRect.top - screenRect.top;
+					var patchRight = patchRect.right - screenRect.left;
+					var patchBottom = patchRect.bottom - screenRect.top;
+					var overlapsPatch = function (x, y, keepClear) {
+						var hintLeft = x;
+						var hintTop = y;
+						var hintRight = x + hintWidth;
+						var hintBottom = y + hintHeight;
+						return !(hintRight < patchLeft - keepClear || hintLeft > patchRight + keepClear || hintBottom < patchTop - keepClear || hintTop > patchBottom + keepClear);
+					};
+					var isMobileViewport = window.matchMedia('(max-width: 768px)').matches;
+					if (isMobileViewport) {
+						var margin = 10;
+						var mobileGap = 14;
+						var mobileMaxLeft = screenRect.width - hintWidth - margin;
+						var mobileMaxTop = screenRect.height - hintHeight - margin;
+						var clampX = function (x) {
+							return Math.max(margin, Math.min(mobileMaxLeft, x));
+						};
+						var clampY = function (y) {
+							return Math.max(margin, Math.min(mobileMaxTop, y));
+						};
+						var candidates = [
+							{ x: clampX(patchLeft + ((patchRect.width - hintWidth) / 2)), y: clampY(patchBottom + mobileGap) },
+							{ x: clampX(patchLeft + ((patchRect.width - hintWidth) / 2)), y: clampY(patchTop - hintHeight - mobileGap) },
+							{ x: clampX(patchRight + mobileGap), y: clampY(patchTop + ((patchRect.height - hintHeight) / 2)) },
+							{ x: clampX(patchLeft - hintWidth - mobileGap), y: clampY(patchTop + ((patchRect.height - hintHeight) / 2)) }
+						];
+						var chosen = candidates[0];
+						for (var i = 0; i < candidates.length; i++) {
+							if (!overlapsPatch(candidates[i].x, candidates[i].y, 6)) {
+								chosen = candidates[i];
+								break;
+							}
+						}
+						a.fixHint.classList.remove('arrow-right');
+						a.fixHint.classList.add('arrow-hidden');
+						a.fixHint.style.left = chosen.x + 'px';
+						a.fixHint.style.top = chosen.y + 'px';
+						return;
+					}
+					var desktopMargin = 15;
+					var maxLeft = screenRect.width - hintWidth - desktopMargin;
+					var maxTop = screenRect.height - hintHeight - desktopMargin;
+					var clampDesktopX = function (x) {
+						return Math.max(desktopMargin, Math.min(maxLeft, x));
+					};
+					var clampDesktopY = function (y) {
+						return Math.max(desktopMargin, Math.min(maxTop, y));
+					};
+					var desktopCandidates = [
+						{ x: clampDesktopX(patchRight + gap), y: clampDesktopY(patchTop + ((patchRect.height - hintHeight) / 2)), side: 'right' },
+						{ x: clampDesktopX(patchLeft - hintWidth - gap), y: clampDesktopY(patchTop + ((patchRect.height - hintHeight) / 2)), side: 'left' },
+						{ x: clampDesktopX(patchLeft + ((patchRect.width - hintWidth) / 2)), y: clampDesktopY(patchBottom + 18), side: 'bottom' },
+						{ x: clampDesktopX(patchLeft + ((patchRect.width - hintWidth) / 2)), y: clampDesktopY(patchTop - hintHeight - 18), side: 'top' }
+					];
+					var desktopChosen = desktopCandidates[0];
+					for (var j = 0; j < desktopCandidates.length; j++) {
+						if (!overlapsPatch(desktopCandidates[j].x, desktopCandidates[j].y, 10)) {
+							desktopChosen = desktopCandidates[j];
+							break;
+						}
+					}
+					if (desktopChosen.side === 'left') {
 						a.fixHint.classList.add('arrow-right');
+						a.fixHint.classList.remove('arrow-hidden');
+					} else if (desktopChosen.side === 'right') {
+						a.fixHint.classList.remove('arrow-right');
+						a.fixHint.classList.remove('arrow-hidden');
 					} else {
 						a.fixHint.classList.remove('arrow-right');
+						a.fixHint.classList.add('arrow-hidden');
 					}
-					a.fixHint.style.left = Math.max(15, Math.min(maxLeft, left)) + 'px';
-					a.fixHint.style.top = Math.max(15, Math.min(maxTop, top)) + 'px';
+					a.fixHint.style.left = desktopChosen.x + 'px';
+					a.fixHint.style.top = desktopChosen.y + 'px';
 				}
 
 				function showHintTemporarily() {
