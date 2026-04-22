@@ -420,7 +420,7 @@ get_header(); ?>
 					positionHint();
 					hintFadeTimer = setTimeout(function () {
 						a.fixHint.classList.add('is-faded');
-					}, 5000);
+					}, 10000);
 				}
 
 				function patchSize() {
