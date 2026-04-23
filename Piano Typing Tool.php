@@ -11,16 +11,6 @@ get_header();?>
 		border-radius: 12px; */
 	}
 
-	.piano-tool-wrap h2 {
-		margin: 0 0 8px;
-		font-size: 28px;
-	}
-
-	.piano-tool-wrap p {
-		margin: 0 0 16px;
-		color: #2f3b48;
-	}
-
 	.piano-canvas-wrap {
 		position: relative;
 		width: 100%;
@@ -30,19 +20,12 @@ get_header();?>
 	#piano-canvas {
 		display: block;
 		width: 100%;
-		max-width: 920px;
 		height: auto;
 		background: #ffffff;
 		border: 1px solid #c7d3e0;
 		border-radius: 8px;
 		cursor: pointer;
 		touch-action: manipulation;
-	}
-
-	.piano-key-map {
-		margin-top: 12px;
-		font-size: 13px;
-		color: #526273;
 	}
 
 	.piano-practice-panel {
@@ -94,7 +77,6 @@ get_header();?>
 
 	.piano-flow-wrap {
 		background: #ffffff;
-		border: 1px solid #c7d3e0;
 		border-radius: 1px;
 		overflow: hidden;
 	}
@@ -102,7 +84,7 @@ get_header();?>
 	#note-flow-canvas {
 		display: block;
 		width: 100%;
-		max-width: 920px;
+		border: 1px solid #c7d3e0;
 		height: auto;
 		background: linear-gradient(to bottom, #f9fbff 0%, #eef4fc 100%);
 	}
@@ -116,8 +98,6 @@ get_header();?>
 
 <div class="container-fluid">	
 	<div class="piano-tool-wrap">
-		<h2>Piano Typing Tool</h2>
-		<p>Click or tap the keys, or use your keyboard: A S D F G H J K L ; and W E T Y U O P.</p>
 		<div class="piano-practice-panel">
 			<div class="piano-practice-header">
 				<strong>Random Practice Notes</strong>
@@ -133,13 +113,9 @@ get_header();?>
 			<div class="piano-flow-wrap">
 				<canvas id="note-flow-canvas" width="920" height="160" aria-label="Falling random notes"></canvas>
 			</div>
-			<div class="piano-flow-hint">Notes flow down to their correct piano key positions.</div>
 		</div>
 		<div class="piano-canvas-wrap">
 			<canvas id="piano-canvas" width="920" height="280" aria-label="Interactive piano keyboard"></canvas>
-		</div>
-		<div class="piano-key-map">
-			Lower row: A S D F G H J K L ; | Upper row: W E T Y U O P
 		</div>
 	</div>
 	
@@ -310,8 +286,13 @@ get_header();?>
 		var flowSpeed = 120;
 		var flowGap = 64;
 		var fallingNotes = [];
+		var keyFeedbackStates = {};
 		var animationFrameId = null;
 		var lastFrameTime = 0;
+		var FALLING_NOTE_HEIGHT = 18;
+		var HIT_LINE_Y = flowCanvas ? flowCanvas.height - 14 : 146;
+		var HIT_EXACT_TOLERANCE = 8;
+		var HIT_WINDOW_TOLERANCE = 36;
 		var keyMap = {
 			a: 'C4', w: 'C#4', s: 'D4', e: 'D#4', d: 'E4',
 			f: 'F4', t: 'F#4', g: 'G4', y: 'G#4', h: 'A4',
@@ -632,7 +613,12 @@ get_header();?>
 			whiteKeys.forEach(function (white) {
 				var k = keyGeometry[white.note];
 				var isActive = !!activeNotes[white.note];
-				ctx.fillStyle = isActive ? '#c8dcff' : '#ffffff';
+				var feedback = keyFeedbackStates[white.note];
+				var baseFill = isActive ? '#c8dcff' : '#ffffff';
+				if (feedback === 'perfect') baseFill = '#5ac86b';
+				if (feedback === 'offbeat') baseFill = '#f3a34a';
+				if (feedback === 'wrong') baseFill = '#ef5b5b';
+				ctx.fillStyle = baseFill;
 				ctx.strokeStyle = '#2c3e50';
 				ctx.lineWidth = 1.2;
 				ctx.fillRect(k.x, k.y, k.w, k.h);
@@ -650,7 +636,12 @@ get_header();?>
 					return;
 				}
 				var isActive = !!activeNotes[black.note];
-				ctx.fillStyle = isActive ? '#3f5c8a' : '#1f2a36';
+				var feedback = keyFeedbackStates[black.note];
+				var baseBlackFill = isActive ? '#3f5c8a' : '#1f2a36';
+				if (feedback === 'perfect') baseBlackFill = '#2ea84f';
+				if (feedback === 'offbeat') baseBlackFill = '#cf7b2f';
+				if (feedback === 'wrong') baseBlackFill = '#bf3838';
+				ctx.fillStyle = baseBlackFill;
 				ctx.strokeStyle = '#111820';
 				ctx.lineWidth = 1;
 				ctx.fillRect(k.x, k.y, k.w, k.h);
@@ -679,6 +670,63 @@ get_header();?>
 			}
 
 			return null;
+		}
+
+		function getNoteDistanceFromHitLine(noteItem) {
+			if (!noteItem) {
+				return Infinity;
+			}
+			var noteCenterY = noteItem.y + (FALLING_NOTE_HEIGHT / 2);
+			return Math.abs(noteCenterY - HIT_LINE_Y);
+		}
+
+		function assessKeyAccuracy(noteName) {
+			var nearestAny = null;
+			var nearestAnyDistance = Infinity;
+			var nearestMatching = null;
+			var nearestMatchingDistance = Infinity;
+
+			for (var i = 0; i < fallingNotes.length; i++) {
+				var item = fallingNotes[i];
+				var distance = getNoteDistanceFromHitLine(item);
+
+				if (distance < nearestAnyDistance) {
+					nearestAnyDistance = distance;
+					nearestAny = item;
+				}
+
+				if (item.note === noteName && distance < nearestMatchingDistance) {
+					nearestMatchingDistance = distance;
+					nearestMatching = item;
+				}
+			}
+
+			if (!nearestMatching || nearestMatchingDistance > HIT_WINDOW_TOLERANCE) {
+				return 'wrong';
+			}
+
+			if (nearestAny && nearestAny.note !== noteName && nearestAnyDistance <= nearestMatchingDistance) {
+				return 'wrong';
+			}
+
+			if (nearestMatchingDistance <= HIT_EXACT_TOLERANCE) {
+				return 'perfect';
+			}
+
+			return 'offbeat';
+		}
+
+		function setKeyFeedback(noteName, status) {
+			if (!noteName || !status) {
+				return;
+			}
+			keyFeedbackStates[noteName] = status;
+			window.setTimeout(function () {
+				if (keyFeedbackStates[noteName] === status) {
+					delete keyFeedbackStates[noteName];
+					drawPiano();
+				}
+			}, 170);
 		}
 
 		function playNote(noteData) {
@@ -735,6 +783,7 @@ get_header();?>
 			var key = getKeyFromPoint(pos.x, pos.y);
 			if (key) {
 				pointerNote = key.note;
+				setKeyFeedback(key.note, assessKeyAccuracy(key.note));
 				playNote(key);
 			}
 		}
@@ -777,6 +826,7 @@ get_header();?>
 			if (!mapped || !keyGeometry[mapped]) {
 				return;
 			}
+			setKeyFeedback(mapped, assessKeyAccuracy(mapped));
 			playNote(keyGeometry[mapped]);
 		});
 
@@ -790,6 +840,7 @@ get_header();?>
 
 		window.addEventListener('resize', function () {
 			keyGeometry = buildKeyGeometry();
+			HIT_LINE_Y = flowCanvas ? flowCanvas.height - 14 : HIT_LINE_Y;
 			drawPiano();
 			fallingNotes = buildFallingNotesFromList(fallingNotes.map(function (item) { return item.note; }));
 			drawFlowLane();
