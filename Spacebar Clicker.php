@@ -52,6 +52,7 @@ get_header();?>
 	  	margin: 0 auto;
 	  	background: transparent;
 	  	overflow: visible;
+		touch-action: manipulation;
 	}
 	#ringCanvas{
 		position: absolute;
@@ -348,6 +349,7 @@ get_header();?>
 <script>
 	(function () {
 		const canvas = document.getElementById("ringCanvas");
+		const canvasHost = canvas.parentElement;
 		const ctx = canvas.getContext("2d");
 		const hud = document.getElementById("ringHud");
 	  	const OUTER_PAD = 6;
@@ -1181,9 +1183,19 @@ get_header();?>
 		}
 
 		let lastMobilePressAt = 0;
+		function isInsideCanvasHost(clientX, clientY) {
+			if (!canvasHost) return false;
+			const rect = canvasHost.getBoundingClientRect();
+			return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
+		}
+
 		function registerMobileCanvasPress(e) {
 			if (!isMobileNavigator()) return;
 			if (e.pointerType === "mouse") return;
+			const touch = e.changedTouches && e.changedTouches[0];
+			const clientX = touch ? touch.clientX : e.clientX;
+			const clientY = touch ? touch.clientY : e.clientY;
+			if (!isInsideCanvasHost(clientX, clientY)) return;
 			const now = performance.now();
 			if ((now - lastMobilePressAt) < 60) return;
 			lastMobilePressAt = now;
@@ -1199,11 +1211,11 @@ get_header();?>
 			registerPress();
 		});
 
-		canvas.addEventListener("pointerdown", (e) => {
+		canvasHost.addEventListener("pointerdown", (e) => {
 			registerMobileCanvasPress(e);
 		}, { passive: false });
 
-		canvas.addEventListener("touchstart", (e) => {
+		canvasHost.addEventListener("touchstart", (e) => {
 			registerMobileCanvasPress(e);
 		}, { passive: false });
 
