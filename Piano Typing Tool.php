@@ -293,6 +293,10 @@ get_header();?>
 		var HIT_LINE_Y = flowCanvas ? flowCanvas.height - 14 : 146;
 		var HIT_EXACT_TOLERANCE = 8;
 		var HIT_WINDOW_TOLERANCE = 36;
+		var NOTE_FADE_IN_DURATION = 260;
+		var NOTE_SCALE_DURATION = 220;
+		var NOTE_SCALE_PEAK = 2;
+		var NOTE_RESOLVE_DURATION = 220;
 		var keyMap = {
 			a: 'C4', w: 'C#4', s: 'D4', e: 'D#4', d: 'E4',
 			f: 'F4', t: 'F#4', g: 'G4', y: 'G#4', h: 'A4',
@@ -394,16 +398,123 @@ get_header();?>
 				if (!g) {
 					continue;
 				}
-				var blockWidth = g.type === 'black' ? 26 : 38;
+				var blockWidth = g.type === 'black' ? 30 : 42;
 				var blockHeight = 18;
-				var x = falling.x - (blockWidth / 2);
-				var y = falling.y;
-				flowCtx.fillStyle = g.type === 'black' ? '#2d3f57' : '#6f9fd5';
-				flowCtx.fillRect(x, y, blockWidth, blockHeight);
-				flowCtx.strokeStyle = '#1e2f44';
+				var nowTs = performance.now();
+				var baseAlpha = 0.95;
+				var noteScale = 1;
+				if (falling.resolveStart) {
+					var resolveElapsed = nowTs - falling.resolveStart;
+					if (resolveElapsed >= 0 && resolveElapsed <= NOTE_RESOLVE_DURATION) {
+						var resolveProgress = resolveElapsed / NOTE_RESOLVE_DURATION;
+						baseAlpha = 0.18 + (resolveProgress * 0.82);
+						var scaleProgress = Math.min(1, resolveElapsed / NOTE_SCALE_DURATION);
+						noteScale = 1 + Math.sin(scaleProgress * Math.PI) * (NOTE_SCALE_PEAK - 1);
+					}
+				} else if (falling.fadeInStart) {
+					var elapsed = nowTs - falling.fadeInStart;
+					if (elapsed >= NOTE_FADE_IN_DURATION) {
+						falling.fadeInStart = 0;
+					} else if (elapsed >= 0) {
+						baseAlpha = 0.15 + (elapsed / NOTE_FADE_IN_DURATION) * 0.85;
+					}
+					if (elapsed >= 0 && elapsed <= NOTE_SCALE_DURATION) {
+						var idleScaleProgress = elapsed / NOTE_SCALE_DURATION;
+						noteScale = 1 + Math.sin(idleScaleProgress * Math.PI) * (NOTE_SCALE_PEAK - 1);
+					}
+				}
+				var scaledWidth = blockWidth * noteScale;
+				var scaledHeight = blockHeight * noteScale;
+				var x = falling.x - (scaledWidth / 2);
+				var y = falling.y - ((scaledHeight - blockHeight) / 2);
+
+				flowCtx.save();
+				flowCtx.globalAlpha = Math.max(0.1, Math.min(1, baseAlpha));
+				var noteGradient = flowCtx.createLinearGradient(0, y, 0, y + scaledHeight);
+				if (g.type === 'black') {
+					noteGradient.addColorStop(0, '#4c678b');
+					noteGradient.addColorStop(1, '#1f2f45');
+				} else {
+					noteGradient.addColorStop(0, '#a6c9f7');
+					noteGradient.addColorStop(1, '#568ed7');
+				}
+				flowCtx.fillStyle = noteGradient;
+				flowCtx.strokeStyle = g.type === 'black' ? '#172338' : '#2f5f9b';
 				flowCtx.lineWidth = 1;
-				flowCtx.strokeRect(x, y, blockWidth, blockHeight);
+				flowCtx.shadowColor = g.type === 'black' ? 'rgba(10, 17, 27, 0.35)' : 'rgba(41, 92, 158, 0.3)';
+				flowCtx.shadowBlur = 8;
+				flowCtx.shadowOffsetY = 2;
+				drawRoundedRectPath(flowCtx, x, y, scaledWidth, scaledHeight, 6 * noteScale);
+				flowCtx.fill();
+				flowCtx.shadowColor = 'transparent';
+				flowCtx.stroke();
+				flowCtx.restore();
 			}
+		}
+
+		function drawRoundedRectPath(context, x, y, width, height, radius) {
+			var r = Math.max(0, Math.min(radius, width / 2, height / 2));
+			context.beginPath();
+			context.moveTo(x + r, y);
+			context.arcTo(x + width, y, x + width, y + height, r);
+			context.arcTo(x + width, y + height, x, y + height, r);
+			context.arcTo(x, y + height, x, y, r);
+			context.arcTo(x, y, x + width, y, r);
+			context.closePath();
+		}
+
+		function getCurrentTargetNote() {
+			if (!fallingNotes.length) {
+				return null;
+			}
+			var best = null;
+			var bestDistance = Infinity;
+			for (var i = 0; i < fallingNotes.length; i++) {
+				var item = fallingNotes[i];
+				var centerY = item.y + (FALLING_NOTE_HEIGHT / 2);
+				var distanceToHit = HIT_LINE_Y - centerY;
+				if (distanceToHit < -HIT_WINDOW_TOLERANCE) {
+					continue;
+				}
+				if (distanceToHit < bestDistance) {
+					bestDistance = distanceToHit;
+					best = item;
+				}
+			}
+			if (!best) {
+				return null;
+			}
+			return best;
+		}
+
+		function triggerTargetFadeIn(noteName) {
+			var target = getCurrentTargetNote();
+			if (!target || target.resolveStart) {
+				return;
+			}
+			target.fadeInStart = performance.now();
+		}
+
+		function createRandomFallingNote(startY) {
+			var randomIndex = Math.floor(Math.random() * notes.length);
+			var noteName = notes[randomIndex].note;
+			var geometry = keyGeometry[noteName];
+			if (!geometry) {
+				return null;
+			}
+			return {
+				note: noteName,
+				x: geometry.x + (geometry.w / 2),
+				y: startY
+			};
+		}
+
+		function triggerTargetResolveAnimation() {
+			var target = getCurrentTargetNote();
+			if (!target || target.resolveStart) {
+				return;
+			}
+			target.resolveStart = performance.now();
 		}
 
 		function animateFlow(timestamp) {
@@ -424,11 +535,44 @@ get_header();?>
 			}
 			for (var j = 0; j < fallingNotes.length; j++) {
 				var item = fallingNotes[j];
+				if (item.resolveStart) {
+					continue;
+				}
 				item.y += flowSpeed * dt;
 				if (item.y > flowCanvas.height + 20) {
 					item.y = highestY - flowGap;
 					highestY = item.y;
 				}
+			}
+
+			var nowTs = performance.now();
+			var activeNotesList = [];
+			var removedCount = 0;
+			var topY = Infinity;
+			for (var k = 0; k < fallingNotes.length; k++) {
+				var noteItem = fallingNotes[k];
+				if (noteItem.resolveStart && nowTs - noteItem.resolveStart >= NOTE_RESOLVE_DURATION) {
+					removedCount++;
+					continue;
+				}
+				activeNotesList.push(noteItem);
+				if (noteItem.y < topY) {
+					topY = noteItem.y;
+				}
+			}
+			if (removedCount > 0) {
+				if (topY === Infinity) {
+					topY = -24;
+				}
+				for (var r = 0; r < removedCount; r++) {
+					var startY = topY - flowGap;
+					var newItem = createRandomFallingNote(startY);
+					if (newItem) {
+						activeNotesList.push(newItem);
+						topY = startY;
+					}
+				}
+				fallingNotes = activeNotesList;
 			}
 
 			drawFlowLane();
@@ -783,7 +927,12 @@ get_header();?>
 			var key = getKeyFromPoint(pos.x, pos.y);
 			if (key) {
 				pointerNote = key.note;
-				setKeyFeedback(key.note, assessKeyAccuracy(key.note));
+				var pointerAccuracy = assessKeyAccuracy(key.note);
+				setKeyFeedback(key.note, pointerAccuracy);
+				if (pointerAccuracy !== 'wrong') {
+					triggerTargetFadeIn(key.note);
+					triggerTargetResolveAnimation();
+				}
 				playNote(key);
 			}
 		}
@@ -826,7 +975,12 @@ get_header();?>
 			if (!mapped || !keyGeometry[mapped]) {
 				return;
 			}
-			setKeyFeedback(mapped, assessKeyAccuracy(mapped));
+			var keyAccuracy = assessKeyAccuracy(mapped);
+			setKeyFeedback(mapped, keyAccuracy);
+			if (keyAccuracy !== 'wrong') {
+				triggerTargetFadeIn(mapped);
+				triggerTargetResolveAnimation();
+			}
 			playNote(keyGeometry[mapped]);
 		});
 
