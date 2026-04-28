@@ -151,6 +151,46 @@ get_header();
 		pointer-events: none;
 	}
 
+	.piano-note-game__hit-label {
+		position: absolute;
+		z-index: 26;
+		padding: 4px 10px;
+		border-radius: 10px;
+		color: #ffffff;
+		font-size: 14px;
+		font-weight: 800;
+		line-height: 1;
+		pointer-events: none;
+		animation: piano-note-game-hit-pop 420ms ease-out forwards;
+		transform-origin: center center;
+	}
+
+	.piano-note-game__hit-label--perfect {
+		background: #2fa44a;
+		border: 1.3px solid #1b7430;
+	}
+
+	.piano-note-game__hit-label--normal {
+		background: #cf7a2f;
+		border: 1.3px solid #9a5417;
+	}
+
+	@keyframes piano-note-game-hit-pop {
+		0% {
+			opacity: 1;
+			transform: translate(-50%, -50%) scale(1);
+		}
+
+		35% {
+			transform: translate(-50%, -62%) scale(1.12);
+		}
+
+		100% {
+			opacity: 0;
+			transform: translate(-50%, -90%) scale(1.03);
+		}
+	}
+
 	.piano-note-game__keys {
 		position: absolute;
 		left: 0;
@@ -206,6 +246,10 @@ get_header();
 		transform: translateY(4px);
 	}
 
+	.piano-note-game__key.is-wrong {
+		box-shadow: inset 0 0 0 2px #c52e2e, 0 0 0 1px rgba(197, 46, 46, 0.22);
+	}
+
 	.piano-note-game__key--white.is-active {
 		background: #e5e7eb;
 		box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.2);
@@ -214,6 +258,45 @@ get_header();
 	.piano-note-game__key--black.is-active {
 		filter: brightness(1.12);
 		box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.3);
+	}
+
+	.piano-note-game__key-penalty {
+		position: absolute;
+		left: 50%;
+		top: 50%;
+		transform: translate(-50%, -50%);
+		z-index: 3;
+		padding: 3px 8px;
+		border-radius: 10px;
+		border: 1.4px solid #8f2020;
+		background: #e14545;
+		color: #ffffff;
+		font-size: 14px;
+		font-weight: 800;
+		line-height: 1;
+		pointer-events: none;
+		animation: piano-note-game-penalty-pop 520ms ease-out forwards;
+	}
+
+	.piano-note-game__key--black .piano-note-game__key-penalty {
+		padding: 2px 7px;
+		font-size: 12px;
+	}
+
+	@keyframes piano-note-game-penalty-pop {
+		0% {
+			opacity: 1;
+			transform: translate(-50%, -50%) scale(1);
+		}
+
+		25% {
+			transform: translate(-50%, -55%) scale(1.14);
+		}
+
+		100% {
+			opacity: 0;
+			transform: translate(-50%, -78%) scale(1.02);
+		}
 	}
 
 	.piano-note-game__note-label {
@@ -460,6 +543,30 @@ get_header();
 			}
 		}
 
+		function showHitLabel(note, scoreText, isPerfect) {
+			if (!note || !scoreText) {
+				return;
+			}
+
+			var key = pianoKeys[note.keyIndex];
+			if (!key) {
+				return;
+			}
+
+			var labelEl = document.createElement('span');
+			labelEl.className = 'piano-note-game__hit-label ' + (isPerfect ? 'piano-note-game__hit-label--perfect' : 'piano-note-game__hit-label--normal');
+			labelEl.textContent = scoreText;
+			labelEl.style.left = (LEFT_OFFSET + key.xPosition + (key.width / 2)) + 'px';
+			labelEl.style.top = (note.position + (NOTE_HEIGHT / 2)) + 'px';
+			board.appendChild(labelEl);
+
+			window.setTimeout(function () {
+				if (labelEl.parentNode) {
+					labelEl.parentNode.removeChild(labelEl);
+				}
+			}, 460);
+		}
+
 		function updateParticles() {
 			particles = particles.filter(function (particle) {
 				particle.x += particle.vx;
@@ -581,6 +688,7 @@ get_header();
 			if (assessment.status === 'wrong') {
 				updateScore(-5);
 				setCombo(0);
+				showWrongKeyPenalty(pianoKeys[keyIndex].keyboardKey);
 				return;
 			}
 
@@ -598,6 +706,7 @@ get_header();
 				var isPerfect = assessment.status === 'perfect';
 				updateScore(isPerfect ? 5 : 1);
 				setCombo(combo + 1);
+				showHitLabel(note, isPerfect ? '+5' : '+1', isPerfect);
 				createBurst(key.xPosition + key.width / 2, note.position, isPerfect);
 				note.element.remove();
 				return false;
@@ -659,6 +768,34 @@ get_header();
 			}
 		}
 
+		function showWrongKeyPenalty(keyName) {
+			var keyEl = getKeyElement(keyName);
+			if (!keyEl) {
+				return;
+			}
+
+			keyEl.classList.add('is-wrong');
+			var existing = keyEl.querySelector('.piano-note-game__key-penalty');
+			if (existing) {
+				existing.remove();
+			}
+
+			var penalty = document.createElement('span');
+			penalty.className = 'piano-note-game__key-penalty';
+			penalty.textContent = '-5';
+			keyEl.appendChild(penalty);
+
+			window.setTimeout(function () {
+				keyEl.classList.remove('is-wrong');
+			}, 520);
+
+			window.setTimeout(function () {
+				if (penalty.parentNode) {
+					penalty.parentNode.removeChild(penalty);
+				}
+			}, 560);
+		}
+
 		function getKeyElement(keyName) {
 			var keyElements = keyboard.querySelectorAll('[data-key]');
 			for (var i = 0; i < keyElements.length; i++) {
@@ -698,6 +835,9 @@ get_header();
 			});
 			particles.forEach(function (particle) {
 				particle.element.remove();
+			});
+			board.querySelectorAll('.piano-note-game__hit-label').forEach(function (label) {
+				label.remove();
 			});
 			fallingNotes = [];
 			particles = [];
