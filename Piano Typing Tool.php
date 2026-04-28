@@ -871,8 +871,8 @@ get_header();?>
 		function buildKeyGeometry() {
 			var whiteWidth = canvas.width / whiteKeys.length;
 			var whiteHeight = canvas.height;
-			var blackWidth = whiteWidth * 0.62;
-			var blackHeight = canvas.height * 0.62;
+			var blackWidth = whiteWidth * 0.6;
+			var blackHeight = canvas.height * 0.58;
 			var keyMapByNote = {};
 
 			for (var i = 0; i < whiteKeys.length; i++) {
@@ -932,20 +932,29 @@ get_header();?>
 				var k = keyGeometry[white.note];
 				var isActive = !!activeNotes[white.note];
 				var feedback = keyFeedbackStates[white.note];
-				var baseFill = isActive ? '#c8dcff' : '#ffffff';
-				if (feedback === 'perfect') baseFill = '#5ac86b';
-				if (feedback === 'offbeat') baseFill = '#f3a34a';
-				if (feedback === 'wrong') baseFill = '#ef5b5b';
+				var keyTopOffset = isActive ? 4 : 0;
+				var keyHeight = Math.max(0, k.h - keyTopOffset);
+				var whiteGradient = ctx.createLinearGradient(0, k.y + keyTopOffset, 0, k.y + keyTopOffset + keyHeight);
+				whiteGradient.addColorStop(0, '#ffffff');
+				whiteGradient.addColorStop(1, '#edf2f8');
+				var baseFill = whiteGradient;
+				if (feedback === 'perfect') baseFill = '#72d888';
+				if (feedback === 'offbeat') baseFill = '#f3ad5c';
+				if (feedback === 'wrong') baseFill = '#ee6b6b';
+				if (isActive && !feedback) baseFill = '#dde8f7';
 				ctx.fillStyle = baseFill;
-				ctx.strokeStyle = '#2c3e50';
-				ctx.lineWidth = 1.2;
-				ctx.fillRect(k.x, k.y, k.w, k.h);
-				ctx.strokeRect(k.x, k.y, k.w, k.h);
+				ctx.strokeStyle = '#44708f';
+				ctx.lineWidth = 1;
+				ctx.fillRect(k.x, k.y + keyTopOffset, k.w, keyHeight);
+				ctx.strokeRect(k.x, k.y + keyTopOffset, k.w, keyHeight);
 
-				ctx.fillStyle = '#43505d';
-				ctx.font = '14px Arial, sans-serif';
+				ctx.fillStyle = '#6f8597';
+				ctx.font = '11px Arial, sans-serif';
 				ctx.textAlign = 'center';
-				ctx.fillText(k.key, k.x + (k.w / 2), canvas.height - 14);
+				ctx.fillText(white.note.replace(/\d+/g, ''), k.x + (k.w / 2), canvas.height - 48 + keyTopOffset);
+				ctx.fillStyle = '#436f8e';
+				ctx.font = '700 16px Arial, sans-serif';
+				ctx.fillText(k.key, k.x + (k.w / 2), canvas.height - 18 + keyTopOffset);
 
 				var whitePenalty = keyPenaltyLabels[white.note];
 				if (whitePenalty) {
@@ -968,20 +977,29 @@ get_header();?>
 				}
 				var isActive = !!activeNotes[black.note];
 				var feedback = keyFeedbackStates[black.note];
-				var baseBlackFill = isActive ? '#3f5c8a' : '#1f2a36';
-				if (feedback === 'perfect') baseBlackFill = '#2ea84f';
-				if (feedback === 'offbeat') baseBlackFill = '#cf7b2f';
-				if (feedback === 'wrong') baseBlackFill = '#bf3838';
+				var keyTopOffset = isActive ? 3 : 0;
+				var keyHeight = Math.max(0, k.h - keyTopOffset);
+				var blackGradient = ctx.createLinearGradient(0, k.y + keyTopOffset, 0, k.y + keyTopOffset + keyHeight);
+				blackGradient.addColorStop(0, '#5d81a0');
+				blackGradient.addColorStop(1, '#2f516d');
+				var baseBlackFill = blackGradient;
+				if (feedback === 'perfect') baseBlackFill = '#3abf62';
+				if (feedback === 'offbeat') baseBlackFill = '#df8f43';
+				if (feedback === 'wrong') baseBlackFill = '#ce4f4f';
+				if (isActive && !feedback) baseBlackFill = '#5782a8';
 				ctx.fillStyle = baseBlackFill;
-				ctx.strokeStyle = '#111820';
+				ctx.strokeStyle = '#33566f';
 				ctx.lineWidth = 1;
-				ctx.fillRect(k.x, k.y, k.w, k.h);
-				ctx.strokeRect(k.x, k.y, k.w, k.h);
+				ctx.fillRect(k.x, k.y + keyTopOffset, k.w, keyHeight);
+				ctx.strokeRect(k.x, k.y + keyTopOffset, k.w, keyHeight);
 
-				ctx.fillStyle = '#dfe7ef';
-				ctx.font = '12px Arial, sans-serif';
+				ctx.fillStyle = '#d9e5f0';
+				ctx.font = '10px Arial, sans-serif';
 				ctx.textAlign = 'center';
-				ctx.fillText(k.key, k.x + (k.w / 2), k.h - 10);
+				ctx.fillText(black.note.replace(/\d+/g, ''), k.x + (k.w / 2), k.h - 28 + keyTopOffset);
+				ctx.fillStyle = '#ffffff';
+				ctx.font = '700 13px Arial, sans-serif';
+				ctx.fillText(k.key, k.x + (k.w / 2), k.h - 10 + keyTopOffset);
 
 				var blackPenalty = keyPenaltyLabels[black.note];
 				if (blackPenalty) {
