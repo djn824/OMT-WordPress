@@ -3,18 +3,51 @@
 get_header();?>
 <style media="screen">
 	.piano-tool-wrap {
-		max-width: 960px;
+		max-width: 920px;
 		margin: 20px auto 40px;
-		/* padding: 20px;
-		background: #f7f9fc;
-		border: 1px solid #d8e0eb;
-		border-radius: 12px; */
+		background: #f5f8fc;
+		border: 2px solid #44708f;
+		border-radius: 10px;
+		overflow: hidden;
+		position: relative;
+	}
+
+	.piano-total-score {
+		position: absolute;
+		top: 12px;
+		right: 12px;
+		z-index: 30;
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		padding: 8px 12px;
+		border-radius: 10px;
+		border: 1px solid #8cb4e3;
+		background: rgba(246, 251, 255, 0.95);
+		color: #1e3b5d;
+		font-size: 14px;
+		font-weight: 700;
+		line-height: 1;
+	}
+
+	#piano-total-score-value {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 34px;
+		padding: 4px 9px;
+		border-radius: 999px;
+		background: #2c66ad;
+		color: #ffffff;
+		font-size: 15px;
+		font-weight: 800;
 	}
 
 	.piano-canvas-wrap {
 		position: relative;
 		width: 100%;
 		overflow-x: auto;
+		background: #ffffff;
 	}
 
 	#piano-canvas {
@@ -22,18 +55,18 @@ get_header();?>
 		width: 100%;
 		height: auto;
 		background: #ffffff;
-		border: 1px solid #c7d3e0;
+		border: 0;
 		cursor: pointer;
 		touch-action: manipulation;
 	}
 
 	.piano-practice-panel {
-		margin-bottom: 16px;
+		margin-bottom: 0;
 		padding: 0;
 	}
 
 	.piano-practice-header {
-		display: flex;
+		display: none;
 		flex-wrap: wrap;
 		gap: 10px 14px;
 		align-items: center;
@@ -107,17 +140,17 @@ get_header();?>
 	}
 
 	.piano-flow-wrap {
-		background: #ffffff;
-		border-radius: 1px;
+		background: #eceef3;
+		border-radius: 0;
 		overflow: hidden;
 	}
 
 	#note-flow-canvas {
 		display: block;
 		width: 100%;
-		border: 1px solid #c7d3e0;
+		border: 0;
 		height: auto;
-		background: linear-gradient(to bottom, #f9fbff 0%, #eef4fc 100%);
+		background: #eceef3;
 	}
 
 	.piano-flow-hint {
@@ -129,6 +162,7 @@ get_header();?>
 
 <div class="container-fluid">	
 	<div class="piano-tool-wrap">
+		<div class="piano-total-score">Total Score: <span id="piano-total-score-value">0</span></div>
 		<div class="piano-practice-panel">
 			<div class="piano-practice-header">
 				<strong>Random Practice Notes</strong>
@@ -143,7 +177,7 @@ get_header();?>
 				</div>
 			</div>
 			<div class="piano-flow-wrap">
-				<canvas id="note-flow-canvas" width="920" height="160" aria-label="Falling random notes"></canvas>
+				<canvas id="note-flow-canvas" width="920" height="470" aria-label="Falling random notes"></canvas>
 			</div>
 		</div>
 		<div class="piano-canvas-wrap">
@@ -313,6 +347,7 @@ get_header();?>
 		var flowCtx = flowCanvas ? flowCanvas.getContext('2d') : null;
 		var generateListBtn = document.getElementById('generate-random-list');
 		var scoreValue = document.getElementById('piano-score-value');
+		var totalScoreValue = document.getElementById('piano-total-score-value');
 		var volumeInput = document.getElementById('piano-volume');
 		var volumeValue = document.getElementById('piano-volume-value');
 		var masterVolume = 0.25;
@@ -336,6 +371,7 @@ get_header();?>
 		var NOTE_RESOLVE_DURATION = 220;
 		var FLOW_HIT_LABEL_DURATION = 420;
 		var KEY_PENALTY_DURATION = 520;
+		var PIANO_SIDE_PADDING = 24;
 		var keyMap = {
 			a: 'C4', w: 'C#4', s: 'D4', e: 'D#4', d: 'E4',
 			f: 'F4', t: 'F#4', g: 'G4', y: 'G#4', h: 'A4',
@@ -399,6 +435,8 @@ get_header();?>
 				return;
 			}
 			flowCtx.clearRect(0, 0, flowCanvas.width, flowCanvas.height);
+			flowCtx.fillStyle = '#eceef3';
+			flowCtx.fillRect(0, 0, flowCanvas.width, flowCanvas.height);
 
 			flowCtx.strokeStyle = '#d8e3f1';
 			flowCtx.lineWidth = 1;
@@ -410,8 +448,8 @@ get_header();?>
 				flowCtx.stroke();
 			}
 			flowCtx.beginPath();
-			flowCtx.moveTo(flowCanvas.width - 1, 0);
-			flowCtx.lineTo(flowCanvas.width - 1, flowCanvas.height);
+			flowCtx.moveTo(flowCanvas.width - PIANO_SIDE_PADDING, 0);
+			flowCtx.lineTo(flowCanvas.width - PIANO_SIDE_PADDING, flowCanvas.height);
 			flowCtx.stroke();
 
 			flowCtx.strokeStyle = '#f2bd36';
@@ -603,6 +641,9 @@ get_header();?>
 			score += delta;
 			if (scoreValue) {
 				scoreValue.textContent = String(score);
+			}
+			if (totalScoreValue) {
+				totalScoreValue.textContent = String(score);
 			}
 		}
 
@@ -870,7 +911,8 @@ get_header();?>
 		}
 
 		function buildKeyGeometry() {
-			var whiteWidth = canvas.width / whiteKeys.length;
+			var playableWidth = canvas.width - (PIANO_SIDE_PADDING * 2);
+			var whiteWidth = playableWidth / whiteKeys.length;
 			var whiteHeight = canvas.height;
 			var blackWidth = whiteWidth * 0.6;
 			var blackHeight = canvas.height * 0.58;
@@ -879,7 +921,7 @@ get_header();?>
 			for (var i = 0; i < whiteKeys.length; i++) {
 				var white = whiteKeys[i];
 				keyMapByNote[white.note] = {
-					x: i * whiteWidth,
+					x: PIANO_SIDE_PADDING + (i * whiteWidth),
 					y: 0,
 					w: whiteWidth,
 					h: whiteHeight,
