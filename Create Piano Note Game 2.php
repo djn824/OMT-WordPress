@@ -64,13 +64,38 @@ get_header();
 	}
 
 	.piano-note-game__scorebar {
-		display: none;
-		justify-content: center;
-		gap: 48px;
-		margin-bottom: 18px;
-		color: #436f8e;
-		font-size: 24px;
+		position: absolute;
+		top: 12px;
+		right: 12px;
+		z-index: 40;
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		padding: 8px 12px;
+		border: 1px solid #8cb4e3;
+		border-radius: 10px;
+		background: rgba(246, 251, 255, 0.95);
+		color: #1e3b5d;
+		font-size: 14px;
 		font-weight: 700;
+		line-height: 1;
+	}
+
+	#piano-note-game-score {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 34px;
+		padding: 4px 9px;
+		border-radius: 999px;
+		background: #2c66ad;
+		color: #ffffff;
+		font-size: 15px;
+		font-weight: 800;
+	}
+
+	.piano-note-game__combo {
+		display: none;
 	}
 
 	.piano-note-game__board {
@@ -221,8 +246,8 @@ get_header();
 		}
 
 		.piano-note-game__scorebar {
-			gap: 24px;
-			font-size: 20px;
+			transform: scale(calc(850 / (100vw - 32px)));
+			transform-origin: top right;
 		}
 	}
 </style>
@@ -235,12 +260,8 @@ get_header();
 	</div>
 
 	<div class="piano-note-game__stage" id="piano-note-game-stage">
-		<div class="piano-note-game__scorebar">
-			<div>Score: <span id="piano-note-game-score">0</span></div>
-			<div>Combo: <span id="piano-note-game-combo">0</span>x</div>
-		</div>
-
 		<div class="piano-note-game__board" id="piano-note-game-board" aria-label="Piano note game board">
+			<div class="piano-note-game__scorebar">Total Score: <span id="piano-note-game-score">0</span><span class="piano-note-game__combo">Combo: <span id="piano-note-game-combo">0</span>x</span></div>
 			<div class="piano-note-game__hit-line" aria-hidden="true"></div>
 			<div class="piano-note-game__keys">
 				<div class="piano-note-game__keyboard" id="piano-note-game-keyboard" aria-label="Playable piano keyboard"></div>
@@ -270,6 +291,7 @@ get_header();
 		var WHITE_KEY_WIDTH = 80;
 		var BLACK_KEY_WIDTH = 50;
 		var BOARD_WIDTH = 850;
+		var BOARD_HEIGHT = 600;
 		var PIANO_WIDTH = WHITE_KEY_WIDTH * 10;
 		var LEFT_OFFSET = (BOARD_WIDTH - PIANO_WIDTH) / 2;
 		var FALL_SPEED = 2.2;
@@ -277,7 +299,7 @@ get_header();
 		var GOLDEN_LINE_POSITION = 400;
 		var GOLDEN_LINE_HEIGHT = 25;
 		var NOTE_HEIGHT = 25;
-		var PERFECT_HIT_TOLERANCE = 10;
+		var HIT_WINDOW_TOLERANCE = 36;
 		var activeKeys = {};
 		var fallingNotes = [];
 		var particles = [];
@@ -382,8 +404,8 @@ get_header();
 			keyboard.appendChild(keyEl);
 		}
 
-		function setScore(nextScore) {
-			score = nextScore;
+		function updateScore(delta) {
+			score += delta;
 			scoreValue.textContent = String(score);
 		}
 
@@ -457,38 +479,129 @@ get_header();
 			});
 		}
 
-		function checkHit(keyIndex) {
+		function getNoteDistanceFromHitLine(note) {
+			if (!note) {
+				return Infinity;
+			}
+
 			var goldenLineTop = GOLDEN_LINE_POSITION;
 			var goldenLineBottom = GOLDEN_LINE_POSITION + GOLDEN_LINE_HEIGHT;
-			var goldenLineCenter = GOLDEN_LINE_POSITION + GOLDEN_LINE_HEIGHT / 2;
-			var hitDetected = false;
+			var noteTop = note.position;
+			var noteBottom = note.position + NOTE_HEIGHT;
 
-			fallingNotes = fallingNotes.filter(function (note) {
-				if (note.keyIndex !== keyIndex) {
-					return true;
+			if (noteBottom < goldenLineTop) {
+				return goldenLineTop - noteBottom;
+			}
+
+			if (noteTop > goldenLineBottom) {
+				return noteTop - goldenLineBottom;
+			}
+
+			return 0;
+		}
+
+		function isNoteAcrossHitLine(note) {
+			if (!note) {
+				return false;
+			}
+
+			var goldenLineTop = GOLDEN_LINE_POSITION;
+			var goldenLineBottom = GOLDEN_LINE_POSITION + GOLDEN_LINE_HEIGHT;
+			var noteTop = note.position;
+			var noteBottom = note.position + NOTE_HEIGHT;
+			return noteTop <= goldenLineBottom && noteBottom >= goldenLineTop;
+		}
+
+		function getBestMatchForInput(keyIndex) {
+			var nearestAny = null;
+			var nearestAnyDistance = Infinity;
+			var nearestMatching = null;
+			var nearestMatchingDistance = Infinity;
+
+			for (var i = 0; i < fallingNotes.length; i++) {
+				var note = fallingNotes[i];
+				var distance = getNoteDistanceFromHitLine(note);
+
+				if (distance < nearestAnyDistance) {
+					nearestAnyDistance = distance;
+					nearestAny = note;
 				}
 
-				var noteTop = note.position;
-				var noteBottom = note.position + NOTE_HEIGHT;
-				var noteCenter = note.position + NOTE_HEIGHT / 2;
-				var isOverlapping = !(noteBottom < goldenLineTop || noteTop > goldenLineBottom);
-				if (!isOverlapping) {
+				if (note.keyIndex === keyIndex && distance < nearestMatchingDistance) {
+					nearestMatchingDistance = distance;
+					nearestMatching = note;
+				}
+			}
+
+			return {
+				nearestAny: nearestAny,
+				nearestAnyDistance: nearestAnyDistance,
+				nearestMatching: nearestMatching,
+				nearestMatchingDistance: nearestMatchingDistance
+			};
+		}
+
+		function assessKeyAccuracy(keyIndex) {
+			var match = getBestMatchForInput(keyIndex);
+			var nearestAny = match.nearestAny;
+			var nearestAnyDistance = match.nearestAnyDistance;
+			var nearestMatching = match.nearestMatching;
+			var nearestMatchingDistance = match.nearestMatchingDistance;
+
+			if (!nearestMatching || nearestMatchingDistance > HIT_WINDOW_TOLERANCE) {
+				return {
+					status: 'wrong',
+					target: null
+				};
+			}
+
+			if (nearestAny && nearestAny.keyIndex !== keyIndex && nearestAnyDistance <= nearestMatchingDistance) {
+				return {
+					status: 'wrong',
+					target: null
+				};
+			}
+
+			if (isNoteAcrossHitLine(nearestMatching)) {
+				return {
+					status: 'perfect',
+					target: nearestMatching
+				};
+			}
+
+			return {
+				status: 'offbeat',
+				target: nearestMatching
+			};
+		}
+
+		function checkHit(keyIndex) {
+			var assessment = assessKeyAccuracy(keyIndex);
+
+			if (assessment.status === 'wrong') {
+				updateScore(-5);
+				setCombo(0);
+				return;
+			}
+
+			var target = assessment.target;
+			if (!target) {
+				return;
+			}
+
+			fallingNotes = fallingNotes.filter(function (note) {
+				if (note.id !== target.id) {
 					return true;
 				}
 
 				var key = pianoKeys[keyIndex];
-				var isPerfect = Math.abs(noteCenter - goldenLineCenter) < PERFECT_HIT_TOLERANCE;
-				hitDetected = true;
-				setScore(score + (isPerfect ? 200 : 100));
+				var isPerfect = assessment.status === 'perfect';
+				updateScore(isPerfect ? 5 : 1);
 				setCombo(combo + 1);
 				createBurst(key.xPosition + key.width / 2, note.position, isPerfect);
 				note.element.remove();
 				return false;
 			});
-
-			if (!hitDetected) {
-				setCombo(0);
-			}
 		}
 
 		function updateFallingNotes(delta) {
@@ -499,6 +612,11 @@ get_header();
 				if (!note.missed && note.position >= GOLDEN_LINE_POSITION) {
 					note.missed = true;
 					setCombo(0);
+				}
+
+				if (!note.missedPenalty && note.position + NOTE_HEIGHT >= BOARD_HEIGHT) {
+					note.missedPenalty = true;
+					updateScore(-10);
 				}
 
 				if (note.position >= 650) {
@@ -586,7 +704,8 @@ get_header();
 			activeKeys = {};
 			lastFrame = 0;
 			lastSpawn = 0;
-			setScore(0);
+			score = 0;
+			scoreValue.textContent = String(score);
 			setCombo(0);
 		}
 
