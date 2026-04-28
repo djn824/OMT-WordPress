@@ -49,6 +49,38 @@ get_header();?>
 		flex-wrap: wrap;
 	}
 
+	.piano-score-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		padding: 9px 16px;
+		position: relative;
+		z-index: 20;
+		border-radius: 12px;
+		border: 1px solid #8cb4e3;
+		background: linear-gradient(135deg, #f6fbff 0%, #deecff 100%);
+		box-shadow: 0 6px 16px rgba(45, 93, 156, 0.16);
+		color: #1e3b5d;
+		font-size: 15px;
+		font-weight: 700;
+		letter-spacing: 0.2px;
+		line-height: 1;
+	}
+
+	#piano-score-value {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 44px;
+		padding: 5px 10px;
+		border-radius: 999px;
+		background: #2c66ad;
+		color: #ffffff;
+		font-size: 17px;
+		font-weight: 800;
+		box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.14);
+	}
+
 	.piano-practice-actions button {
 		padding: 8px 12px;
 		border: 1px solid #2f5f97;
@@ -103,6 +135,7 @@ get_header();?>
 				<strong>Random Practice Notes</strong>
 				<div class="piano-practice-actions">
 					<button type="button" id="generate-random-list">Generate Random List</button>
+					<span class="piano-score-badge">Score: <span id="piano-score-value">0</span></span>
 					<label class="piano-volume-control" for="piano-volume">
 						Volume
 						<input type="range" id="piano-volume" min="0.05" max="1" step="0.05" value="0.25" />
@@ -280,6 +313,7 @@ get_header();?>
 		var flowCanvas = document.getElementById('note-flow-canvas');
 		var flowCtx = flowCanvas ? flowCanvas.getContext('2d') : null;
 		var generateListBtn = document.getElementById('generate-random-list');
+		var scoreValue = document.getElementById('piano-score-value');
 		var volumeInput = document.getElementById('piano-volume');
 		var volumeValue = document.getElementById('piano-volume-value');
 		var masterVolume = 0.25;
@@ -287,16 +321,21 @@ get_header();?>
 		var flowGap = 64;
 		var fallingNotes = [];
 		var keyFeedbackStates = {};
+		var keyPenaltyLabels = {};
+		var flowHitLabels = [];
+		var score = 0;
 		var animationFrameId = null;
 		var lastFrameTime = 0;
 		var FALLING_NOTE_HEIGHT = 18;
-		var HIT_LINE_Y = flowCanvas ? flowCanvas.height - 14 : 146;
+		var HIT_LINE_Y = flowCanvas ? flowCanvas.height - 24 : 136;
 		var HIT_EXACT_TOLERANCE = 8;
 		var HIT_WINDOW_TOLERANCE = 36;
 		var NOTE_FADE_IN_DURATION = 260;
 		var NOTE_SCALE_DURATION = 220;
 		var NOTE_SCALE_PEAK = 2;
 		var NOTE_RESOLVE_DURATION = 220;
+		var FLOW_HIT_LABEL_DURATION = 420;
+		var KEY_PENALTY_DURATION = 520;
 		var keyMap = {
 			a: 'C4', w: 'C#4', s: 'D4', e: 'D#4', d: 'E4',
 			f: 'F4', t: 'F#4', g: 'G4', y: 'G#4', h: 'A4',
@@ -378,14 +417,14 @@ get_header();?>
 			flowCtx.strokeStyle = '#4f6f96';
 			flowCtx.lineWidth = 2;
 			flowCtx.beginPath();
-			flowCtx.moveTo(0, flowCanvas.height - 14);
-			flowCtx.lineTo(flowCanvas.width, flowCanvas.height - 14);
+			flowCtx.moveTo(0, HIT_LINE_Y);
+			flowCtx.lineTo(flowCanvas.width, HIT_LINE_Y);
 			flowCtx.stroke();
 
 			flowCtx.fillStyle = '#4f6f96';
 			flowCtx.font = '12px Arial, sans-serif';
 			flowCtx.textAlign = 'left';
-			flowCtx.fillText('Hit line', 8, flowCanvas.height - 18);
+			flowCtx.fillText('Hit line', 8, HIT_LINE_Y - 4);
 		}
 
 		function drawFallingNotes() {
@@ -452,6 +491,47 @@ get_header();?>
 			}
 		}
 
+		function drawFlowHitLabels(nowTs) {
+			if (!flowCtx || !flowHitLabels.length) {
+				return;
+			}
+			var active = [];
+			for (var i = 0; i < flowHitLabels.length; i++) {
+				var label = flowHitLabels[i];
+				var elapsed = nowTs - label.createdAt;
+				if (elapsed > FLOW_HIT_LABEL_DURATION) {
+					continue;
+				}
+				active.push(label);
+				var progress = elapsed / FLOW_HIT_LABEL_DURATION;
+				var alpha = Math.max(0, 1 - progress);
+				var yOffset = progress * 22;
+				var scale = 1 + Math.sin(Math.min(1, progress * 1.3) * Math.PI) * 0.16;
+				var badgeW = label.text === '+5' ? 44 : 38;
+				var badgeH = 26;
+				var x = label.x - (badgeW / 2);
+				var y = (label.y - yOffset) - (badgeH / 2);
+				flowCtx.save();
+				flowCtx.globalAlpha = alpha;
+				flowCtx.translate(label.x, label.y - yOffset);
+				flowCtx.scale(scale, scale);
+				flowCtx.translate(-label.x, -(label.y - yOffset));
+				flowCtx.fillStyle = label.bg;
+				flowCtx.strokeStyle = label.stroke;
+				flowCtx.lineWidth = 1.6;
+				drawRoundedRectPath(flowCtx, x, y, badgeW, badgeH, 12);
+				flowCtx.fill();
+				flowCtx.stroke();
+				flowCtx.fillStyle = label.color;
+				flowCtx.font = 'bold 18px Arial, sans-serif';
+				flowCtx.textAlign = 'center';
+				flowCtx.textBaseline = 'middle';
+				flowCtx.fillText(label.text, label.x, label.y - yOffset + 1);
+				flowCtx.restore();
+			}
+			flowHitLabels = active;
+		}
+
 		function drawRoundedRectPath(context, x, y, width, height, radius) {
 			var r = Math.max(0, Math.min(radius, width / 2, height / 2));
 			context.beginPath();
@@ -512,9 +592,98 @@ get_header();?>
 		function triggerTargetResolveAnimation() {
 			var target = getCurrentTargetNote();
 			if (!target || target.resolveStart) {
-				return;
+				return null;
 			}
 			target.resolveStart = performance.now();
+			return target;
+		}
+
+		function updateScore(delta) {
+			score += delta;
+			if (scoreValue) {
+				scoreValue.textContent = String(score);
+			}
+		}
+
+		function queueFlowHitLabel(noteItem, scoreText) {
+			if (!noteItem || !scoreText) {
+				return;
+			}
+			var isBig = scoreText === '+5';
+			var isMiss = scoreText === '-10';
+			flowHitLabels.push({
+				text: scoreText,
+				x: noteItem.x,
+				y: noteItem.y + (FALLING_NOTE_HEIGHT / 2),
+				color: '#ffffff',
+				bg: isMiss ? '#cf3f3f' : (isBig ? '#2fa44a' : '#cf7a2f'),
+				stroke: isMiss ? '#8f2424' : (isBig ? '#1b7430' : '#9a5417'),
+				createdAt: performance.now()
+			});
+		}
+
+		function registerWrongKeyPenalty(noteName) {
+			if (!noteName) {
+				return;
+			}
+			keyPenaltyLabels[noteName] = {
+				text: '-5',
+				createdAt: performance.now(),
+				expiresAt: performance.now() + KEY_PENALTY_DURATION
+			};
+			window.setTimeout(function () {
+				if (keyPenaltyLabels[noteName] && keyPenaltyLabels[noteName].expiresAt <= performance.now()) {
+					delete keyPenaltyLabels[noteName];
+					drawPiano();
+				}
+			}, KEY_PENALTY_DURATION + 10);
+		}
+
+		function handleHitResult(noteName, keyAccuracy) {
+			if (keyAccuracy === 'wrong') {
+				registerWrongKeyPenalty(noteName);
+				updateScore(-5);
+				return;
+			}
+			triggerTargetFadeIn(noteName);
+			var resolvedNote = triggerTargetResolveAnimation();
+			var gain = keyAccuracy === 'offbeat' ? 1 : 5;
+			updateScore(gain);
+			queueFlowHitLabel(resolvedNote, keyAccuracy === 'offbeat' ? '+1' : '+5');
+		}
+
+		function drawKeyPenaltyLabel(noteGeometry, penaltyState, isBlackKey) {
+			if (!noteGeometry || !penaltyState) {
+				return;
+			}
+			var now = performance.now();
+			var total = Math.max(1, penaltyState.expiresAt - penaltyState.createdAt);
+			var progress = Math.max(0, Math.min(1, (now - penaltyState.createdAt) / total));
+			var alpha = 1 - progress;
+			var pop = 1 + Math.sin(Math.min(1, progress * 1.2) * Math.PI) * 0.18;
+			var lift = progress * (isBlackKey ? 8 : 10);
+			var cx = noteGeometry.x + (noteGeometry.w / 2);
+			var cy = (noteGeometry.y + (noteGeometry.h / 2)) - lift;
+			var badgeW = isBlackKey ? 36 : 42;
+			var badgeH = isBlackKey ? 21 : 24;
+
+			ctx.save();
+			ctx.globalAlpha = Math.max(0, alpha);
+			ctx.translate(cx, cy);
+			ctx.scale(pop, pop);
+			ctx.translate(-cx, -cy);
+			ctx.fillStyle = '#e14545';
+			ctx.strokeStyle = '#8f2020';
+			ctx.lineWidth = 1.4;
+			drawRoundedRectPath(ctx, cx - (badgeW / 2), cy - (badgeH / 2), badgeW, badgeH, 10);
+			ctx.fill();
+			ctx.stroke();
+			ctx.fillStyle = '#ffffff';
+			ctx.font = isBlackKey ? 'bold 14px Arial, sans-serif' : 'bold 16px Arial, sans-serif';
+			ctx.textAlign = 'center';
+			ctx.textBaseline = 'middle';
+			ctx.fillText(penaltyState.text, cx, cy + 1);
+			ctx.restore();
 		}
 
 		function animateFlow(timestamp) {
@@ -539,10 +708,6 @@ get_header();?>
 					continue;
 				}
 				item.y += flowSpeed * dt;
-				if (item.y > flowCanvas.height + 20) {
-					item.y = highestY - flowGap;
-					highestY = item.y;
-				}
 			}
 
 			var nowTs = performance.now();
@@ -552,6 +717,13 @@ get_header();?>
 			for (var k = 0; k < fallingNotes.length; k++) {
 				var noteItem = fallingNotes[k];
 				if (noteItem.resolveStart && nowTs - noteItem.resolveStart >= NOTE_RESOLVE_DURATION) {
+					removedCount++;
+					continue;
+				}
+				var noteBottomY = noteItem.y + FALLING_NOTE_HEIGHT;
+				if (!noteItem.resolveStart && noteBottomY >= flowCanvas.height) {
+					queueFlowHitLabel(noteItem, '-10');
+					updateScore(-10);
 					removedCount++;
 					continue;
 				}
@@ -577,6 +749,7 @@ get_header();?>
 
 			drawFlowLane();
 			drawFallingNotes();
+			drawFlowHitLabels(nowTs);
 			animationFrameId = window.requestAnimationFrame(animateFlow);
 		}
 
@@ -753,6 +926,7 @@ get_header();?>
 
 		function drawPiano() {
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
+			var penaltyDrawQueue = [];
 
 			whiteKeys.forEach(function (white) {
 				var k = keyGeometry[white.note];
@@ -772,6 +946,19 @@ get_header();?>
 				ctx.font = '14px Arial, sans-serif';
 				ctx.textAlign = 'center';
 				ctx.fillText(k.key, k.x + (k.w / 2), canvas.height - 14);
+
+				var whitePenalty = keyPenaltyLabels[white.note];
+				if (whitePenalty) {
+					if (whitePenalty.expiresAt <= performance.now()) {
+						delete keyPenaltyLabels[white.note];
+					} else {
+						penaltyDrawQueue.push({
+							geometry: k,
+							penalty: whitePenalty,
+							isBlack: false
+						});
+					}
+				}
 			});
 
 			blackKeys.forEach(function (black) {
@@ -795,7 +982,25 @@ get_header();?>
 				ctx.font = '12px Arial, sans-serif';
 				ctx.textAlign = 'center';
 				ctx.fillText(k.key, k.x + (k.w / 2), k.h - 10);
+
+				var blackPenalty = keyPenaltyLabels[black.note];
+				if (blackPenalty) {
+					if (blackPenalty.expiresAt <= performance.now()) {
+						delete keyPenaltyLabels[black.note];
+					} else {
+						penaltyDrawQueue.push({
+							geometry: k,
+							penalty: blackPenalty,
+							isBlack: true
+						});
+					}
+				}
 			});
+
+			for (var p = 0; p < penaltyDrawQueue.length; p++) {
+				var penaltyItem = penaltyDrawQueue[p];
+				drawKeyPenaltyLabel(penaltyItem.geometry, penaltyItem.penalty, penaltyItem.isBlack);
+			}
 		}
 
 		function getKeyFromPoint(x, y) {
@@ -851,6 +1056,11 @@ get_header();?>
 
 			if (nearestAny && nearestAny.note !== noteName && nearestAnyDistance <= nearestMatchingDistance) {
 				return 'wrong';
+			}
+
+			var matchingCenterY = nearestMatching.y + (FALLING_NOTE_HEIGHT / 2);
+			if (matchingCenterY >= HIT_LINE_Y) {
+				return 'perfect';
 			}
 
 			if (nearestMatchingDistance <= HIT_EXACT_TOLERANCE) {
@@ -929,10 +1139,7 @@ get_header();?>
 				pointerNote = key.note;
 				var pointerAccuracy = assessKeyAccuracy(key.note);
 				setKeyFeedback(key.note, pointerAccuracy);
-				if (pointerAccuracy !== 'wrong') {
-					triggerTargetFadeIn(key.note);
-					triggerTargetResolveAnimation();
-				}
+				handleHitResult(key.note, pointerAccuracy);
 				playNote(key);
 			}
 		}
@@ -977,10 +1184,7 @@ get_header();?>
 			}
 			var keyAccuracy = assessKeyAccuracy(mapped);
 			setKeyFeedback(mapped, keyAccuracy);
-			if (keyAccuracy !== 'wrong') {
-				triggerTargetFadeIn(mapped);
-				triggerTargetResolveAnimation();
-			}
+			handleHitResult(mapped, keyAccuracy);
 			playNote(keyGeometry[mapped]);
 		});
 
@@ -994,7 +1198,7 @@ get_header();?>
 
 		window.addEventListener('resize', function () {
 			keyGeometry = buildKeyGeometry();
-			HIT_LINE_Y = flowCanvas ? flowCanvas.height - 14 : HIT_LINE_Y;
+			HIT_LINE_Y = flowCanvas ? flowCanvas.height - 24 : HIT_LINE_Y;
 			drawPiano();
 			fallingNotes = buildFallingNotesFromList(fallingNotes.map(function (item) { return item.note; }));
 			drawFlowLane();
