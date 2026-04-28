@@ -327,8 +327,9 @@ get_header();?>
 		var animationFrameId = null;
 		var lastFrameTime = 0;
 		var FALLING_NOTE_HEIGHT = 18;
-		var HIT_LINE_Y = flowCanvas ? flowCanvas.height - 24 : 136;
-		var HIT_EXACT_TOLERANCE = 8;
+		var HIT_LINE_OFFSET_FROM_BOTTOM = 42;
+		var HIT_LINE_Y = flowCanvas ? flowCanvas.height - HIT_LINE_OFFSET_FROM_BOTTOM : 118;
+		var HIT_LINE_THICKNESS = 21;
 		var HIT_WINDOW_TOLERANCE = 36;
 		var NOTE_FADE_IN_DURATION = 260;
 		var NOTE_SCALE_DURATION = 220;
@@ -414,17 +415,12 @@ get_header();?>
 			flowCtx.lineTo(flowCanvas.width - 1, flowCanvas.height);
 			flowCtx.stroke();
 
-			flowCtx.strokeStyle = '#4f6f96';
-			flowCtx.lineWidth = 2;
+			flowCtx.strokeStyle = '#f2bd36';
+			flowCtx.lineWidth = HIT_LINE_THICKNESS;
 			flowCtx.beginPath();
 			flowCtx.moveTo(0, HIT_LINE_Y);
 			flowCtx.lineTo(flowCanvas.width, HIT_LINE_Y);
 			flowCtx.stroke();
-
-			flowCtx.fillStyle = '#4f6f96';
-			flowCtx.font = '12px Arial, sans-serif';
-			flowCtx.textAlign = 'left';
-			flowCtx.fillText('Hit line', 8, HIT_LINE_Y - 4);
 		}
 
 		function drawFallingNotes() {
@@ -547,13 +543,15 @@ get_header();?>
 			if (!fallingNotes.length) {
 				return null;
 			}
+			var hitTop = HIT_LINE_Y - (HIT_LINE_THICKNESS / 2);
+			var hitBottom = HIT_LINE_Y + (HIT_LINE_THICKNESS / 2);
 			var best = null;
 			var bestDistance = Infinity;
 			for (var i = 0; i < fallingNotes.length; i++) {
 				var item = fallingNotes[i];
 				var centerY = item.y + (FALLING_NOTE_HEIGHT / 2);
-				var distanceToHit = HIT_LINE_Y - centerY;
-				if (distanceToHit < -HIT_WINDOW_TOLERANCE) {
+				var distanceToHit = hitTop - centerY;
+				if (centerY > hitBottom + HIT_WINDOW_TOLERANCE) {
 					continue;
 				}
 				if (distanceToHit < bestDistance) {
@@ -567,8 +565,10 @@ get_header();?>
 			return best;
 		}
 
-		function triggerTargetFadeIn(noteName) {
-			var target = getCurrentTargetNote();
+		function triggerTargetFadeIn(target) {
+			if (!target) {
+				target = getCurrentTargetNote();
+			}
 			if (!target || target.resolveStart) {
 				return;
 			}
@@ -589,8 +589,10 @@ get_header();?>
 			};
 		}
 
-		function triggerTargetResolveAnimation() {
-			var target = getCurrentTargetNote();
+		function triggerTargetResolveAnimation(target) {
+			if (!target) {
+				target = getCurrentTargetNote();
+			}
 			if (!target || target.resolveStart) {
 				return null;
 			}
@@ -639,14 +641,14 @@ get_header();?>
 			}, KEY_PENALTY_DURATION + 10);
 		}
 
-		function handleHitResult(noteName, keyAccuracy) {
+		function handleHitResult(noteName, keyAccuracy, targetNote) {
 			if (keyAccuracy === 'wrong') {
 				registerWrongKeyPenalty(noteName);
 				updateScore(-5);
 				return;
 			}
-			triggerTargetFadeIn(noteName);
-			var resolvedNote = triggerTargetResolveAnimation();
+			triggerTargetFadeIn(targetNote);
+			var resolvedNote = triggerTargetResolveAnimation(targetNote);
 			var gain = keyAccuracy === 'offbeat' ? 1 : 5;
 			updateScore(gain);
 			queueFlowHitLabel(resolvedNote, keyAccuracy === 'offbeat' ? '+1' : '+5');
@@ -1043,11 +1045,32 @@ get_header();?>
 			if (!noteItem) {
 				return Infinity;
 			}
-			var noteCenterY = noteItem.y + (FALLING_NOTE_HEIGHT / 2);
-			return Math.abs(noteCenterY - HIT_LINE_Y);
+			var hitTop = HIT_LINE_Y - (HIT_LINE_THICKNESS / 2);
+			var hitBottom = HIT_LINE_Y + (HIT_LINE_THICKNESS / 2);
+			var noteTopY = noteItem.y;
+			var noteBottomY = noteItem.y + FALLING_NOTE_HEIGHT;
+
+			if (noteBottomY < hitTop) {
+				return hitTop - noteBottomY;
+			}
+			if (noteTopY > hitBottom) {
+				return noteTopY - hitBottom;
+			}
+			return 0;
 		}
 
-		function assessKeyAccuracy(noteName) {
+		function isNoteAcrossHitLine(noteItem) {
+			if (!noteItem) {
+				return false;
+			}
+			var hitTop = HIT_LINE_Y - (HIT_LINE_THICKNESS / 2);
+			var hitBottom = HIT_LINE_Y + (HIT_LINE_THICKNESS / 2);
+			var noteTopY = noteItem.y;
+			var noteBottomY = noteItem.y + FALLING_NOTE_HEIGHT;
+			return noteTopY <= hitBottom && noteBottomY >= hitTop;
+		}
+
+		function getBestMatchForInput(noteName) {
 			var nearestAny = null;
 			var nearestAnyDistance = Infinity;
 			var nearestMatching = null;
@@ -1068,24 +1091,46 @@ get_header();?>
 				}
 			}
 
+			return {
+				nearestAny: nearestAny,
+				nearestAnyDistance: nearestAnyDistance,
+				nearestMatching: nearestMatching,
+				nearestMatchingDistance: nearestMatchingDistance
+			};
+		}
+
+		function assessKeyAccuracy(noteName) {
+			var match = getBestMatchForInput(noteName);
+			var nearestAny = match.nearestAny;
+			var nearestAnyDistance = match.nearestAnyDistance;
+			var nearestMatching = match.nearestMatching;
+			var nearestMatchingDistance = match.nearestMatchingDistance;
+
 			if (!nearestMatching || nearestMatchingDistance > HIT_WINDOW_TOLERANCE) {
-				return 'wrong';
+				return {
+					status: 'wrong',
+					target: null
+				};
 			}
 
 			if (nearestAny && nearestAny.note !== noteName && nearestAnyDistance <= nearestMatchingDistance) {
-				return 'wrong';
+				return {
+					status: 'wrong',
+					target: null
+				};
 			}
 
-			var matchingCenterY = nearestMatching.y + (FALLING_NOTE_HEIGHT / 2);
-			if (matchingCenterY >= HIT_LINE_Y) {
-				return 'perfect';
+			if (isNoteAcrossHitLine(nearestMatching)) {
+				return {
+					status: 'perfect',
+					target: nearestMatching
+				};
 			}
 
-			if (nearestMatchingDistance <= HIT_EXACT_TOLERANCE) {
-				return 'perfect';
-			}
-
-			return 'offbeat';
+			return {
+				status: 'offbeat',
+				target: nearestMatching
+			};
 		}
 
 		function setKeyFeedback(noteName, status) {
@@ -1155,9 +1200,9 @@ get_header();?>
 			var key = getKeyFromPoint(pos.x, pos.y);
 			if (key) {
 				pointerNote = key.note;
-				var pointerAccuracy = assessKeyAccuracy(key.note);
-				setKeyFeedback(key.note, pointerAccuracy);
-				handleHitResult(key.note, pointerAccuracy);
+				var pointerAssessment = assessKeyAccuracy(key.note);
+				setKeyFeedback(key.note, pointerAssessment.status);
+				handleHitResult(key.note, pointerAssessment.status, pointerAssessment.target);
 				playNote(key);
 			}
 		}
@@ -1200,9 +1245,9 @@ get_header();?>
 			if (!mapped || !keyGeometry[mapped]) {
 				return;
 			}
-			var keyAccuracy = assessKeyAccuracy(mapped);
-			setKeyFeedback(mapped, keyAccuracy);
-			handleHitResult(mapped, keyAccuracy);
+			var keyAssessment = assessKeyAccuracy(mapped);
+			setKeyFeedback(mapped, keyAssessment.status);
+			handleHitResult(mapped, keyAssessment.status, keyAssessment.target);
 			playNote(keyGeometry[mapped]);
 		});
 
@@ -1216,7 +1261,7 @@ get_header();?>
 
 		window.addEventListener('resize', function () {
 			keyGeometry = buildKeyGeometry();
-			HIT_LINE_Y = flowCanvas ? flowCanvas.height - 24 : HIT_LINE_Y;
+			HIT_LINE_Y = flowCanvas ? flowCanvas.height - HIT_LINE_OFFSET_FROM_BOTTOM : HIT_LINE_Y;
 			drawPiano();
 			fallingNotes = buildFallingNotesFromList(fallingNotes.map(function (item) { return item.note; }));
 			drawFlowLane();
