@@ -90,7 +90,7 @@ get_header();?>
 		z-index: 20;
 		border-radius: 12px;
 		border: 1px solid #8cb4e3;
-		background: linear-gradient(135deg, #f6fbff 0%, #deecff 100%);
+		background: #deecff;
 		box-shadow: 0 6px 16px rgba(45, 93, 156, 0.16);
 		color: #1e3b5d;
 		font-size: 15px;
@@ -360,7 +360,7 @@ get_header();?>
 		var score = 0;
 		var animationFrameId = null;
 		var lastFrameTime = 0;
-		var FALLING_NOTE_HEIGHT = 18;
+		var FALLING_NOTE_HEIGHT = 25;
 		var HIT_LINE_OFFSET_FROM_BOTTOM = 42;
 		var HIT_LINE_Y = flowCanvas ? flowCanvas.height - HIT_LINE_OFFSET_FROM_BOTTOM : 118;
 		var HIT_LINE_THICKNESS = 21;
@@ -470,8 +470,8 @@ get_header();?>
 				if (!g) {
 					continue;
 				}
-				var blockWidth = g.type === 'black' ? 30 : 42;
-				var blockHeight = 18;
+				var blockWidth = g.w;
+				var blockHeight = FALLING_NOTE_HEIGHT;
 				var nowTs = performance.now();
 				var baseAlpha = 0.95;
 				var noteScale = 1;
@@ -502,21 +502,13 @@ get_header();?>
 
 				flowCtx.save();
 				flowCtx.globalAlpha = Math.max(0.1, Math.min(1, baseAlpha));
-				var noteGradient = flowCtx.createLinearGradient(0, y, 0, y + scaledHeight);
-				if (g.type === 'black') {
-					noteGradient.addColorStop(0, '#4c678b');
-					noteGradient.addColorStop(1, '#1f2f45');
-				} else {
-					noteGradient.addColorStop(0, '#a6c9f7');
-					noteGradient.addColorStop(1, '#568ed7');
-				}
-				flowCtx.fillStyle = noteGradient;
-				flowCtx.strokeStyle = g.type === 'black' ? '#172338' : '#2f5f9b';
+				flowCtx.fillStyle = '#e25c1b';
+				flowCtx.strokeStyle = '#e25c1b';
 				flowCtx.lineWidth = 1;
-				flowCtx.shadowColor = g.type === 'black' ? 'rgba(10, 17, 27, 0.35)' : 'rgba(41, 92, 158, 0.3)';
+				flowCtx.shadowColor = 'rgba(226, 92, 27, 0.35)';
 				flowCtx.shadowBlur = 8;
 				flowCtx.shadowOffsetY = 2;
-				drawRoundedRectPath(flowCtx, x, y, scaledWidth, scaledHeight, 6 * noteScale);
+				drawRoundedRectPath(flowCtx, x, y, scaledWidth, scaledHeight, 0);
 				flowCtx.fill();
 				flowCtx.shadowColor = 'transparent';
 				flowCtx.stroke();
@@ -977,10 +969,7 @@ get_header();?>
 				var feedback = keyFeedbackStates[white.note];
 				var keyTopOffset = isActive ? 4 : 0;
 				var keyHeight = Math.max(0, k.h - keyTopOffset);
-				var whiteGradient = ctx.createLinearGradient(0, k.y + keyTopOffset, 0, k.y + keyTopOffset + keyHeight);
-				whiteGradient.addColorStop(0, '#ffffff');
-				whiteGradient.addColorStop(1, '#edf2f8');
-				var baseFill = whiteGradient;
+				var baseFill = '#ffffff';
 				if (feedback === 'perfect') baseFill = '#72d888';
 				if (feedback === 'offbeat') baseFill = '#f3ad5c';
 				if (feedback === 'wrong') baseFill = '#ee6b6b';
@@ -1022,10 +1011,7 @@ get_header();?>
 				var feedback = keyFeedbackStates[black.note];
 				var keyTopOffset = isActive ? 3 : 0;
 				var keyHeight = Math.max(0, k.h - keyTopOffset);
-				var blackGradient = ctx.createLinearGradient(0, k.y + keyTopOffset, 0, k.y + keyTopOffset + keyHeight);
-				blackGradient.addColorStop(0, '#5d81a0');
-				blackGradient.addColorStop(1, '#2f516d');
-				var baseBlackFill = blackGradient;
+				var baseBlackFill = '#436f8e';
 				if (feedback === 'perfect') baseBlackFill = '#3abf62';
 				if (feedback === 'offbeat') baseBlackFill = '#df8f43';
 				if (feedback === 'wrong') baseBlackFill = '#ce4f4f';
