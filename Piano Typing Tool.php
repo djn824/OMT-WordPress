@@ -23,7 +23,6 @@ get_header();?>
 		height: auto;
 		background: #ffffff;
 		border: 1px solid #c7d3e0;
-		border-radius: 8px;
 		cursor: pointer;
 		touch-action: manipulation;
 	}
@@ -148,7 +147,7 @@ get_header();?>
 			</div>
 		</div>
 		<div class="piano-canvas-wrap">
-			<canvas id="piano-canvas" width="920" height="280" aria-label="Interactive piano keyboard"></canvas>
+			<canvas id="piano-canvas" width="920" height="160" aria-label="Interactive piano keyboard"></canvas>
 		</div>
 	</div>
 	
