@@ -396,6 +396,9 @@ get_header();
 		var animationFrameId = null;
 		var audioContext = null;
 		var masterGain = null;
+		var pianoConvolver = null;
+		var activeNotes = {};
+		var masterVolume = 0.25;
 
 		var pianoKeys = [
 			{ keyboardKey: 'A', note: 'C4', label: 'C', isBlack: false, xPosition: 0, width: WHITE_KEY_WIDTH, freq: 261.63 },
@@ -417,47 +420,136 @@ get_header();
 			{ keyboardKey: ';', note: 'E5', label: 'E', isBlack: false, xPosition: WHITE_KEY_WIDTH * 9, width: WHITE_KEY_WIDTH, freq: 659.25 }
 		];
 
-		function ensureAudio() {
-			if (audioContext) {
-				return;
+		function ensureAudioContext() {
+			if (!audioContext) {
+				var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+				if (!AudioContextClass) {
+					return;
+				}
+				audioContext = new AudioContextClass();
+				masterGain = audioContext.createGain();
+				masterGain.gain.value = 0.9;
+				masterGain.connect(audioContext.destination);
+				pianoConvolver = audioContext.createConvolver();
+				pianoConvolver.buffer = createImpulseResponse(1.8, 2.4);
+				pianoConvolver.connect(masterGain);
 			}
-
-			var AudioContextClass = window.AudioContext || window.webkitAudioContext;
-			if (!AudioContextClass) {
-				return;
+			if (audioContext.state === 'suspended') {
+				audioContext.resume();
 			}
-
-			audioContext = new AudioContextClass();
-			masterGain = audioContext.createGain();
-			masterGain.gain.value = 0.22;
-			masterGain.connect(audioContext.destination);
 		}
 
-		function playTone(key) {
-			ensureAudio();
+		function createImpulseResponse(duration, decay) {
+			var sampleRate = audioContext.sampleRate;
+			var length = Math.floor(sampleRate * duration);
+			var impulse = audioContext.createBuffer(2, length, sampleRate);
+			for (var channel = 0; channel < impulse.numberOfChannels; channel++) {
+				var data = impulse.getChannelData(channel);
+				for (var i = 0; i < length; i++) {
+					var t = i / length;
+					data[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, decay);
+				}
+			}
+			return impulse;
+		}
+
+		function createPianoVoice(noteData) {
+			var now = audioContext.currentTime;
+			var fundamental = noteData.freq;
+			var output = audioContext.createGain();
+			var toneFilter = audioContext.createBiquadFilter();
+			var dryGain = audioContext.createGain();
+			var wetGain = audioContext.createGain();
+			var harmonicRatios = [1, 2, 3, 4];
+			var harmonicLevels = [1, 0.42, 0.2, 0.1];
+			var oscillators = [];
+
+			toneFilter.type = 'lowpass';
+			toneFilter.frequency.value = 5600;
+			toneFilter.Q.value = 0.7;
+
+			output.gain.setValueAtTime(0.0001, now);
+			output.gain.exponentialRampToValueAtTime(Math.max(0.01, masterVolume), now + 0.01);
+			output.gain.exponentialRampToValueAtTime(Math.max(0.004, masterVolume * 0.5), now + 0.15);
+			output.gain.exponentialRampToValueAtTime(0.0001, now + 2.8);
+
+			for (var i = 0; i < harmonicRatios.length; i++) {
+				var osc = audioContext.createOscillator();
+				var gain = audioContext.createGain();
+				var detuneSpread = (Math.random() - 0.5) * 3.5;
+				osc.type = i === 0 ? 'triangle' : 'sine';
+				osc.frequency.value = fundamental * harmonicRatios[i];
+				osc.detune.value = detuneSpread;
+				gain.gain.setValueAtTime(harmonicLevels[i], now);
+				osc.connect(gain);
+				gain.connect(toneFilter);
+				osc.start(now);
+				oscillators.push(osc);
+			}
+
+			var noiseBuffer = audioContext.createBuffer(1, Math.floor(audioContext.sampleRate * 0.03), audioContext.sampleRate);
+			var noiseData = noiseBuffer.getChannelData(0);
+			for (var n = 0; n < noiseData.length; n++) {
+				noiseData[n] = (Math.random() * 2 - 1) * 0.45;
+			}
+			var noiseSource = audioContext.createBufferSource();
+			var noiseFilter = audioContext.createBiquadFilter();
+			var noiseGain = audioContext.createGain();
+			noiseSource.buffer = noiseBuffer;
+			noiseFilter.type = 'bandpass';
+			noiseFilter.frequency.value = 2900;
+			noiseFilter.Q.value = 0.8;
+			noiseGain.gain.setValueAtTime(0.0001, now);
+			noiseGain.gain.exponentialRampToValueAtTime(Math.max(0.002, masterVolume * 0.2), now + 0.004);
+			noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
+			noiseSource.connect(noiseFilter);
+			noiseFilter.connect(noiseGain);
+			noiseGain.connect(toneFilter);
+			noiseSource.start(now);
+			noiseSource.stop(now + 0.035);
+
+			toneFilter.connect(output);
+			output.connect(dryGain);
+			output.connect(wetGain);
+			dryGain.gain.value = 0.88;
+			wetGain.gain.value = 0.2;
+			dryGain.connect(masterGain);
+			wetGain.connect(pianoConvolver);
+
+			return {
+				output: output,
+				oscillators: oscillators
+			};
+		}
+
+		function playNote(noteData) {
+			if (!noteData || activeNotes[noteData.note]) {
+				return;
+			}
+			ensureAudioContext();
 			if (!audioContext || !masterGain) {
 				return;
 			}
+			var voice = createPianoVoice(noteData);
+			activeNotes[noteData.note] = {
+				voice: voice
+			};
+		}
 
+		function stopNote(noteName) {
+			var entry = activeNotes[noteName];
+			if (!entry || !audioContext) {
+				return;
+			}
 			var now = audioContext.currentTime;
-			var output = audioContext.createGain();
-			var osc = audioContext.createOscillator();
-			var shine = audioContext.createOscillator();
-
-			osc.type = 'triangle';
-			osc.frequency.setValueAtTime(key.freq, now);
-			shine.type = 'sine';
-			shine.frequency.setValueAtTime(key.freq * 2, now);
-			output.gain.setValueAtTime(0.0001, now);
-			output.gain.exponentialRampToValueAtTime(0.55, now + 0.015);
-			output.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
-			osc.connect(output);
-			shine.connect(output);
-			output.connect(masterGain);
-			osc.start(now);
-			shine.start(now);
-			osc.stop(now + 0.48);
-			shine.stop(now + 0.48);
+			var voice = entry.voice;
+			voice.output.gain.cancelScheduledValues(now);
+			voice.output.gain.setValueAtTime(Math.max(0.00012, voice.output.gain.value), now);
+			voice.output.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+			for (var i = 0; i < voice.oscillators.length; i++) {
+				voice.oscillators[i].stop(now + 0.24);
+			}
+			delete activeNotes[noteName];
 		}
 
 		function renderKeyboard() {
@@ -812,6 +904,12 @@ get_header();
 			if (keyEl) {
 				keyEl.classList.remove('is-active');
 			}
+			var keyIndex = pianoKeys.findIndex(function (key) {
+				return key.keyboardKey === keyName;
+			});
+			if (keyIndex !== -1) {
+				stopNote(pianoKeys[keyIndex].note);
+			}
 		}
 
 		function handleKeyPress(keyName) {
@@ -825,7 +923,7 @@ get_header();
 
 			activeKeys[keyName] = true;
 			pressKeyElement(keyName);
-			playTone(pianoKeys[keyIndex]);
+			playNote(pianoKeys[keyIndex]);
 			checkHit(keyIndex);
 		}
 
@@ -842,6 +940,10 @@ get_header();
 			fallingNotes = [];
 			particles = [];
 			activeKeys = {};
+			Object.keys(activeNotes).forEach(function (noteName) {
+				stopNote(noteName);
+			});
+			activeNotes = {};
 			lastFrame = 0;
 			lastSpawn = 0;
 			score = 0;
@@ -863,7 +965,7 @@ get_header();
 
 		if (startButton) {
 			startButton.addEventListener('click', function () {
-				ensureAudio();
+				ensureAudioContext();
 				if (audioContext && audioContext.state === 'suspended') {
 					audioContext.resume();
 				}
