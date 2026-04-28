@@ -206,7 +206,8 @@ get_header();
 
 	.piano-note-game__keyboard {
 		position: relative;
-		width: 800px;
+		width: 94.117647%;
+		max-width: 800px;
 		height: 160px;
 	}
 
@@ -322,15 +323,9 @@ get_header();
 	}
 
 	@media (max-width: 900px) {
-		.piano-note-game__board {
-			transform: scale(calc((100vw - 32px) / 850));
-			transform-origin: top center;
-			margin-bottom: calc(600px * ((100vw - 32px) / 850 - 1));
-		}
-
-		.piano-note-game__scorebar {
-			transform: scale(calc(850 / (100vw - 32px)));
-			transform-origin: top right;
+		.piano-note-game {
+			padding-left: 8px;
+			padding-right: 8px;
 		}
 	}
 </style>
@@ -374,6 +369,8 @@ get_header();
 		var WHITE_KEY_WIDTH = 80;
 		var BLACK_KEY_WIDTH = 50;
 		var BOARD_WIDTH = 850;
+		var BASE_BOARD_WIDTH = 850;
+		var BASE_KEYBOARD_WIDTH = 800;
 		var BOARD_HEIGHT = 600;
 		var PIANO_WIDTH = WHITE_KEY_WIDTH * 10;
 		var LEFT_OFFSET = (BOARD_WIDTH - PIANO_WIDTH) / 2;
@@ -419,6 +416,78 @@ get_header();
 			{ keyboardKey: 'P', note: 'D#5', label: 'D#', isBlack: true, xPosition: WHITE_KEY_WIDTH * 9 - BLACK_KEY_WIDTH / 2, width: BLACK_KEY_WIDTH, freq: 622.25 },
 			{ keyboardKey: ';', note: 'E5', label: 'E', isBlack: false, xPosition: WHITE_KEY_WIDTH * 9, width: WHITE_KEY_WIDTH, freq: 659.25 }
 		];
+
+		function recalculateLayout() {
+			if (!board || !keyboard) {
+				return;
+			}
+
+			var measuredBoardWidth = Math.max(320, Math.round(board.clientWidth || BASE_BOARD_WIDTH));
+			var baseSidePadding = (BASE_BOARD_WIDTH - BASE_KEYBOARD_WIDTH) / 2;
+			var scaledSidePadding = (measuredBoardWidth * baseSidePadding) / BASE_BOARD_WIDTH;
+
+			BOARD_WIDTH = measuredBoardWidth;
+			LEFT_OFFSET = scaledSidePadding;
+			PIANO_WIDTH = measuredBoardWidth - (scaledSidePadding * 2);
+			WHITE_KEY_WIDTH = PIANO_WIDTH / 10;
+			BLACK_KEY_WIDTH = WHITE_KEY_WIDTH * 0.625;
+			keyboard.style.width = PIANO_WIDTH + 'px';
+
+			var whiteIndexMap = {
+				A: 0,
+				S: 1,
+				D: 2,
+				F: 3,
+				G: 4,
+				H: 5,
+				J: 6,
+				K: 7,
+				L: 8,
+				';': 9
+			};
+
+			var blackLeftMap = {
+				W: 0,
+				E: 1,
+				T: 3,
+				Y: 4,
+				U: 5,
+				O: 7,
+				P: 8
+			};
+
+			pianoKeys.forEach(function (key) {
+				if (key.isBlack) {
+					var leftWhite = blackLeftMap[key.keyboardKey];
+					key.width = BLACK_KEY_WIDTH;
+					key.xPosition = ((leftWhite + 1) * WHITE_KEY_WIDTH) - (BLACK_KEY_WIDTH / 2);
+					return;
+				}
+
+				var whiteIndex = whiteIndexMap[key.keyboardKey];
+				key.width = WHITE_KEY_WIDTH;
+				key.xPosition = whiteIndex * WHITE_KEY_WIDTH;
+			});
+		}
+
+		function realignFallingNotes() {
+			fallingNotes.forEach(function (note) {
+				var key = pianoKeys[note.keyIndex];
+				if (!key || !note.element) {
+					return;
+				}
+				note.element.style.left = (LEFT_OFFSET + key.xPosition) + 'px';
+				note.element.style.width = key.width + 'px';
+			});
+		}
+
+		function syncActiveKeyVisualState() {
+			Object.keys(activeKeys).forEach(function (keyName) {
+				if (activeKeys[keyName]) {
+					pressKeyElement(keyName);
+				}
+			});
+		}
 
 		function ensureAudioContext() {
 			if (!audioContext) {
@@ -987,6 +1056,14 @@ get_header();
 			releaseKey(keyName);
 		});
 
+		window.addEventListener('resize', function () {
+			recalculateLayout();
+			renderKeyboard();
+			syncActiveKeyVisualState();
+			realignFallingNotes();
+		});
+
+		recalculateLayout();
 		renderKeyboard();
 		startGame();
 	})();
