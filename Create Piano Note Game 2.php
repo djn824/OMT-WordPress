@@ -175,6 +175,11 @@ get_header();
 		border: 1.3px solid #9a5417;
 	}
 
+	.piano-note-game__hit-label--miss {
+		background: #cf3f3f;
+		border: 1.3px solid #8f2424;
+	}
+
 	@keyframes piano-note-game-hit-pop {
 		0% {
 			opacity: 1;
@@ -378,6 +383,7 @@ get_header();
 		var SPAWN_INTERVAL = 1350;
 		var GOLDEN_LINE_POSITION = 400;
 		var GOLDEN_LINE_HEIGHT = 25;
+		var KEYBOARD_HEIGHT = 160;
 		var NOTE_HEIGHT = 25;
 		var HIT_WINDOW_TOLERANCE = 36;
 		var activeKeys = {};
@@ -715,10 +721,19 @@ get_header();
 			}
 
 			var labelEl = document.createElement('span');
-			labelEl.className = 'piano-note-game__hit-label ' + (isPerfect ? 'piano-note-game__hit-label--perfect' : 'piano-note-game__hit-label--normal');
+			var labelVariantClass = 'piano-note-game__hit-label--normal';
+			if (scoreText === '-10') {
+				labelVariantClass = 'piano-note-game__hit-label--miss';
+			} else if (isPerfect) {
+				labelVariantClass = 'piano-note-game__hit-label--perfect';
+			}
+			labelEl.className = 'piano-note-game__hit-label ' + labelVariantClass;
 			labelEl.textContent = scoreText;
+			var keyboardTopY = BOARD_HEIGHT - KEYBOARD_HEIGHT;
+			var noteCenterY = note.position + (NOTE_HEIGHT / 2);
+			var clampedY = scoreText === '-10' ? (keyboardTopY - 12) : Math.min(noteCenterY, keyboardTopY - 12);
 			labelEl.style.left = (LEFT_OFFSET + key.xPosition + (key.width / 2)) + 'px';
-			labelEl.style.top = (note.position + (NOTE_HEIGHT / 2)) + 'px';
+			labelEl.style.top = clampedY + 'px';
 			board.appendChild(labelEl);
 
 			window.setTimeout(function () {
@@ -887,6 +902,7 @@ get_header();
 				if (!note.missedPenalty && note.position + NOTE_HEIGHT >= BOARD_HEIGHT) {
 					note.missedPenalty = true;
 					updateScore(-10);
+					showHitLabel(note, '-10', false);
 				}
 
 				if (note.position >= 650) {
