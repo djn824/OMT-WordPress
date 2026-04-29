@@ -1,5 +1,5 @@
-<?php
-/* Template Name: Create Piano Note Game 2 */
+<?php 
+/* Template Name:Piano-Typing Tool*/
 get_header();
 ?>
 
@@ -137,9 +137,34 @@ get_header();
 	.piano-note-game__note {
 		position: absolute;
 		height: 25px;
+		width: 28px;
 		z-index: 5;
+		pointer-events: none;
+	}
+
+	.piano-note-game__note::before {
+		content: '';
+		position: absolute;
+		left: 0;
+		right: 0;
+		top: 50%;
+		transform: translateY(-100%);
+		transform-origin: center bottom;
+		width: 100%;
+		height: 190px;
+		clip-path: polygon(50% 0%, 99% 100%, 1% 100%);
+		background: linear-gradient(to top, rgba(226, 92, 27, 0.65) 0%, rgba(226, 92, 27, 0.25) 45%, rgba(226, 92, 27, 0) 100%);
+		filter: blur(0.6px);
+	}
+
+	.piano-note-game__note::after {
+		content: '';
+		position: absolute;
+		inset: 0;
 		background: #e25c1b;
-		border: 5px solid #e25c1b;
+		border: 2px solid #b84410;
+		box-sizing: border-box;
+		clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
 	}
 
 	.piano-note-game__particle {
@@ -379,12 +404,13 @@ get_header();
 		var BOARD_HEIGHT = 600;
 		var PIANO_WIDTH = WHITE_KEY_WIDTH * 10;
 		var LEFT_OFFSET = (BOARD_WIDTH - PIANO_WIDTH) / 2;
-		var FALL_SPEED = 2.2;
+		var FALL_SPEED = 3.2;
 		var SPAWN_INTERVAL = 1350;
 		var GOLDEN_LINE_POSITION = 400;
 		var GOLDEN_LINE_HEIGHT = 25;
 		var KEYBOARD_HEIGHT = 160;
 		var NOTE_HEIGHT = 25;
+		var NOTE_WIDTH = 28;
 		var HIT_WINDOW_TOLERANCE = 36;
 		var activeKeys = {};
 		var fallingNotes = [];
@@ -482,8 +508,8 @@ get_header();
 				if (!key || !note.element) {
 					return;
 				}
-				note.element.style.left = (LEFT_OFFSET + key.xPosition) + 'px';
-				note.element.style.width = key.width + 'px';
+				var noteLeft = LEFT_OFFSET + key.xPosition + ((key.width - NOTE_WIDTH) / 2);
+				note.element.style.left = noteLeft + 'px';
 			});
 		}
 
@@ -669,8 +695,8 @@ get_header();
 			var key = pianoKeys[keyIndex];
 			var noteEl = document.createElement('div');
 			noteEl.className = 'piano-note-game__note';
-			noteEl.style.left = (LEFT_OFFSET + key.xPosition) + 'px';
-			noteEl.style.width = key.width + 'px';
+			var noteLeft = LEFT_OFFSET + key.xPosition + ((key.width - NOTE_WIDTH) / 2);
+			noteEl.style.left = noteLeft + 'px';
 			noteEl.style.top = '0px';
 			board.appendChild(noteEl);
 			fallingNotes.push({
