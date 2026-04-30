@@ -134,36 +134,59 @@ get_header();
 		}
 	}
 
+	@keyframes piano-note-game-tail-shimmer {
+		0%,
+		100% {
+			opacity: 0.92;
+		}
+
+		50% {
+			opacity: 0.98;
+		}
+	}
+
 	.piano-note-game__note {
 		position: absolute;
 		height: 25px;
 		width: 28px;
 		z-index: 5;
+		overflow: visible;
 		pointer-events: none;
+	}
+
+	.piano-note-game__note--missed-fade {
+		opacity: 0;
+		transition: opacity 220ms ease-out;
 	}
 
 	.piano-note-game__note::before {
 		content: '';
 		position: absolute;
-		left: 0;
-		right: 0;
-		top: 50%;
-		transform: translateY(-100%);
+		left: 50%;
+		top: 0;
+		z-index: 0;
+		width: 22px;
+		height: 750px;
+		transform: translate(-50%, -100%);
 		transform-origin: center bottom;
-		width: 100%;
-		height: 190px;
-		clip-path: polygon(50% 0%, 99% 100%, 1% 100%);
-		background: linear-gradient(to top, rgba(226, 92, 27, 0.65) 0%, rgba(226, 92, 27, 0.25) 45%, rgba(226, 92, 27, 0) 100%);
-		filter: blur(0.6px);
+		border-radius: 7px 7px 4px 4px;
+		background:
+			radial-gradient(ellipse at 50% 100%, rgba(255, 255, 255, 0.98) 0%, rgba(255, 245, 187, 0.75) 10%, rgba(255, 255, 255, 0) 30%),
+			linear-gradient(90deg, rgba(255, 150, 188, 0) 0%, rgba(255, 150, 188, 0.2) 16%, rgba(255, 242, 195, 0.95) 49%, rgba(255, 201, 121, 0.78) 60%, rgba(255, 150, 188, 0.18) 86%, rgba(255, 150, 188, 0) 100%),
+			linear-gradient(to top, rgba(255, 210, 109, 0.92) 0%, rgba(255, 186, 122, 0.7) 35%, rgba(244, 177, 210, 0.26) 72%, rgba(244, 177, 210, 0.08) 90%, rgba(244, 177, 210, 0) 100%);
+		filter: blur(0.32px);
+		animation: piano-note-game-tail-shimmer 2.2s ease-in-out infinite;
 	}
 
 	.piano-note-game__note::after {
 		content: '';
 		position: absolute;
 		inset: 0;
-		background: #e25c1b;
+		z-index: 1;
+		background: radial-gradient(circle at 35% 28%, #ffe3a5 0%, #ff9448 36%, #e25c1b 72%);
 		border: 2px solid #b84410;
 		box-sizing: border-box;
+		box-shadow: 0 0 14px rgba(255, 202, 73, 0.8), 0 10px 26px rgba(255, 220, 88, 0.56), 0 22px 42px rgba(255, 196, 86, 0.36), inset 0 0 5px rgba(255, 255, 255, 0.42);
 		clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
 	}
 
@@ -174,6 +197,50 @@ get_header();
 		height: 12px;
 		border-radius: 50%;
 		pointer-events: none;
+	}
+
+	.piano-note-game__pitch-wave {
+		position: absolute;
+		z-index: 24;
+		width: 176px;
+		height: 82px;
+		border-radius: 50%;
+		border: 2px solid rgba(255, 213, 65, 0.95);
+		background:
+			radial-gradient(ellipse at center, rgba(255, 247, 170, 0.78) 0%, rgba(255, 205, 43, 0.48) 28%, rgba(255, 151, 0, 0.18) 58%, rgba(255, 151, 0, 0) 76%),
+			repeating-radial-gradient(ellipse at center, rgba(255, 242, 147, 0.95) 0 2px, rgba(255, 242, 147, 0) 3px 12px);
+		box-shadow: 0 0 18px rgba(255, 228, 95, 0.95), 0 0 44px rgba(255, 166, 0, 0.62), inset 0 0 20px rgba(255, 219, 68, 0.92);
+		transform: translate(-50%, -50%) scale(0.42);
+		transform-origin: center center;
+		pointer-events: none;
+		animation: piano-note-game-pitch-wave 920ms ease-out forwards;
+	}
+
+	.piano-note-game__pitch-wave::before,
+	.piano-note-game__pitch-wave::after {
+		content: '';
+		position: absolute;
+		left: 50%;
+		top: 50%;
+		border-radius: 50%;
+		border: 1px solid rgba(255, 205, 55, 0.82);
+		transform: translate(-50%, -50%);
+		pointer-events: none;
+	}
+
+	.piano-note-game__pitch-wave::before {
+		width: 118%;
+		height: 78%;
+		border-color: rgba(255, 230, 105, 0.7);
+		box-shadow: 0 0 18px rgba(255, 201, 42, 0.76), inset 0 0 14px rgba(255, 240, 150, 0.7);
+		animation: piano-note-game-pitch-ring 920ms ease-out forwards;
+	}
+
+	.piano-note-game__pitch-wave::after {
+		width: 64%;
+		height: 46%;
+		border-color: rgba(255, 196, 32, 0.9);
+		box-shadow: 0 0 16px rgba(255, 179, 0, 0.76), inset 0 0 12px rgba(255, 238, 122, 0.86);
 	}
 
 	.piano-note-game__hit-label {
@@ -330,6 +397,44 @@ get_header();
 		}
 	}
 
+	@keyframes piano-note-game-pitch-wave {
+		0% {
+			opacity: 0;
+			transform: translate(-50%, -50%) scale(0.35);
+		}
+
+		16% {
+			opacity: 1;
+			transform: translate(-50%, -50%) scale(0.82);
+		}
+
+		58% {
+			opacity: 0.94;
+			transform: translate(-50%, -50%) scale(1.02);
+		}
+
+		100% {
+			opacity: 0;
+			transform: translate(-50%, -50%) scale(1.22);
+		}
+	}
+
+	@keyframes piano-note-game-pitch-ring {
+		0% {
+			opacity: 0.4;
+			transform: translate(-50%, -50%) scale(0.7);
+		}
+
+		45% {
+			opacity: 1;
+		}
+
+		100% {
+			opacity: 0;
+			transform: translate(-50%, -50%) scale(1.28);
+		}
+	}
+
 	.piano-note-game__note-label {
 		font-size: 12px;
 		font-weight: 600;
@@ -411,6 +516,7 @@ get_header();
 		var KEYBOARD_HEIGHT = 160;
 		var NOTE_HEIGHT = 25;
 		var NOTE_WIDTH = 28;
+		var MISSED_NOTE_FADE_OUT_MS = 220;
 		var HIT_WINDOW_TOLERANCE = 36;
 		var activeKeys = {};
 		var fallingNotes = [];
@@ -736,6 +842,20 @@ get_header();
 			}
 		}
 
+		function createPitchWave(x, y) {
+			var waveEl = document.createElement('span');
+			waveEl.className = 'piano-note-game__pitch-wave';
+			waveEl.style.left = x + 'px';
+			waveEl.style.top = y + 'px';
+			board.appendChild(waveEl);
+
+			window.setTimeout(function () {
+				if (waveEl.parentNode) {
+					waveEl.parentNode.removeChild(waveEl);
+				}
+			}, 980);
+		}
+
 		function showHitLabel(note, scoreText, isPerfect) {
 			if (!note || !scoreText) {
 				return;
@@ -909,7 +1029,7 @@ get_header();
 				updateScore(isPerfect ? 5 : 1);
 				setCombo(combo + 1);
 				showHitLabel(note, isPerfect ? '+5' : '+1', isPerfect);
-				createBurst(key.xPosition + key.width / 2, note.position, isPerfect);
+				createPitchWave(LEFT_OFFSET + key.xPosition + (key.width / 2), note.position + NOTE_HEIGHT + 3);
 				note.element.remove();
 				return false;
 			});
@@ -918,7 +1038,9 @@ get_header();
 		function updateFallingNotes(delta) {
 			var speedScale = delta / 16.67;
 			fallingNotes = fallingNotes.filter(function (note) {
-				note.position += FALL_SPEED * speedScale;
+				if (!note.isFadingOut) {
+					note.position += FALL_SPEED * speedScale;
+				}
 
 				if (!note.missed && note.position >= GOLDEN_LINE_POSITION) {
 					note.missed = true;
@@ -932,8 +1054,17 @@ get_header();
 				}
 
 				if (note.position >= 650) {
-					note.element.remove();
-					return false;
+					if (!note.isFadingOut) {
+						note.isFadingOut = true;
+						note.fadeOutRemaining = MISSED_NOTE_FADE_OUT_MS;
+						note.element.classList.add('piano-note-game__note--missed-fade');
+					}
+
+					note.fadeOutRemaining -= delta;
+					if (note.fadeOutRemaining <= 0) {
+						note.element.remove();
+						return false;
+					}
 				}
 
 				note.element.style.top = note.position + 'px';
