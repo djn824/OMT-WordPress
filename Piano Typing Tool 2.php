@@ -202,8 +202,8 @@ get_header();
 	.piano-note-game__pitch-wave {
 		position: absolute;
 		z-index: 24;
-		width: 176px;
-		height: 82px;
+		width: 134px;
+		height: 40px;
 		border-radius: 50%;
 		border: 2px solid rgba(255, 213, 65, 0.95);
 		background:
@@ -228,17 +228,17 @@ get_header();
 		pointer-events: none;
 	}
 
-	.piano-note-game__pitch-wave::before {
+	/* .piano-note-game__pitch-wave::before {
 		width: 118%;
 		height: 78%;
 		border-color: rgba(255, 230, 105, 0.7);
 		box-shadow: 0 0 18px rgba(255, 201, 42, 0.76), inset 0 0 14px rgba(255, 240, 150, 0.7);
 		animation: piano-note-game-pitch-ring 920ms ease-out forwards;
-	}
+	} */
 
 	.piano-note-game__pitch-wave::after {
-		width: 64%;
-		height: 46%;
+		width: 100%;
+		height: 100%;
 		border-color: rgba(255, 196, 32, 0.9);
 		box-shadow: 0 0 16px rgba(255, 179, 0, 0.76), inset 0 0 12px rgba(255, 238, 122, 0.86);
 	}
