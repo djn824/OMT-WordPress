@@ -147,8 +147,8 @@ get_header();
 
 	.piano-note-game__note {
 		position: absolute;
-		height: 25px;
-		width: 28px;
+		height: 60px;
+		width: 90px;
 		z-index: 5;
 		overflow: visible;
 		pointer-events: none;
@@ -163,7 +163,7 @@ get_header();
 		content: '';
 		position: absolute;
 		left: 50%;
-		top: 0;
+		top: 35%;
 		z-index: 0;
 		width: 22px;
 		height: 750px;
@@ -183,11 +183,11 @@ get_header();
 		position: absolute;
 		inset: 0;
 		z-index: 1;
-		background: radial-gradient(circle at 35% 28%, #ffe3a5 0%, #ff9448 36%, #e25c1b 72%);
-		border: 2px solid #b84410;
+		background: url('<?=get_stylesheet_directory_uri();?>/assets/images/Piano-Diamond.svg') center / contain no-repeat;
+		border: 0;
 		box-sizing: border-box;
-		box-shadow: 0 0 14px rgba(255, 202, 73, 0.8), 0 10px 26px rgba(255, 220, 88, 0.56), 0 22px 42px rgba(255, 196, 86, 0.36), inset 0 0 5px rgba(255, 255, 255, 0.42);
-		clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+		box-shadow: none;
+		clip-path: none;
 	}
 
 	.piano-note-game__particle {
@@ -545,8 +545,8 @@ get_header();
 		var GOLDEN_LINE_POSITION = 400;
 		var GOLDEN_LINE_HEIGHT = 25;
 		var KEYBOARD_HEIGHT = 160;
-		var NOTE_HEIGHT = 25;
-		var NOTE_WIDTH = 28;
+		var NOTE_HEIGHT = 60;
+		var NOTE_WIDTH = 90;
 		var MISSED_NOTE_FADE_OUT_MS = 220;
 		var HIT_WINDOW_TOLERANCE = 36;
 		var activeKeys = {};
