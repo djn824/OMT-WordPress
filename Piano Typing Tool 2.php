@@ -202,18 +202,26 @@ get_header();
 	.piano-note-game__pitch-wave {
 		position: absolute;
 		z-index: 24;
-		width: 134px;
-		height: 40px;
+		width: 143px;
+		height: 50px;
 		border-radius: 50%;
-		border: 2px solid rgba(255, 213, 65, 0.95);
+		border: 3px solid rgba(255, 240, 174, 0.98);
 		background:
-			radial-gradient(ellipse at center, rgba(255, 247, 170, 0.78) 0%, rgba(255, 205, 43, 0.48) 28%, rgba(255, 151, 0, 0.18) 58%, rgba(255, 151, 0, 0) 76%),
-			repeating-radial-gradient(ellipse at center, rgba(255, 242, 147, 0.95) 0 2px, rgba(255, 242, 147, 0) 3px 12px);
-		box-shadow: 0 0 18px rgba(255, 228, 95, 0.95), 0 0 44px rgba(255, 166, 0, 0.62), inset 0 0 20px rgba(255, 219, 68, 0.92);
-		transform: translate(-50%, -50%) scale(0.42);
+			repeating-radial-gradient(ellipse at center,
+				rgba(255, 250, 214, 1) 0 2px,
+				rgba(255, 236, 154, 0.95) 2px 5px,
+				rgba(255, 214, 110, 0.52) 5px 11px,
+				rgba(255, 214, 110, 0) 11px 19px),
+			radial-gradient(ellipse at center,
+				rgba(255, 255, 246, 0.88) 0%,
+				rgba(255, 232, 140, 0.56) 42%,
+				rgba(255, 184, 74, 0) 74%);
+		box-shadow: 0 0 24px rgba(255, 244, 170, 0.98), 0 0 62px rgba(255, 203, 86, 0.82), 0 0 98px rgba(255, 168, 60, 0.34);
+		filter: none;
+		transform: translate(-50%, -50%) scale(0.26);
 		transform-origin: center center;
 		pointer-events: none;
-		animation: piano-note-game-pitch-wave 920ms ease-out forwards;
+		animation: piano-note-game-pitch-wave 700ms linear forwards;
 	}
 
 	.piano-note-game__pitch-wave::before,
@@ -223,24 +231,26 @@ get_header();
 		left: 50%;
 		top: 50%;
 		border-radius: 50%;
-		border: 1px solid rgba(255, 205, 55, 0.82);
+		border: 3px solid rgba(255, 238, 164, 0.95);
 		transform: translate(-50%, -50%);
 		pointer-events: none;
 	}
 
-	/* .piano-note-game__pitch-wave::before {
-		width: 118%;
-		height: 78%;
-		border-color: rgba(255, 230, 105, 0.7);
-		box-shadow: 0 0 18px rgba(255, 201, 42, 0.76), inset 0 0 14px rgba(255, 240, 150, 0.7);
-		animation: piano-note-game-pitch-ring 920ms ease-out forwards;
-	} */
+	.piano-note-game__pitch-wave::before {
+		width: 100px;
+		height: 42px;
+		border-color: rgba(255, 252, 212, 0.94);
+		background: radial-gradient(ellipse at center, rgba(255, 255, 249, 0.92) 0%, rgba(255, 241, 176, 0.4) 48%, rgba(255, 206, 112, 0) 76%);
+		box-shadow: 0 0 22px rgba(255, 247, 196, 0.92), inset 0 0 15px rgba(255, 251, 216, 0.86);
+		animation: piano-note-game-pitch-spark 240ms linear forwards;
+	}
 
 	.piano-note-game__pitch-wave::after {
-		width: 100%;
-		height: 100%;
-		border-color: rgba(255, 196, 32, 0.9);
-		box-shadow: 0 0 16px rgba(255, 179, 0, 0.76), inset 0 0 12px rgba(255, 238, 122, 0.86);
+		width: 80px;
+		height: 32px;
+		border-color: rgba(255, 226, 142, 0.95);
+		box-shadow: 0 0 22px rgba(255, 214, 112, 0.82), inset 0 0 12px rgba(255, 236, 168, 0.72);
+		animation: piano-note-game-pitch-ring 700ms linear forwards;
 	}
 
 	.piano-note-game__hit-label {
@@ -400,38 +410,59 @@ get_header();
 	@keyframes piano-note-game-pitch-wave {
 		0% {
 			opacity: 0;
-			transform: translate(-50%, -50%) scale(0.35);
+			transform: translate(-50%, -50%) scale(0.28);
 		}
 
-		16% {
-			opacity: 1;
-			transform: translate(-50%, -50%) scale(0.82);
+		20% {
+			opacity: 0.98;
+			transform: translate(-50%, -50%) scale(0.74);
 		}
 
 		58% {
-			opacity: 0.94;
-			transform: translate(-50%, -50%) scale(1.02);
+			opacity: 0.9;
+			transform: translate(-50%, -50%) scale(1.1);
 		}
 
 		100% {
 			opacity: 0;
-			transform: translate(-50%, -50%) scale(1.22);
+			transform: translate(-50%, -50%) scale(1.72);
 		}
 	}
 
 	@keyframes piano-note-game-pitch-ring {
 		0% {
-			opacity: 0.4;
-			transform: translate(-50%, -50%) scale(0.7);
+			opacity: 0;
+			transform: translate(-50%, -50%) scale(0.62);
 		}
 
-		45% {
-			opacity: 1;
+		26% {
+			opacity: 0.96;
+		}
+
+		62% {
+			opacity: 0.72;
 		}
 
 		100% {
 			opacity: 0;
-			transform: translate(-50%, -50%) scale(1.28);
+			transform: translate(-50%, -50%) scale(1.9);
+		}
+	}
+
+	@keyframes piano-note-game-pitch-spark {
+		0% {
+			opacity: 0;
+			transform: translate(-50%, -50%) scale(0.58);
+		}
+
+		24% {
+			opacity: 1;
+			transform: translate(-50%, -50%) scale(0.92);
+		}
+
+		100% {
+			opacity: 0;
+			transform: translate(-50%, -50%) scale(1.16);
 		}
 	}
 
@@ -843,17 +874,19 @@ get_header();
 		}
 
 		function createPitchWave(x, y) {
+			var keyboardTopY = BOARD_HEIGHT - KEYBOARD_HEIGHT;
+			var safeWaveY = Math.min(y, keyboardTopY - 10);
 			var waveEl = document.createElement('span');
 			waveEl.className = 'piano-note-game__pitch-wave';
 			waveEl.style.left = x + 'px';
-			waveEl.style.top = y + 'px';
+			waveEl.style.top = safeWaveY + 'px';
 			board.appendChild(waveEl);
 
 			window.setTimeout(function () {
 				if (waveEl.parentNode) {
 					waveEl.parentNode.removeChild(waveEl);
 				}
-			}, 980);
+			}, 920);
 		}
 
 		function showHitLabel(note, scoreText, isPerfect) {
