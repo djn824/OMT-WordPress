@@ -84,6 +84,8 @@
 
 	let sleepTimerMinutes = -1;
 	let sleepTimerTimeout = null;
+	let sleepTimerEndAtMs = null;
+	let sleepTimerRemainingInterval = null;
 	// Minutes. -1 means Off.
 	const SLEEP_TIMER_CYCLE_MIN = [-1, 1, 5, 10, 15, 20, 25, 30, 60, 120, 240, 480];
 
@@ -101,6 +103,11 @@
 			clearTimeout(sleepTimerTimeout);
 			sleepTimerTimeout = null;
 		}
+		if (sleepTimerRemainingInterval) {
+			clearInterval(sleepTimerRemainingInterval);
+			sleepTimerRemainingInterval = null;
+		}
+		sleepTimerEndAtMs = null;
 	}
 
 	function formatTimerLabel(mins) {
@@ -108,10 +115,208 @@
 		return 'Timer: ' + mins + ' min';
 	}
 
+	function formatRemainingMs(ms) {
+		if (ms == null || ms <= 0) return '00:00';
+		const totalSec = Math.max(0, Math.floor(ms / 1000));
+		const m = Math.floor(totalSec / 60);
+		const s = totalSec % 60;
+		if (m >= 60) {
+			const h = Math.floor(m / 60);
+			const mm = String(m % 60).padStart(2, '0');
+			return h + ':' + mm + ':' + String(s).padStart(2, '0');
+		}
+		return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+	}
+
+	function coerceMinutesInput(raw) {
+		// Accept "10", "10m", "1.5", "01:30" (mm:ss) as convenience.
+		if (raw == null) return -1;
+		const s = String(raw).trim();
+		if (!s) return -1;
+		const mmss = s.match(/^(\d{1,4})\s*:\s*([0-5]?\d)$/);
+		if (mmss) {
+			const mm = Number(mmss[1]);
+			const ss = Number(mmss[2]);
+			const mins = mm + ss / 60;
+			return mins > 0 ? mins : -1;
+		}
+		const m = s.match(/^(\d+(?:\.\d+)?)\s*(m|min|mins|minute|minutes)?$/i);
+		if (m) {
+			const mins = Number(m[1]);
+			return mins > 0 ? mins : -1;
+		}
+		return -1;
+	}
+
+	function ensureTimerLabelUi() {
+		if (!b.timerBtn) return;
+		if (b.timerLabelWrap) return;
+
+		// Anchor UI to the timer button itself so we don't move the layout/position.
+		// We'll absolutely-position the label relative to the button.
+		const btn = b.timerBtn;
+		btn.style.position = btn.style.position || 'relative';
+		btn.style.overflow = btn.style.overflow || 'visible';
+
+		const wrap = document.createElement('div');
+		wrap.className = 'timer-label';
+		// Hidden by default; revealed with an animated class.
+		wrap.style.display = 'block';
+		wrap.style.position = 'absolute';
+		wrap.style.left = '50%';
+		wrap.style.bottom = '100%';
+		wrap.style.transform = 'translate(-50%, 8px)';
+		wrap.style.opacity = '0';
+		wrap.style.pointerEvents = 'none';
+		wrap.style.transition = 'opacity 180ms ease, transform 180ms ease';
+		wrap.style.textAlign = 'center';
+		wrap.style.marginBottom = '2px';
+		wrap.setAttribute('aria-hidden', 'true');
+
+		const input = document.createElement('input');
+		input.type = 'text';
+		input.inputMode = 'decimal';
+		input.autocomplete = 'off';
+		input.spellcheck = false;
+		input.placeholder = 'Minutes';
+		input.setAttribute('aria-label', 'Set timer minutes');
+		input.style.width = '100%';
+		input.style.maxWidth = '100px';
+		input.style.minWidth = '45px';
+		input.style.boxSizing = 'border-box';
+		input.style.padding = '6px 8px';
+		input.style.borderRadius = '8px';
+		input.style.border = '1px solid rgba(255,255,255,0.35)';
+		input.style.background = 'rgba(0,0,0,0.15)';
+		input.style.color = 'inherit';
+		input.style.textAlign = 'center';
+
+		wrap.appendChild(input);
+		btn.appendChild(wrap);
+
+		b.timerLabelWrap = wrap;
+		b.timerLabelInput = input;
+
+		const commitMinutes = () => {
+			const mins = coerceMinutesInput(b.timerLabelInput.value);
+			if (mins > 0) {
+				sleepTimerMinutes = Math.round(mins * 10) / 10;
+				b.timerBtn.setAttribute('aria-pressed', 'true');
+				showTimerLabelUi();
+				armSleepTimerIfPlaying();
+			} else {
+				// Invalid/empty: keep UI but do not arm
+				updateTimerLabelUi();
+			}
+		};
+
+		const cyclePresetMinutes = () => {
+			// Cycle through the built-in presets (-1, 1, 5, 10, ...)
+			const idx = SLEEP_TIMER_CYCLE_MIN.indexOf(sleepTimerMinutes);
+			sleepTimerMinutes =
+				SLEEP_TIMER_CYCLE_MIN[(idx < 0 ? 0 : idx + 1) % SLEEP_TIMER_CYCLE_MIN.length];
+			if (sleepTimerMinutes > 0) {
+				b.timerBtn.setAttribute('aria-pressed', 'true');
+				showTimerLabelUi();
+				if (b.displayInfo && !animEnabled) b.displayInfo.textContent = formatTimerLabel(sleepTimerMinutes);
+				armSleepTimerIfPlaying();
+			} else {
+				// Off
+				b.timerBtn.setAttribute('aria-pressed', 'false');
+				hideTimerLabelUi();
+				clearSleepTimer();
+				if (b.displayInfo && !animEnabled) b.displayInfo.textContent = formatTimerLabel(sleepTimerMinutes);
+			}
+		};
+
+		input.addEventListener('keydown', (e) => {
+			if (e.key === 'Enter') {
+				e.preventDefault();
+				commitMinutes();
+				input.blur();
+			}
+		});
+
+		// Blur should NOT commit. It should revert to the stored/original value.
+		input.addEventListener('blur', () => {
+			updateTimerLabelUi();
+		});
+
+		// Important: the timer UI lives inside the button; prevent clicks on the
+		// input/label from bubbling and accidentally cycling the preset.
+		const stopBubble = (e) => {
+			e.stopPropagation();
+		};
+		input.addEventListener('click', stopBubble);
+		input.addEventListener('mousedown', stopBubble);
+		input.addEventListener('touchstart', stopBubble, { passive: true });
+		wrap.addEventListener('click', stopBubble);
+		wrap.addEventListener('mousedown', stopBubble);
+
+		// Quick-set: double-click the label to cycle preset times.
+		wrap.addEventListener('dblclick', (e) => {
+			// Don't select text; just cycle.
+			e.preventDefault();
+			cyclePresetMinutes();
+		});
+	}
+
+	function showTimerLabelUi() {
+		ensureTimerLabelUi();
+		if (!b.timerLabelWrap) return;
+		b.timerLabelWrap.style.opacity = '1';
+		b.timerLabelWrap.style.transform = 'translate(-50%, 0px)';
+		b.timerLabelWrap.style.pointerEvents = 'auto';
+		b.timerLabelWrap.setAttribute('aria-hidden', 'false');
+		updateTimerLabelUi();
+	}
+
+	function hideTimerLabelUi() {
+		if (!b.timerLabelWrap) return;
+		b.timerLabelWrap.style.opacity = '0';
+		b.timerLabelWrap.style.transform = 'translate(-50%, 8px)';
+		b.timerLabelWrap.style.pointerEvents = 'none';
+		b.timerLabelWrap.setAttribute('aria-hidden', 'true');
+	}
+
+	function updateTimerLabelUi() {
+		if (!b.timerLabelInput) return;
+		// Don't overwrite while the user is typing; only normalize on blur / Enter.
+		if (document && document.activeElement === b.timerLabelInput) {
+			return;
+		}
+		if (!sleepTimerMinutes || sleepTimerMinutes < 0) {
+			b.timerLabelInput.value = '';
+			return;
+		}
+		// While counting down, show remaining time (minutes). Otherwise show configured minutes.
+		if (sleepTimerEndAtMs && isplaying) {
+			const remMs = Math.max(0, sleepTimerEndAtMs - Date.now());
+			const remMin = Math.ceil(remMs / (60 * 1000));
+			b.timerLabelInput.value = String(remMin);
+			return;
+		}
+		b.timerLabelInput.value = String(sleepTimerMinutes);
+	}
+
 	function setSlidersDisabled(disabled) {
 		if (!b.sliderBar || !b.sliderBar.length) return;
 		for (let i = 0; i < b.sliderBar.length; i++) {
-			b.sliderBar[i].disabled = !!disabled;
+			const el = b.sliderBar[i];
+			el.disabled = !!disabled;
+			if (disabled) {
+				el.classList.add('is-disabled');
+				el.style.opacity = '0.4';
+				el.style.cursor = 'not-allowed';
+				el.style.filter = 'grayscale(60%)';
+				el.setAttribute('aria-disabled', 'true');
+			} else {
+				el.classList.remove('is-disabled');
+				el.style.opacity = '';
+				el.style.cursor = '';
+				el.style.filter = '';
+				el.setAttribute('aria-disabled', 'false');
+			}
 		}
 	}
 
@@ -119,6 +324,10 @@
 		clearSleepTimer();
 		if (!isplaying || !engineReady) return;
 		if (!sleepTimerMinutes || sleepTimerMinutes < 0) return;
+		sleepTimerEndAtMs = Date.now() + sleepTimerMinutes * 60 * 1000;
+		sleepTimerRemainingInterval = setInterval(() => {
+			updateTimerLabelUi();
+		}, 250);
 		sleepTimerTimeout = setTimeout(() => {
 			// Stop audio + reset UI state (same as pressing pause)
 			let playBtn = b.check ? b.check.querySelector('#play-btn') : null;
@@ -133,6 +342,7 @@
 			if (b.timerBtn) {
 				b.timerBtn.setAttribute('aria-pressed', 'false');
 			}
+			hideTimerLabelUi();
 			if (b.displayInfo) {
 				b.displayInfo.textContent = 'Timer finished — stopped';
 			}
@@ -142,6 +352,7 @@
 		if (b.displayInfo && !animEnabled) {
 			b.displayInfo.textContent = formatTimerLabel(sleepTimerMinutes);
 		}
+		updateTimerLabelUi();
 	}
 
 	function captureAnimationProfilesFromCurrent() {
@@ -750,6 +961,7 @@
 			b.decreaseBtn = window.document.getElementById('decrease');
 			b.animateBtn = window.document.getElementById('animate');
 			b.timerBtn = window.document.getElementById('timer');
+			ensureTimerLabelUi();
 
 			for (let i of b.sliderBar) {
 				// Ensure numeric value; default to midpoint.
@@ -803,12 +1015,24 @@
 			// Timer: cycle sleep timer durations
 			if (b.timerBtn) {
 				b.timerBtn.addEventListener('click', () => {
+					ensureTimerLabelUi();
+					// Single-click cycles presets (Off → 1 → 5 → 10 → ... → Off).
 					const idx = SLEEP_TIMER_CYCLE_MIN.indexOf(sleepTimerMinutes);
 					sleepTimerMinutes =
 						SLEEP_TIMER_CYCLE_MIN[(idx < 0 ? 0 : idx + 1) % SLEEP_TIMER_CYCLE_MIN.length];
-					b.timerBtn.setAttribute('aria-pressed', sleepTimerMinutes > 0 ? 'true' : 'false');
-					if (b.displayInfo && !animEnabled) b.displayInfo.textContent = formatTimerLabel(sleepTimerMinutes);
-					armSleepTimerIfPlaying();
+
+					if (sleepTimerMinutes > 0) {
+						b.timerBtn.setAttribute('aria-pressed', 'true');
+						showTimerLabelUi();
+						if (b.timerLabelInput) b.timerLabelInput.value = String(sleepTimerMinutes);
+						if (b.displayInfo && !animEnabled) b.displayInfo.textContent = formatTimerLabel(sleepTimerMinutes);
+						armSleepTimerIfPlaying();
+					} else {
+						b.timerBtn.setAttribute('aria-pressed', 'false');
+						hideTimerLabelUi();
+						clearSleepTimer();
+						if (b.displayInfo && !animEnabled) b.displayInfo.textContent = formatTimerLabel(sleepTimerMinutes);
+					}
 				});
 			}
 
