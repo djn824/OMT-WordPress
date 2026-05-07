@@ -443,6 +443,16 @@
 		animCycleTimer = setInterval(runCycle, ANIM_PERIOD_MS);
 	}
 
+	function refreshAnimationAfterControlChange() {
+		if (!animEnabled) return;
+		syncLevelsFromSliders();
+		captureAnimationProfilesFromCurrent();
+		if (animRunning) {
+			stopSliderAnimation();
+			startSliderAnimation();
+		}
+	}
+
 	function syncAnimationToPlaybackState() {
 		// Sliders must not be manually controllable while animation is enabled (even if paused).
 		setSlidersDisabled(animEnabled);
@@ -989,6 +999,7 @@
 						setSliderToMidpoint(i);
 						applyBandGainFromSlider(i);
 					}
+					refreshAnimationAfterControlChange();
 					if (b.displayInfo && !animEnabled) {
 						b.displayInfo.textContent = 'All Bands';
 					}
@@ -1044,6 +1055,7 @@
 						i.value = String(Math.max(mn, Number(i.value) - SLIDER_STEP));
 						applyBandGainFromSlider(i);
 					}
+					refreshAnimationAfterControlChange();
 					if (b.displayInfo && !animEnabled) {
 						b.displayInfo.textContent = 'All Bands';
 					}
@@ -1058,6 +1070,7 @@
 						i.value = String(Math.min(mx, Number(i.value) + SLIDER_STEP));
 						applyBandGainFromSlider(i);
 					}
+					refreshAnimationAfterControlChange();
 					if (b.displayInfo && !animEnabled) {
 						b.displayInfo.textContent = 'All Bands';
 					}
