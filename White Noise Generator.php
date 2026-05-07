@@ -9,18 +9,18 @@ get_header();
 		</div>
 		<div class="equalizer">
 			<div class="slider">
-				<input type="range" name="Sub-Bass" class="slider-bar" min="-90" max="0" value="-45" step="1">
-				<input type="range" name="Low Bass" class="slider-bar" min="-90" max="0" value="-45" step="1">
-				<input type="range" name="Bass" class="slider-bar" min="-90" max="0" value="-45" step="1">
-				<input type="range" name="High Bass" class="slider-bar" min="-90" max="0" value="-45" step="1">
-				<input type="range" name="Low Mids" class="slider-bar" min="-90" max="0" value="-45" step="1">
+				<input type="range" name="Sub-Bass" class="slider-bar" min="0" max="990" value="495" step="1">
+				<input type="range" name="Low Bass" class="slider-bar" min="0" max="990" value="495" step="1">
+				<input type="range" name="Bass" class="slider-bar" min="0" max="990" value="495" step="1">
+				<input type="range" name="High Bass" class="slider-bar" min="0" max="990" value="495" step="1">
+				<input type="range" name="Low Mids" class="slider-bar" min="0" max="990" value="495" step="1">
 			</div>
 			<div class="slider">
-				<input type="range" name="Mids" class="slider-bar" min="-90" max="0" value="-45" step="1">
-				<input type="range" name="High Mids" class="slider-bar" min="-90" max="0" value="-45" step="1">
-				<input type="range" name="Low Treble" class="slider-bar" min="-90" max="0" value="-45" step="1">
-				<input type="range" name="Treble" class="slider-bar" min="-90" max="0" value="-45" step="1">
-				<input type="range" name="High Treble" class="slider-bar" min="-90" max="0" value="-45" step="1">
+				<input type="range" name="Mids" class="slider-bar" min="0" max="990" value="495" step="1">
+				<input type="range" name="High Mids" class="slider-bar" min="0" max="990" value="495" step="1">
+				<input type="range" name="Low Treble" class="slider-bar" min="0" max="990" value="495" step="1">
+				<input type="range" name="Treble" class="slider-bar" min="0" max="990" value="495" step="1">
+				<input type="range" name="High Treble" class="slider-bar" min="0" max="990" value="495" step="1">
 			</div>
 		</div>
 		<div class="control-bar">

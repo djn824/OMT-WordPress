@@ -62,10 +62,12 @@
 	let stemsStarted = false;
 	let isplaying = false;
 
-	/** Default / reset level (midpoint of -90…0 dBFS range) */
-	const SLIDER_DEFAULT_DB = -45;
-	/** dB per volume-up / volume-down button click (slider drag uses step=1 in HTML) */
-	const SLIDER_BUTTON_STEP_DB = 6;
+	/** Slider represents linear level 0..0.99 (like white_noise.html). */
+	const LEVEL_MAX = 0.99;
+	/** Display clamp for near-zero levels (white_noise.html shows ~-129 dBFS at bottom). */
+	const DB_FLOOR = -129;
+	/** Slider step for +/- buttons (units of the range input, 0..990). */
+	const SLIDER_STEP = 20;
 
 	let currentLevel = [];
 
@@ -359,24 +361,31 @@
 			if (idx < 0) {
 				continue;
 			}
-			var db = Number(el.value);
-			currentLevel[idx] = dbToLevel(db);
+			currentLevel[idx] = sliderToLevel(el);
 		}
 	}
 
-	function dbToLevel(db) {
-		var v = Math.exp(db / 26);
-		return Math.min(0.99, Math.max(0, v));
+	function clamp01(x) {
+		return Math.min(1, Math.max(0, x));
 	}
 
-	function clampSliderDb(sliderEl, db) {
-		var mn = Number(sliderEl.min);
-		var mx = Number(sliderEl.max);
-		var n = Number(db);
-		if (isNaN(n)) {
-			n = SLIDER_DEFAULT_DB;
-		}
-		return Math.min(mx, Math.max(mn, n));
+	function sliderToLevel(sliderEl) {
+		var mx = Number(sliderEl.max) || 990;
+		var v = Number(sliderEl.value);
+		if (isNaN(v)) v = mx / 2;
+		var p = clamp01(v / mx);
+		return p * LEVEL_MAX;
+	}
+
+	function levelToDb(level) {
+		// myNoise convention: dBFS ≈ 26 * ln(level), floor at ~-129 dBFS
+		if (!level || level <= 0) return DB_FLOOR;
+		return 26 * Math.log(level);
+	}
+
+	function setSliderToMidpoint(sliderEl) {
+		var mx = Number(sliderEl.max) || 990;
+		sliderEl.value = String(Math.round(mx / 2));
 	}
 
 	function finishedLoading() {
@@ -457,9 +466,9 @@
 		if (idx < 0) {
 			return;
 		}
-		var db = clampSliderDb(sliderEl, sliderEl.value);
-		sliderEl.value = String(db);
-		currentLevel[idx] = dbToLevel(db);
+		var level = sliderToLevel(sliderEl);
+		currentLevel[idx] = level;
+		var db = Math.round(levelToDb(level));
 		var info = sliderEl.name + ': ' + db.toLocaleString() + ' dBFS';
 		if (b.displayInfo) {
 			b.displayInfo.innerHTML = info;
@@ -467,7 +476,7 @@
 		if (!engineReady) {
 			return;
 		}
-		var g = Math.pow(currentLevel[idx], 3);
+		var g = Math.pow(level, 3);
 		var t = context.currentTime;
 		if (immediateGain) {
 			gainNode[idx].gain.cancelScheduledValues(t);
@@ -477,18 +486,17 @@
 		}
 	}
 
-	/** Midpoint of each slider’s min/max (e.g. -90…0 → -45 dBFS). */
+	/** Set all sliders to half-thumb position (like your request). */
 	function applyHalfRangeToAllSliders(immediateGain) {
 		for (let i = 0; i < b.sliderBar.length; i++) {
 			var el = b.sliderBar[i];
-			var halfDb = (Number(el.min) + Number(el.max)) / 2;
-			el.value = String(clampSliderDb(el, halfDb));
+			setSliderToMidpoint(el);
 			applyBandGainFromSlider(el, immediateGain);
 		}
 		if (b.displayInfo && b.sliderBar.length) {
-			var ref = b.sliderBar[0];
-			var h = (Number(ref.min) + Number(ref.max)) / 2;
-			b.displayInfo.textContent = 'All bands: ' + h.toLocaleString() + ' dBFS';
+			var refLevel = sliderToLevel(b.sliderBar[0]);
+			var refDb = Math.round(levelToDb(refLevel));
+			b.displayInfo.textContent = 'All bands: ' + refDb.toLocaleString() + ' dBFS';
 		}
 	}
 
@@ -553,7 +561,10 @@
 			b.decreaseBtn = window.document.getElementById('decrease');
 
 			for (let i of b.sliderBar) {
-				i.value = String(clampSliderDb(i, i.value === '' || i.value == null ? SLIDER_DEFAULT_DB : Number(i.value)));
+				// Ensure numeric value; default to midpoint.
+				if (i.value === '' || i.value == null || isNaN(Number(i.value))) {
+					setSliderToMidpoint(i);
+				}
 			}
 
 			setPlayButtonEnabled(false);
@@ -572,27 +583,29 @@
 			if (b.resetBtn) {
 				b.resetBtn.addEventListener('click', () => {
 					for (let i of b.sliderBar) {
-						i.value = String(clampSliderDb(i, SLIDER_DEFAULT_DB));
+						setSliderToMidpoint(i);
 						applyBandGainFromSlider(i);
 					}
 				});
 			}
 
-			/* #increase = volume-down icon → quieter (toward min / -90 dBFS) */
+			/* #increase = volume-down icon → quieter (thumb down) */
 			if (b.increaseBtn) {
 				b.increaseBtn.addEventListener('click', () => {
 					for (let i of b.sliderBar) {
-						i.value = String(clampSliderDb(i, Number(i.value) - SLIDER_BUTTON_STEP_DB));
+						var mn = Number(i.min) || 0;
+						i.value = String(Math.max(mn, Number(i.value) - SLIDER_STEP));
 						applyBandGainFromSlider(i);
 					}
 				});
 			}
 
-			/* #decrease = volume-up icon → louder (toward max / 0 dBFS) */
+			/* #decrease = volume-up icon → louder (thumb up) */
 			if (b.decreaseBtn) {
 				b.decreaseBtn.addEventListener('click', () => {
 					for (let i of b.sliderBar) {
-						i.value = String(clampSliderDb(i, Number(i.value) + SLIDER_BUTTON_STEP_DB));
+						var mx = Number(i.max) || 990;
+						i.value = String(Math.min(mx, Number(i.value) + SLIDER_STEP));
 						applyBandGainFromSlider(i);
 					}
 				});
