@@ -505,6 +505,10 @@
 			return;
 		}
 
+		// Flip state immediately so UI animations stay in sync with user intent.
+		// Audio start is async (AudioContext.resume), but the button/animation should not lag.
+		isplaying = true;
+
 		function beginPlayback() {
 			var now = context.currentTime;
 			masterGain.gain.cancelScheduledValues(now);
@@ -521,16 +525,20 @@
 				schedulerTick();
 			}
 
-			isplaying = true;
 		}
 
 		/* Always resume first so currentTime advances; then arm stems (microtask is fine). */
-		void Promise.resolve(context.resume()).then(beginPlayback);
+		void Promise.resolve(context.resume()).then(beginPlayback, function () {
+			// If resume fails, revert UI state.
+			isplaying = false;
+		});
 	}
 
 	function stopNoise() {
+		// Flip state immediately so UI animations stay in sync with user intent.
+		isplaying = false;
+
 		if (!engineReady || !masterGain) {
-			isplaying = false;
 			return;
 		}
 		var now = context.currentTime;
@@ -545,7 +553,6 @@
 			}
 		}, STOP_FADE_OUT_S * 1000);
 
-		isplaying = false;
 	}
 
 	b.__name__ = !0;
@@ -586,6 +593,9 @@
 						setSliderToMidpoint(i);
 						applyBandGainFromSlider(i);
 					}
+					if (b.displayInfo) {
+						b.displayInfo.textContent = 'All Bands';
+					}
 				});
 			}
 
@@ -597,6 +607,9 @@
 						i.value = String(Math.max(mn, Number(i.value) - SLIDER_STEP));
 						applyBandGainFromSlider(i);
 					}
+					if (b.displayInfo) {
+						b.displayInfo.textContent = 'All Bands';
+					}
 				});
 			}
 
@@ -607,6 +620,9 @@
 						var mx = Number(i.max) || 990;
 						i.value = String(Math.min(mx, Number(i.value) + SLIDER_STEP));
 						applyBandGainFromSlider(i);
+					}
+					if (b.displayInfo) {
+						b.displayInfo.textContent = 'All Bands';
 					}
 				});
 			}
@@ -641,7 +657,9 @@
 						}
 						placeButton();
 
-						applyHalfRangeToAllSliders(true);
+						// Keep current slider positions; use them for playback.
+						syncLevelsFromSliders();
+						setAllLevels();
 						playNoise();
 					}
 				});
