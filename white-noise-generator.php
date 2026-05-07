@@ -33,13 +33,13 @@ get_header();
 				</div>
 			</div>
 			<div class="general">
-				<button class="general-btn">
-					OK
+				<button id="animate" class="general-btn" type="button" aria-pressed="false">
+					Animate
 				</button>
 			</div>
 			<div class="general">	
-				<button class="general-btn">
-					OK2
+				<button id="timer" class="general-btn" type="button" aria-pressed="false">
+					Timer
 				</button>
 			</div>
 			<div class="general">	

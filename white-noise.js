@@ -69,6 +69,180 @@
 	/** Slider step for +/- buttons (units of the range input, 0..990). */
 	const SLIDER_STEP = 20;
 
+	/* --- Slider animation + sleep timer (ported from white_noise.html intent) --- */
+	// animEnabled = user intent (button state). Animation only RUNS while audio is playing.
+	let animEnabled = false;
+	let animRunning = false;
+	let animCycleTimer = null;
+	let animRaf = null;
+	let animFrom = [];
+	let animTo = [];
+	let animationProfileLow = new Array(iNUMBERBANDS).fill(0);
+	let animationProfileHigh = new Array(iNUMBERBANDS).fill(0.5);
+	const ANIM_PERIOD_MS = 2500;
+	const ANIM_TWEEN_MS = 1600;
+
+	let sleepTimerMinutes = -1;
+	let sleepTimerTimeout = null;
+	// Minutes. -1 means Off.
+	const SLEEP_TIMER_CYCLE_MIN = [-1, 1, 5, 10, 15, 20, 25, 30, 60, 120, 240, 480];
+
+	function clamp(x, lo, hi) {
+		return Math.min(hi, Math.max(lo, x));
+	}
+
+	function easeInOut(t) {
+		// Smoothstep
+		return t * t * (3 - 2 * t);
+	}
+
+	function clearSleepTimer() {
+		if (sleepTimerTimeout) {
+			clearTimeout(sleepTimerTimeout);
+			sleepTimerTimeout = null;
+		}
+	}
+
+	function formatTimerLabel(mins) {
+		if (!mins || mins < 0) return 'Timer: Off';
+		return 'Timer: ' + mins + ' min';
+	}
+
+	function setSlidersDisabled(disabled) {
+		if (!b.sliderBar || !b.sliderBar.length) return;
+		for (let i = 0; i < b.sliderBar.length; i++) {
+			b.sliderBar[i].disabled = !!disabled;
+		}
+	}
+
+	function armSleepTimerIfPlaying() {
+		clearSleepTimer();
+		if (!isplaying || !engineReady) return;
+		if (!sleepTimerMinutes || sleepTimerMinutes < 0) return;
+		sleepTimerTimeout = setTimeout(() => {
+			// Stop audio + reset UI state (same as pressing pause)
+			let playBtn = b.check ? b.check.querySelector('#play-btn') : null;
+			let pauseBtn = b.check ? b.check.querySelector('#pause-btn') : null;
+			if (playBtn) playBtn.style.display = 'block';
+			if (pauseBtn) pauseBtn.style.display = 'none';
+			replaceButton();
+			stopNoise();
+
+			// Clear timer selection when it finishes
+			sleepTimerMinutes = -1;
+			if (b.timerBtn) {
+				b.timerBtn.setAttribute('aria-pressed', 'false');
+			}
+			if (b.displayInfo) {
+				b.displayInfo.textContent = 'Timer finished — stopped';
+			}
+			sleepTimerTimeout = null;
+		}, sleepTimerMinutes * 60 * 1000);
+		// When animation is enabled, keep the display locked to "Animation: On"
+		if (b.displayInfo && !animEnabled) {
+			b.displayInfo.textContent = formatTimerLabel(sleepTimerMinutes);
+		}
+	}
+
+	function captureAnimationProfilesFromCurrent() {
+		// Mirror white_noise.html logic: low = 0.5x current, high = 1.25x current (clamped)
+		for (let i = 0; i < iNUMBERBANDS; i++) {
+			animationProfileLow[i] = clamp(currentLevel[i] * 0.5, 0, LEVEL_MAX);
+			animationProfileHigh[i] = clamp(currentLevel[i] * 1.25, 0, LEVEL_MAX);
+		}
+	}
+
+	function levelToSliderValue(level, sliderEl) {
+		var mx = Number(sliderEl.max) || 990;
+		var p = clamp(level / LEVEL_MAX, 0, 1);
+		return Math.round(p * mx);
+	}
+
+	function updateSlidersFromLevels(levels, immediateGain) {
+		if (!b.sliderBar || !b.sliderBar.length) return;
+		for (let i = 0; i < b.sliderBar.length; i++) {
+			const el = b.sliderBar[i];
+			const idx = BAND_LABELS.indexOf(el.name);
+			if (idx < 0) continue;
+			el.value = String(levelToSliderValue(levels[idx], el));
+			applyBandGainFromSlider(el, immediateGain);
+		}
+	}
+
+	function stopSliderAnimation() {
+		animRunning = false;
+		if (animCycleTimer) {
+			clearInterval(animCycleTimer);
+			animCycleTimer = null;
+		}
+		if (animRaf) {
+			cancelAnimationFrame(animRaf);
+			animRaf = null;
+		}
+	}
+
+	function startSliderAnimation() {
+		// Only run while audio is playing. We still keep animEnabled as "desired".
+		if (!animEnabled || !isplaying) {
+			return;
+		}
+		if (animRunning) {
+			return;
+		}
+		animRunning = true;
+
+		// Seed profiles from current slider positions
+		syncLevelsFromSliders();
+		captureAnimationProfilesFromCurrent();
+
+		const runCycle = () => {
+			if (!animEnabled) return;
+
+			// Pick new random targets within [low..high]
+			animFrom = currentLevel.slice(0);
+			animTo = currentLevel.slice(0);
+			for (let i = 0; i < iNUMBERBANDS; i++) {
+				const lo = animationProfileLow[i];
+				const hi = animationProfileHigh[i];
+				animTo[i] = lo + Math.random() * (hi - lo);
+			}
+
+			const t0 = performance.now();
+			const step = () => {
+				if (!animEnabled) return;
+				const t = clamp((performance.now() - t0) / ANIM_TWEEN_MS, 0, 1);
+				const e = easeInOut(t);
+				const mix = new Array(iNUMBERBANDS);
+				for (let i = 0; i < iNUMBERBANDS; i++) {
+					mix[i] = animFrom[i] + (animTo[i] - animFrom[i]) * e;
+					currentLevel[i] = mix[i];
+				}
+				updateSlidersFromLevels(currentLevel, true);
+				if (t < 1) {
+					animRaf = requestAnimationFrame(step);
+				} else {
+					animRaf = null;
+				}
+			};
+			if (animRaf) cancelAnimationFrame(animRaf);
+			animRaf = requestAnimationFrame(step);
+		};
+
+		runCycle();
+		animCycleTimer = setInterval(runCycle, ANIM_PERIOD_MS);
+	}
+
+	function syncAnimationToPlaybackState() {
+		// Sliders must not be manually controllable while animation is enabled (even if paused).
+		setSlidersDisabled(animEnabled);
+		if (animEnabled && isplaying) {
+			startSliderAnimation();
+		} else {
+			// Pause animation loop but keep animEnabled (button state) intact.
+			stopSliderAnimation();
+		}
+	}
+
 	let currentLevel = [];
 
 	for (let i = 0; i < iNUMBERBANDS; i++) {
@@ -470,7 +644,8 @@
 		currentLevel[idx] = level;
 		var db = Math.round(levelToDb(level));
 		var info = sliderEl.name + ': ' + db.toLocaleString() + ' dBFS';
-		if (b.displayInfo) {
+		// When animation is enabled, keep the display locked to "Animation: On"
+		if (b.displayInfo && !animEnabled) {
 			b.displayInfo.innerHTML = info;
 		}
 		if (!engineReady) {
@@ -532,11 +707,18 @@
 			// If resume fails, revert UI state.
 			isplaying = false;
 		});
+
+		// Resume animation (if enabled) when audio starts.
+		syncAnimationToPlaybackState();
+		armSleepTimerIfPlaying();
 	}
 
 	function stopNoise() {
 		// Flip state immediately so UI animations stay in sync with user intent.
 		isplaying = false;
+		// Pause animation when audio is paused/stopped, but keep enabled state.
+		syncAnimationToPlaybackState();
+		clearSleepTimer();
 
 		if (!engineReady || !masterGain) {
 			return;
@@ -566,6 +748,8 @@
 			b.resetBtn = window.document.getElementById('reset');
 			b.increaseBtn = window.document.getElementById('increase');
 			b.decreaseBtn = window.document.getElementById('decrease');
+			b.animateBtn = window.document.getElementById('animate');
+			b.timerBtn = window.document.getElementById('timer');
 
 			for (let i of b.sliderBar) {
 				// Ensure numeric value; default to midpoint.
@@ -593,9 +777,38 @@
 						setSliderToMidpoint(i);
 						applyBandGainFromSlider(i);
 					}
-					if (b.displayInfo) {
+					if (b.displayInfo && !animEnabled) {
 						b.displayInfo.textContent = 'All Bands';
 					}
+				});
+			}
+
+			// Animate: toggle slider animation
+			if (b.animateBtn) {
+				b.animateBtn.addEventListener('click', () => {
+					if (animEnabled) {
+						animEnabled = false;
+						syncAnimationToPlaybackState();
+						b.animateBtn.setAttribute('aria-pressed', 'false');
+						if (b.displayInfo) b.displayInfo.textContent = 'Animation: Off';
+					} else {
+						animEnabled = true;
+						syncAnimationToPlaybackState();
+						b.animateBtn.setAttribute('aria-pressed', 'true');
+						if (b.displayInfo) b.displayInfo.textContent = 'Animation: On';
+					}
+				});
+			}
+
+			// Timer: cycle sleep timer durations
+			if (b.timerBtn) {
+				b.timerBtn.addEventListener('click', () => {
+					const idx = SLEEP_TIMER_CYCLE_MIN.indexOf(sleepTimerMinutes);
+					sleepTimerMinutes =
+						SLEEP_TIMER_CYCLE_MIN[(idx < 0 ? 0 : idx + 1) % SLEEP_TIMER_CYCLE_MIN.length];
+					b.timerBtn.setAttribute('aria-pressed', sleepTimerMinutes > 0 ? 'true' : 'false');
+					if (b.displayInfo && !animEnabled) b.displayInfo.textContent = formatTimerLabel(sleepTimerMinutes);
+					armSleepTimerIfPlaying();
 				});
 			}
 
@@ -607,7 +820,7 @@
 						i.value = String(Math.max(mn, Number(i.value) - SLIDER_STEP));
 						applyBandGainFromSlider(i);
 					}
-					if (b.displayInfo) {
+					if (b.displayInfo && !animEnabled) {
 						b.displayInfo.textContent = 'All Bands';
 					}
 				});
@@ -621,7 +834,7 @@
 						i.value = String(Math.min(mx, Number(i.value) + SLIDER_STEP));
 						applyBandGainFromSlider(i);
 					}
-					if (b.displayInfo) {
+					if (b.displayInfo && !animEnabled) {
 						b.displayInfo.textContent = 'All Bands';
 					}
 				});
