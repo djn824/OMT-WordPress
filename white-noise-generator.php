@@ -564,7 +564,7 @@ get_header();
 			fileExt = '.ogg';
 		}
 
-		const base = 'https://mynoise.world/Data/WHITE/';
+		const base = '<?php echo get_stylesheet_directory_uri();?>/assets/audio/white-noise/';
 		const pairs = [
 			['0b', '0a'],
 			['1a', '1b'],
