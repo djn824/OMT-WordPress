@@ -55,7 +55,7 @@ function wpb_load_scripts() {
 	
 	if ( is_page_template( 'page-templates/white-noise-generator.php' ) ) {
 		wp_enqueue_style( 'noise-generator-main-style', get_stylesheet_directory_uri() . '/assets/css/noise-generator-main.css' );
-		wp_enqueue_script( 'white-noise-js', get_stylesheet_directory_uri() . '/assets/js/noise/white-noise.js', '', '', true );
+		// wp_enqueue_script( 'white-noise-js', get_stylesheet_directory_uri() . '/assets/js/noise/white-noise.js', '', '', true );
 	}
 	
 	if ( is_page_template( 'page-templates/vibration-test.php' ) ) {
