@@ -110,6 +110,14 @@ get_header();
 	let context = null;
 	let masterGain = null;
 	let dynCompressor = null;
+	let stemsMixGain = null;
+	let stemsReady = false;
+	let synthReady = false;
+	let synthStarted = false;
+	let synthMasterGain = null;
+	let synthBandGain = [];
+	let synthFilters = [];
+	let synthSource = null;
 	let bufferList = [];
 	let gainNode = [];
 	let sourceA = [];
@@ -642,6 +650,11 @@ get_header();
 		if (!el) {
 			return;
 		}
+		// Don’t surface “loading” while the instant synth engine is usable/playing.
+		// Only show progress if the UI is already in a loading state and audio isn’t playing yet.
+		if (isplaying) return;
+		if (engineReady && synthReady) return;
+		if (typeof el.textContent === 'string' && el.textContent.indexOf('Loading stems') === -1) return;
 		var total = iNUMBERBANDS * 2;
 		var pct = Math.min(100, Math.round((launchCounter / total) * 100));
 		el.textContent = 'Loading stems… ' + pct + '%';
@@ -809,7 +822,31 @@ get_header();
 		}
 		var now = context.currentTime;
 		for (let i = 0; i < iNUMBERBANDS; ++i) {
-			gainNode[i].gain.setTargetAtTime(Math.pow(currentLevel[i], 3), now, fAUDIOFADETIME);
+			const g = Math.pow(currentLevel[i], 3);
+			if (gainNode[i] && gainNode[i].gain) {
+				gainNode[i].gain.setTargetAtTime(g, now, fAUDIOFADETIME);
+			}
+			if (synthBandGain[i] && synthBandGain[i].gain) {
+				synthBandGain[i].gain.setTargetAtTime(g, now, fAUDIOFADETIME);
+			}
+		}
+	}
+
+	function setAllLevelsImmediate() {
+		if (!engineReady) {
+			return;
+		}
+		var now = context.currentTime;
+		for (let i = 0; i < iNUMBERBANDS; ++i) {
+			const g = Math.pow(currentLevel[i], 3);
+			if (gainNode[i] && gainNode[i].gain) {
+				gainNode[i].gain.cancelScheduledValues(now);
+				gainNode[i].gain.setValueAtTime(g, now);
+			}
+			if (synthBandGain[i] && synthBandGain[i].gain) {
+				synthBandGain[i].gain.cancelScheduledValues(now);
+				synthBandGain[i].gain.setValueAtTime(g, now);
+			}
 		}
 	}
 
@@ -851,42 +888,114 @@ get_header();
 	}
 
 	function finishedLoading() {
-		masterGain = context.createGain();
-		masterGain.gain.value = 0;
+		// Stems are decoded; build stem nodes into the existing output chain.
+		if (!stemsMixGain) {
+			stemsMixGain = context.createGain();
+			stemsMixGain.gain.value = 0;
+			stemsMixGain.connect(masterGain);
+		}
 
 		for (let i = 0; i < iNUMBERBANDS; i++) {
 			sourceA[i] = makeSource(bufferList[i], playbackFactor[i]);
 			gainNode[i] = context.createGain();
 			gainNode[i].gain.value = 0;
-			sourceA[i].connect(gainNode[i]).connect(masterGain);
+			sourceA[i].connect(gainNode[i]).connect(stemsMixGain);
 		}
 
 		for (let i = 0; i < iNUMBERBANDS; i++) {
 			sourceB[i] = makeSource(bufferList[i + iNUMBERBANDS], playbackFactor[i]);
-			sourceB[i].connect(gainNode[i]).connect(masterGain);
+			sourceB[i].connect(gainNode[i]).connect(stemsMixGain);
 		}
-
-		dynCompressor = new DynamicsCompressorNode(context, {
-			threshold: -12,
-			knee: 6,
-			ratio: 10,
-			attack: 0.05,
-			release: 2
-		});
-
-		masterGain.connect(dynCompressor);
-		dynCompressor.connect(context.destination);
 
 		computeIntervals();
 		syncLevelsFromSliders();
 		setAllLevels();
 
-		engineReady = true;
-		setPlayButtonEnabled(true);
+		stemsReady = true;
 		if (b.displayInfo) {
-			b.displayInfo.textContent = 'Audio ready — press Play';
+			b.displayInfo.textContent = 'Audio loaded';
 		}
 		console.log('White noise stems loaded (mynoise.world).');
+	}
+
+	function buildSynthEngine() {
+		if (synthReady || !context) return;
+
+		// Ensure output chain exists.
+		if (!masterGain) {
+			masterGain = context.createGain();
+			masterGain.gain.value = 0;
+		}
+		if (!dynCompressor) {
+			dynCompressor = new DynamicsCompressorNode(context, {
+				threshold: -12,
+				knee: 6,
+				ratio: 10,
+				attack: 0.05,
+				release: 2
+			});
+			masterGain.connect(dynCompressor);
+			dynCompressor.connect(context.destination);
+		}
+		if (!stemsMixGain) {
+			stemsMixGain = context.createGain();
+			stemsMixGain.gain.value = 0;
+			stemsMixGain.connect(masterGain);
+		}
+
+		// Synth white-noise generator (fast start, no network).
+		synthMasterGain = context.createGain();
+		// Keep synth muted until Play sets gains (prevents “max volume” burst).
+		synthMasterGain.gain.value = 0;
+		synthMasterGain.connect(masterGain);
+
+		const freqs = [40, 80, 160, 320, 640, 1250, 2500, 5000, 10000, 14000];
+		const qVals = [0.8, 0.9, 1.0, 1.0, 1.1, 1.2, 1.3, 1.4, 1.4, 1.2];
+
+		synthFilters = new Array(iNUMBERBANDS);
+		synthBandGain = new Array(iNUMBERBANDS);
+		for (let i = 0; i < iNUMBERBANDS; i++) {
+			const f = context.createBiquadFilter();
+			f.type = 'bandpass';
+			f.frequency.value = freqs[i];
+			f.Q.value = qVals[i];
+			synthFilters[i] = f;
+
+			const g = context.createGain();
+			g.gain.value = 0;
+			synthBandGain[i] = g;
+
+			f.connect(g).connect(synthMasterGain);
+		}
+
+		// Apply current slider levels to synth gains.
+		syncLevelsFromSliders();
+		setAllLevels();
+
+		synthReady = true;
+	}
+
+	function startSynthIfNeeded() {
+		if (!synthReady || synthStarted) return;
+		// Build a looping white-noise buffer (2s) and feed it into the filter bank.
+		const durS = 2;
+		const len = Math.max(2, Math.floor(context.sampleRate * durS));
+		const buf = context.createBuffer(1, len, context.sampleRate);
+		const data = buf.getChannelData(0);
+		for (let i = 0; i < len; i++) {
+			data[i] = Math.random() * 2 - 1;
+		}
+
+		const src = context.createBufferSource();
+		src.buffer = buf;
+		src.loop = true;
+
+		for (let i = 0; i < iNUMBERBANDS; i++) {
+			src.connect(synthFilters[i]);
+		}
+		src.start();
+		synthSource = src;
+		synthStarted = true;
 	}
 
 	function setPlayButtonEnabled(enabled) {
@@ -904,16 +1013,24 @@ get_header();
 		if (stemLoadStarted) {
 			return !!context;
 		}
-		stemLoadStarted = true;
 
 		const AC = window.AudioContext || window.webkitAudioContext;
 		if (!AC) {
 			console.error('Web Audio API not available.');
-			stemLoadStarted = false;
 			return false;
 		}
 		context = new AC();
 
+		// Instant engine: synth noise starts immediately; stems load in background.
+		buildSynthEngine();
+		engineReady = true;
+		setPlayButtonEnabled(true);
+		if (b.displayInfo) {
+			b.displayInfo.textContent = 'Ready — press Play';
+		}
+
+		// Background load of mynoise stems (may take time depending on network).
+		stemLoadStarted = true;
 		var a = document.createElement('audio');
 		if (a.canPlayType && a.canPlayType('audio/ogg; codecs="vorbis"').replace(/no/, '')) {
 			bSUPPORTOGG = 1;
@@ -941,11 +1058,21 @@ get_header();
 		}
 		var g = Math.pow(level, 3);
 		var t = context.currentTime;
-		if (immediateGain) {
-			gainNode[idx].gain.cancelScheduledValues(t);
-			gainNode[idx].gain.setValueAtTime(g, t);
-		} else {
-			gainNode[idx].gain.setTargetAtTime(g, t, fAUDIOFADETIME);
+		if (gainNode[idx] && gainNode[idx].gain) {
+			if (immediateGain) {
+				gainNode[idx].gain.cancelScheduledValues(t);
+				gainNode[idx].gain.setValueAtTime(g, t);
+			} else {
+				gainNode[idx].gain.setTargetAtTime(g, t, fAUDIOFADETIME);
+			}
+		}
+		if (synthBandGain[idx] && synthBandGain[idx].gain) {
+			if (immediateGain) {
+				synthBandGain[idx].gain.cancelScheduledValues(t);
+				synthBandGain[idx].gain.setValueAtTime(g, t);
+			} else {
+				synthBandGain[idx].gain.setTargetAtTime(g, t, fAUDIOFADETIME);
+			}
 		}
 	}
 
@@ -973,19 +1100,47 @@ get_header();
 		isplaying = true;
 
 		function beginPlayback() {
+			// Snap gains to current slider values BEFORE any audio becomes audible.
+			syncLevelsFromSliders();
+			setAllLevelsImmediate();
+			startSynthIfNeeded();
 			var now = context.currentTime;
 			masterGain.gain.cancelScheduledValues(now);
 			masterGain.gain.setValueAtTime(masterGain.gain.value, now);
 			masterGain.gain.linearRampToValueAtTime(fMASTERGAIN, now + PLAY_FADE_IN_S);
 
-			if (!stemsStarted) {
-				startStemPlaybackFromBuffers();
-				startScheduler();
-				schedulerTick();
-				stemsStarted = true;
+			// If stems are ready, crossfade synth -> stems (perceived “no loading”).
+			if (stemsReady && stemsMixGain) {
+				stemsMixGain.gain.cancelScheduledValues(now);
+				stemsMixGain.gain.setValueAtTime(stemsMixGain.gain.value, now);
+				stemsMixGain.gain.linearRampToValueAtTime(1, now + 0.5);
+				if (synthMasterGain) {
+					synthMasterGain.gain.cancelScheduledValues(now);
+					synthMasterGain.gain.setValueAtTime(synthMasterGain.gain.value, now);
+					synthMasterGain.gain.linearRampToValueAtTime(0, now + 0.5);
+				}
+
+				if (!stemsStarted) {
+					startStemPlaybackFromBuffers();
+					startScheduler();
+					schedulerTick();
+					stemsStarted = true;
+				} else {
+					startScheduler();
+					schedulerTick();
+				}
 			} else {
-				startScheduler();
-				schedulerTick();
+				// Stems not ready yet: keep synth audible, keep loading silently.
+				if (synthMasterGain) {
+					synthMasterGain.gain.cancelScheduledValues(now);
+					synthMasterGain.gain.setValueAtTime(synthMasterGain.gain.value, now);
+					synthMasterGain.gain.linearRampToValueAtTime(1, now + PLAY_FADE_IN_S);
+				}
+				if (stemsMixGain) {
+					stemsMixGain.gain.cancelScheduledValues(now);
+					stemsMixGain.gain.setValueAtTime(stemsMixGain.gain.value, now);
+					stemsMixGain.gain.linearRampToValueAtTime(0, now + 0.05);
+				}
 			}
 
 		}
@@ -1047,9 +1202,10 @@ get_header();
 				}
 			}
 
-			setPlayButtonEnabled(false);
+			// Instant synth is available immediately; stems will load in background.
+			setPlayButtonEnabled(true);
 			if (b.displayInfo) {
-				b.displayInfo.textContent = 'Loading stems… 0%';
+				b.displayInfo.textContent = 'Ready — press Play';
 			}
 
 			initAudioContext();
