@@ -725,30 +725,96 @@ get_header();
 		'High Treble'
 	];
 
-	/** EQ curves for preset chips (linear 0..LEVEL_MAX per band; cubic applied in engine). */
-	function makeBandSpikeLevels(indices) {
-		const floor = 0.11;
-		const peak = 0.52;
-		const shoulder = 0.28;
-		const a = new Array(iNUMBERBANDS).fill(floor);
-		for (let k = 0; k < indices.length; k++) {
-			const i = indices[k];
-			if (i < 0 || i >= iNUMBERBANDS) continue;
-			a[i] = Math.max(a[i], peak);
-			if (i > 0) a[i - 1] = Math.max(a[i - 1], shoulder);
-			if (i < iNUMBERBANDS - 1) a[i + 1] = Math.max(a[i + 1], shoulder);
+	/**
+	 * white_noise.html setPreset(): when bCALIBRATE==0, levels are passed through normalizeLevels()
+	 * before currentLevel / sliders are updated (fTARGETSLIDERLEVEL = 0.5).
+	 */
+	const fTARGETSLIDERLEVEL = 0.5;
+
+	function normalizeMyNoiseLevels(vecIn) {
+		const boostTable = [0, 1.5, 1.36, 1.23, 1.12, 1.13, 1.02, 1, 0.98, 0.95, 0.9];
+		const vector = vecIn.slice();
+		let activeCount = 0;
+		let maxLevel = 0;
+		for (let i = 0; i < iNUMBERBANDS; i++) {
+			if (vector[i] > maxLevel) maxLevel = vector[i];
 		}
-		return a;
+		const threshold = maxLevel * 0.8;
+		for (let i = 0; i < iNUMBERBANDS; i++) {
+			if (vector[i] > threshold) activeCount++;
+		}
+		if (activeCount > 0 && maxLevel > 0) {
+			const mult = (fTARGETSLIDERLEVEL / maxLevel) * boostTable[activeCount];
+			for (let i = 0; i < iNUMBERBANDS; i++) {
+				vector[i] = Math.min(vector[i] * mult, 0.9);
+			}
+		}
+		return vector;
 	}
 
-	const NOISE_PRESET_LEVELS = {
-		// myNoise keyboard shortcuts (white_noise.html)
-		white: [0.18, 0.21, 0.24, 0.27, 0.3, 0.34, 0.38, 0.42, 0.46, 0.5],
-		pink: new Array(iNUMBERBANDS).fill(0.3),
-		brown: [0.5, 0.46, 0.42, 0.38, 0.34, 0.3, 0.27, 0.24, 0.21, 0.18],
-		grey: [0.22, 0.24, 0.26, 0.28, 0.29, 0.3, 0.3, 0.29, 0.28, 0.27],
-		blue: [0.15, 0.16, 0.18, 0.22, 0.28, 0.35, 0.42, 0.52, 0.62, 0.72],
-		violet: [0.12, 0.12, 0.14, 0.2, 0.3, 0.45, 0.55, 0.7, 0.82, 0.9],
+	/** Band centre frequencies (Hz) — white_noise.html emphasisEQ / eqNode */
+	const MY_EQ_CENTER_FREQS = [20, 60, 125, 250, 500, 1000, 2000, 4000, 8000, 17000];
+
+	function bandIndexForHz(hz) {
+		let best = 0;
+		let bestDist = Infinity;
+		for (let i = 0; i < MY_EQ_CENTER_FREQS.length; i++) {
+			const d = Math.abs(Math.log(Math.max(1e-9, MY_EQ_CENTER_FREQS[i]) / Math.max(1e-9, hz)));
+			if (d < bestDist) {
+				bestDist = d;
+				best = i;
+			}
+		}
+		return best;
+	}
+
+	/** Raw shape for “hear this region” — then normalizeMyNoiseLevels (same pipeline as setPreset). */
+	function makeRawFreqHighlightHz(hz) {
+		const raw = new Array(iNUMBERBANDS).fill(0.03);
+		const j = bandIndexForHz(hz);
+		raw[j] = 0.5;
+		if (j > 0) raw[j - 1] = Math.max(raw[j - 1], 0.36);
+		if (j < iNUMBERBANDS - 1) raw[j + 1] = Math.max(raw[j + 1], 0.36);
+		return raw;
+	}
+
+	/** Mousetrap w / n / b — white_noise.html lines 3049–3051 */
+	const WHITE_RAW = [0.18, 0.21, 0.24, 0.27, 0.3, 0.34, 0.38, 0.42, 0.46, 0.5];
+	const PINK_RAW = new Array(iNUMBERBANDS).fill(0.3);
+	const BROWN_RAW = [0.5, 0.46, 0.42, 0.38, 0.34, 0.3, 0.27, 0.24, 0.21, 0.18];
+
+	function greyRawWhitePinkAvg() {
+		const out = [];
+		for (let i = 0; i < iNUMBERBANDS; i++) {
+			out.push((WHITE_RAW[i] + PINK_RAW[i]) * 0.5);
+		}
+		return out;
+	}
+
+	/** Blue / violet: steeper highs than white (not in saved HTML; raw shapes only, still via normalizeLevels). */
+	function blueRawSteep() {
+		const out = [];
+		for (let i = 0; i < iNUMBERBANDS; i++) {
+			out.push(0.12 + 0.38 * Math.pow(i / 9, 1.35));
+		}
+		return out;
+	}
+
+	function violetRawSteep() {
+		const out = [];
+		for (let i = 0; i < iNUMBERBANDS; i++) {
+			out.push(0.08 + 0.42 * Math.pow(i / 9, 2.05));
+		}
+		return out;
+	}
+
+	const NOISE_PRESET_RAW = {
+		white: WHITE_RAW,
+		pink: PINK_RAW,
+		brown: BROWN_RAW,
+		grey: greyRawWhitePinkAvg(),
+		blue: blueRawSteep(),
+		violet: violetRawSteep(),
 		'focus-flow': [0.24, 0.26, 0.28, 0.3, 0.33, 0.36, 0.34, 0.3, 0.26, 0.22],
 		coding: [0.26, 0.28, 0.3, 0.32, 0.34, 0.33, 0.28, 0.22, 0.18, 0.15],
 		reading: [0.36, 0.34, 0.32, 0.3, 0.28, 0.24, 0.2, 0.18, 0.15, 0.12],
@@ -759,14 +825,14 @@ get_header();
 		'night-drift': [0.4, 0.36, 0.32, 0.28, 0.22, 0.18, 0.14, 0.11, 0.09, 0.07],
 		'deep-sleep': [0.42, 0.35, 0.26, 0.18, 0.12, 0.08, 0.06, 0.05, 0.04, 0.04],
 		'calm-hush': [0.1, 0.1, 0.11, 0.12, 0.12, 0.11, 0.1, 0.09, 0.08, 0.07],
-		f63: makeBandSpikeLevels([0]),
-		f125: makeBandSpikeLevels([1]),
-		f250: makeBandSpikeLevels([2]),
-		f500: makeBandSpikeLevels([3]),
-		f1k: makeBandSpikeLevels([4, 5]),
-		f2k: makeBandSpikeLevels([6]),
-		f4k: makeBandSpikeLevels([7]),
-		f8k: makeBandSpikeLevels([8, 9])
+		f63: makeRawFreqHighlightHz(63),
+		f125: makeRawFreqHighlightHz(125),
+		f250: makeRawFreqHighlightHz(250),
+		f500: makeRawFreqHighlightHz(500),
+		f1k: makeRawFreqHighlightHz(1000),
+		f2k: makeRawFreqHighlightHz(2000),
+		f4k: makeRawFreqHighlightHz(4000),
+		f8k: makeRawFreqHighlightHz(8000)
 	};
 
 	function clampPresetLevel(lv) {
@@ -783,9 +849,9 @@ get_header();
 	}
 
 	function applyNoisePreset(presetKey, displayLabel, activeButton) {
-		const raw = NOISE_PRESET_LEVELS[presetKey];
-		if (!raw || raw.length !== iNUMBERBANDS) return;
-		const levels = raw.map(clampPresetLevel);
+		const rawTemplate = NOISE_PRESET_RAW[presetKey];
+		if (!rawTemplate || rawTemplate.length !== iNUMBERBANDS) return;
+		const levels = normalizeMyNoiseLevels(rawTemplate).map(clampPresetLevel);
 		for (let i = 0; i < iNUMBERBANDS; i++) {
 			currentLevel[i] = levels[i];
 		}
