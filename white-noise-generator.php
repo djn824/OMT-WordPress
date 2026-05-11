@@ -2,8 +2,165 @@
 /* Template Name:White Noise Generator*/
 get_header();
 ?>
+<style>
+.white-noise-layout {
+	display: flex;
+	flex-direction: row;
+	align-items: stretch;
+	gap: 1.25rem;
+	max-width: 1200px;
+	margin-left: auto;
+	margin-right: auto;
+}
+.white-noise-mainpanel {
+	flex: 1;
+	min-width: 0;
+}
+.white-noise-presets {
+	flex: 0 0 220px;
+	max-width: 260px;
+	box-sizing: border-box;
+	padding: 1rem 1rem 1.1rem;
+	border-radius: 14px;
+	background: #fff;
+	border: 1px solid rgba(0, 0, 0, 0.08);
+	box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+	color: #333;
+	font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+	font-size: 0.8125rem;
+	line-height: 1.35;
+	overflow-y: auto;
+	-webkit-overflow-scrolling: touch;
+}
+.white-noise-presets .preset-section + .preset-section {
+	margin-top: 1rem;
+	padding-top: 0.85rem;
+	border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+.white-noise-presets .preset-section-title {
+	margin: 0 0 0.45rem;
+	font-size: 0.68rem;
+	font-weight: 600;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: rgba(0, 0, 0, 0.55);
+}
+.white-noise-presets .preset-chip-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.2rem 0.55rem;
+	align-items: center;
+}
+/* Preset spans: brand orange */
+.white-noise-presets span.actionlink {
+	margin: 0;
+	padding: 0 1px;
+	border-radius: 4px;
+	background: transparent;
+	color: #e25c1b;
+	font: inherit;
+	font-size: 0.8125rem;
+	font-weight: 400;
+	text-decoration: none;
+	cursor: pointer;
+	line-height: 1.55;
+	display: inline-block;
+	transition: background-color 0.12s ease, color 0.12s ease;
+	touch-action: manipulation;
+	-webkit-tap-highlight-color: transparent;
+}
+.white-noise-presets span.actionlink:hover {
+	background-color: #e25c1b;
+	color: #fff;
+}
+.white-noise-presets span.actionlink:focus-visible {
+	outline: 2px solid #e25c1b;
+	outline-offset: 2px;
+}
+.white-noise-presets span.actionlink.is-active,
+.white-noise-presets span.actionlink[aria-pressed="true"] {
+	background-color: #e25c1b;
+	color: #fff;
+}
+@media (max-width: 900px) {
+	.white-noise-layout {
+		flex-direction: column;
+		gap: 1rem;
+		max-width: 100%;
+	}
+	.white-noise-mainpanel {
+		order: 1;
+	}
+	.white-noise-presets {
+		order: 2;
+		flex: 1 1 auto;
+		max-width: none;
+		width: 100%;
+		max-height: min(48vh, 420px);
+		padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+	}
+	.white-noise-presets span.actionlink {
+		min-height: 44px;
+		padding: 0.35rem 6px;
+		display: inline-flex;
+		align-items: center;
+	}
+}
+</style>
 <div class="noise-container">
-	<div class="width-100 my-20 white-noise">
+	<div class="width-100 my-20 white-noise-layout">
+		<aside class="white-noise-presets" id="white-noise-presets" aria-label="Sound presets">
+			<section class="preset-section">
+				<h3 class="preset-section-title">Noise Colors</h3>
+				<div class="preset-chip-row" role="group" aria-label="Noise colors">
+					<span class="actionlink" role="button" tabindex="0" data-preset-group="noise-color" data-preset="white">White</span>
+					<span class="actionlink" role="button" tabindex="0" data-preset-group="noise-color" data-preset="pink">Pink</span>
+					<span class="actionlink" role="button" tabindex="0" data-preset-group="noise-color" data-preset="brown">Brown</span>
+					<span class="actionlink" role="button" tabindex="0" data-preset-group="noise-color" data-preset="grey">Grey</span>
+					<span class="actionlink" role="button" tabindex="0" data-preset-group="noise-color" data-preset="blue">Blue</span>
+					<span class="actionlink" role="button" tabindex="0" data-preset-group="noise-color" data-preset="violet">Violet</span>
+				</div>
+			</section>
+			<section class="preset-section">
+				<h3 class="preset-section-title">Focus</h3>
+				<div class="preset-chip-row" role="group" aria-label="Focus">
+					<span class="actionlink" role="button" tabindex="0" data-preset-group="focus" data-preset="focus-flow">Focus Flow</span>
+					<span class="actionlink" role="button" tabindex="0" data-preset-group="focus" data-preset="coding">Coding</span>
+					<span class="actionlink" role="button" tabindex="0" data-preset-group="focus" data-preset="reading">Reading</span>
+					<span class="actionlink" role="button" tabindex="0" data-preset-group="focus" data-preset="study-hall">Study Hall</span>
+				</div>
+			</section>
+			<section class="preset-section">
+				<h3 class="preset-section-title">Privacy</h3>
+				<div class="preset-chip-row" role="group" aria-label="Privacy">
+					<span class="actionlink" role="button" tabindex="0" data-preset-group="privacy" data-preset="voice-mask">Voice Mask</span>
+					<span class="actionlink" role="button" tabindex="0" data-preset-group="privacy" data-preset="cafe-blur">Cafe Blur</span>
+					<span class="actionlink" role="button" tabindex="0" data-preset-group="privacy" data-preset="quiet-bubble">Quiet Bubble</span>
+				</div>
+			</section>
+			<section class="preset-section">
+				<h3 class="preset-section-title">Sleep</h3>
+				<div class="preset-chip-row" role="group" aria-label="Sleep">
+					<span class="actionlink" role="button" tabindex="0" data-preset-group="sleep" data-preset="night-drift">Night Drift</span>
+					<span class="actionlink" role="button" tabindex="0" data-preset-group="sleep" data-preset="deep-sleep">Deep Sleep</span>
+					<span class="actionlink" role="button" tabindex="0" data-preset-group="sleep" data-preset="calm-hush">Calm Hush</span>
+				</div>
+			</section>
+			<section class="preset-section">
+				<h3 class="preset-section-title">Frequency</h3>
+				<div class="preset-chip-row" role="group" aria-label="Frequency bands">
+					<span class="actionlink" role="button" tabindex="0" data-preset-group="frequency" data-preset="f63">63Hz</span>
+					<span class="actionlink" role="button" tabindex="0" data-preset-group="frequency" data-preset="f125">125Hz</span>
+					<span class="actionlink" role="button" tabindex="0" data-preset-group="frequency" data-preset="f250">250Hz</span>
+					<span class="actionlink" role="button" tabindex="0" data-preset-group="frequency" data-preset="f500">500Hz</span>
+					<span class="actionlink" role="button" tabindex="0" data-preset-group="frequency" data-preset="f1k">1kHz</span>
+					<span class="actionlink" role="button" tabindex="0" data-preset-group="frequency" data-preset="f2k">2kHz</span>
+					<span class="actionlink" role="button" tabindex="0" data-preset-group="frequency" data-preset="f4k">4kHz</span>
+					<span class="actionlink" role="button" tabindex="0" data-preset-group="frequency" data-preset="f8k">8kHz</span>
+				</div>
+			</section>
+		</aside>
+		<div class="white-noise white-noise-mainpanel">
 		<div class="display-info">
 			<span></span>
 		</div>
@@ -57,6 +214,7 @@ get_header();
 					<i class="fa fa-reply fa-2x"></i>
 				</button>
 			</div>
+		</div>
 		</div>
 	</div>
 </div>
@@ -566,6 +724,82 @@ get_header();
 		'Treble',
 		'High Treble'
 	];
+
+	/** EQ curves for preset chips (linear 0..LEVEL_MAX per band; cubic applied in engine). */
+	function makeBandSpikeLevels(indices) {
+		const floor = 0.11;
+		const peak = 0.52;
+		const shoulder = 0.28;
+		const a = new Array(iNUMBERBANDS).fill(floor);
+		for (let k = 0; k < indices.length; k++) {
+			const i = indices[k];
+			if (i < 0 || i >= iNUMBERBANDS) continue;
+			a[i] = Math.max(a[i], peak);
+			if (i > 0) a[i - 1] = Math.max(a[i - 1], shoulder);
+			if (i < iNUMBERBANDS - 1) a[i + 1] = Math.max(a[i + 1], shoulder);
+		}
+		return a;
+	}
+
+	const NOISE_PRESET_LEVELS = {
+		// myNoise keyboard shortcuts (white_noise.html)
+		white: [0.18, 0.21, 0.24, 0.27, 0.3, 0.34, 0.38, 0.42, 0.46, 0.5],
+		pink: new Array(iNUMBERBANDS).fill(0.3),
+		brown: [0.5, 0.46, 0.42, 0.38, 0.34, 0.3, 0.27, 0.24, 0.21, 0.18],
+		grey: [0.22, 0.24, 0.26, 0.28, 0.29, 0.3, 0.3, 0.29, 0.28, 0.27],
+		blue: [0.15, 0.16, 0.18, 0.22, 0.28, 0.35, 0.42, 0.52, 0.62, 0.72],
+		violet: [0.12, 0.12, 0.14, 0.2, 0.3, 0.45, 0.55, 0.7, 0.82, 0.9],
+		'focus-flow': [0.24, 0.26, 0.28, 0.3, 0.33, 0.36, 0.34, 0.3, 0.26, 0.22],
+		coding: [0.26, 0.28, 0.3, 0.32, 0.34, 0.33, 0.28, 0.22, 0.18, 0.15],
+		reading: [0.36, 0.34, 0.32, 0.3, 0.28, 0.24, 0.2, 0.18, 0.15, 0.12],
+		'study-hall': [0.31, 0.31, 0.32, 0.32, 0.33, 0.33, 0.32, 0.31, 0.3, 0.28],
+		'voice-mask': [0.34, 0.32, 0.26, 0.2, 0.16, 0.18, 0.24, 0.32, 0.38, 0.4],
+		'cafe-blur': [0.28, 0.3, 0.32, 0.33, 0.3, 0.28, 0.29, 0.31, 0.29, 0.26],
+		'quiet-bubble': [0.14, 0.14, 0.15, 0.16, 0.17, 0.16, 0.15, 0.14, 0.13, 0.12],
+		'night-drift': [0.4, 0.36, 0.32, 0.28, 0.22, 0.18, 0.14, 0.11, 0.09, 0.07],
+		'deep-sleep': [0.42, 0.35, 0.26, 0.18, 0.12, 0.08, 0.06, 0.05, 0.04, 0.04],
+		'calm-hush': [0.1, 0.1, 0.11, 0.12, 0.12, 0.11, 0.1, 0.09, 0.08, 0.07],
+		f63: makeBandSpikeLevels([0]),
+		f125: makeBandSpikeLevels([1]),
+		f250: makeBandSpikeLevels([2]),
+		f500: makeBandSpikeLevels([3]),
+		f1k: makeBandSpikeLevels([4, 5]),
+		f2k: makeBandSpikeLevels([6]),
+		f4k: makeBandSpikeLevels([7]),
+		f8k: makeBandSpikeLevels([8, 9])
+	};
+
+	function clampPresetLevel(lv) {
+		return clamp(Number(lv) || 0, 0, LEVEL_MAX);
+	}
+
+	function clearPresetChipActive() {
+		const root = b.presetPanel;
+		if (!root) return;
+		root.querySelectorAll('.actionlink[data-preset].is-active').forEach((el) => {
+			el.classList.remove('is-active');
+			el.setAttribute('aria-pressed', 'false');
+		});
+	}
+
+	function applyNoisePreset(presetKey, displayLabel, activeButton) {
+		const raw = NOISE_PRESET_LEVELS[presetKey];
+		if (!raw || raw.length !== iNUMBERBANDS) return;
+		const levels = raw.map(clampPresetLevel);
+		for (let i = 0; i < iNUMBERBANDS; i++) {
+			currentLevel[i] = levels[i];
+		}
+		updateSlidersFromLevels(levels, !!isplaying);
+		refreshAnimationAfterControlChange();
+		clearPresetChipActive();
+		if (activeButton) {
+			activeButton.classList.add('is-active');
+			activeButton.setAttribute('aria-pressed', 'true');
+		}
+		if (b.displayInfo && !animEnabled) {
+			b.displayInfo.textContent = displayLabel;
+		}
+	}
 
 	function assignSources() {
 		if (bSUPPORTOGG) {
@@ -1184,7 +1418,8 @@ get_header();
 	b.main = () => {
 		window.addEventListener('DOMContentLoaded', function () {
 			b.check = window.document.getElementById('main-btn');
-			b.btnGroup = window.document.getElementsByClassName('general');
+			b.btnGroup = window.document.querySelectorAll('.control-bar > .general');
+			b.presetPanel = window.document.getElementById('white-noise-presets');
 			b.displayInfo = window.document.querySelector('.display-info span');
 			b.sliderBar = window.document.getElementsByClassName('slider-bar');
 
@@ -1212,12 +1447,36 @@ get_header();
 
 			for (let i of b.sliderBar) {
 				i.oninput = () => {
+					clearPresetChipActive();
 					applyBandGainFromSlider(i);
 				};
 			}
 
+			if (b.presetPanel) {
+				const activatePresetTarget = (el) => {
+					if (!el || !b.presetPanel.contains(el)) return;
+					const key = el.getAttribute('data-preset');
+					if (!key) return;
+					const label = (el.textContent || '').trim() || key;
+					applyNoisePreset(key, label, el);
+				};
+				b.presetPanel.addEventListener('click', function (e) {
+					const el = e.target.closest('.actionlink[data-preset]');
+					if (!el) return;
+					activatePresetTarget(el);
+				});
+				b.presetPanel.addEventListener('keydown', function (e) {
+					if (e.key !== 'Enter' && e.key !== ' ') return;
+					const el = e.target.closest('.actionlink[data-preset]');
+					if (!el || !b.presetPanel.contains(el)) return;
+					e.preventDefault();
+					activatePresetTarget(el);
+				});
+			}
+
 			if (b.resetBtn) {
 				b.resetBtn.addEventListener('click', () => {
+					clearPresetChipActive();
 					for (let i of b.sliderBar) {
 						setSliderToMidpoint(i);
 						applyBandGainFromSlider(i);
@@ -1273,6 +1532,7 @@ get_header();
 			/* #increase = volume-down icon → quieter (thumb down) */
 			if (b.increaseBtn) {
 				b.increaseBtn.addEventListener('click', () => {
+					clearPresetChipActive();
 					for (let i of b.sliderBar) {
 						var mn = Number(i.min) || 0;
 						i.value = String(Math.max(mn, Number(i.value) - SLIDER_STEP));
@@ -1288,6 +1548,7 @@ get_header();
 			/* #decrease = volume-up icon → louder (thumb up) */
 			if (b.decreaseBtn) {
 				b.decreaseBtn.addEventListener('click', () => {
+					clearPresetChipActive();
 					for (let i of b.sliderBar) {
 						var mx = Number(i.max) || 990;
 						i.value = String(Math.min(mx, Number(i.value) + SLIDER_STEP));
