@@ -43,7 +43,7 @@ get_header();
 	font-weight: 600;
 	letter-spacing: 0.12em;
 	text-transform: uppercase;
-	color: rgba(0, 0, 0, 0.55);
+	color: #436f8e;
 }
 .white-noise-presets .preset-chip-row {
 	display: flex;
@@ -778,18 +778,16 @@ get_header();
 		return raw;
 	}
 
+	/**
+	 * Grey noise — slider curve from myNoise reference UI (Sub-Bass → High Treble).
+	 * Plateau ~40%, dip ~30% (dark blue), then ~40%, ~50%, ~65% on the right.
+	 */
+	const GREY_RAW_VISUAL = [0.9, 0.5, 0.4, 0.35, 0.35, 0.35, 0.28, 0.35, 0.4, 0.55];
+
 	/** Mousetrap w / n / b — white_noise.html lines 3049–3051 */
 	const WHITE_RAW = [0.18, 0.21, 0.24, 0.27, 0.3, 0.34, 0.38, 0.42, 0.46, 0.5];
 	const PINK_RAW = new Array(iNUMBERBANDS).fill(0.3);
 	const BROWN_RAW = [0.5, 0.46, 0.42, 0.38, 0.34, 0.3, 0.27, 0.24, 0.21, 0.18];
-
-	function greyRawWhitePinkAvg() {
-		const out = [];
-		for (let i = 0; i < iNUMBERBANDS; i++) {
-			out.push((WHITE_RAW[i] + PINK_RAW[i]) * 0.5);
-		}
-		return out;
-	}
 
 	/** Blue / violet: steeper highs than white (not in saved HTML; raw shapes only, still via normalizeLevels). */
 	function blueRawSteep() {
@@ -812,7 +810,7 @@ get_header();
 		white: WHITE_RAW,
 		pink: PINK_RAW,
 		brown: BROWN_RAW,
-		grey: greyRawWhitePinkAvg(),
+		grey: GREY_RAW_VISUAL,
 		blue: blueRawSteep(),
 		violet: violetRawSteep(),
 		'focus-flow': [0.24, 0.26, 0.28, 0.3, 0.33, 0.36, 0.34, 0.3, 0.26, 0.22],
