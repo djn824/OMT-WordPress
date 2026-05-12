@@ -71,7 +71,7 @@ get_header();
 .white-noise-presets span.actionlink {
 	position: relative;
 	margin: 0;
-	padding: 0 1px;
+	padding: 0 3px;
 	border-radius: 4px;
 	background: transparent;
 	color: #e25c1b;
