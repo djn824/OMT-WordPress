@@ -123,18 +123,18 @@ get_header();
 		</div>
 		<div class="equalizer">
 			<div class="slider">
-				<input type="range" name="Sub-Bass" class="slider-bar" min="0" max="990" value="495" step="1">
-				<input type="range" name="Low Bass" class="slider-bar" min="0" max="990" value="495" step="1">
-				<input type="range" name="Bass" class="slider-bar" min="0" max="990" value="495" step="1">
-				<input type="range" name="High Bass" class="slider-bar" min="0" max="990" value="495" step="1">
-				<input type="range" name="Low Mids" class="slider-bar" min="0" max="990" value="495" step="1">
+				<input type="range" name="Sub-Bass" class="slider-bar" min="0" max="990" value="446" step="1">
+				<input type="range" name="Low Bass" class="slider-bar" min="0" max="990" value="446" step="1">
+				<input type="range" name="Bass" class="slider-bar" min="0" max="990" value="446" step="1">
+				<input type="range" name="High Bass" class="slider-bar" min="0" max="990" value="446" step="1">
+				<input type="range" name="Low Mids" class="slider-bar" min="0" max="990" value="446" step="1">
 			</div>
 			<div class="slider">
-				<input type="range" name="Mids" class="slider-bar" min="0" max="990" value="495" step="1">
-				<input type="range" name="High Mids" class="slider-bar" min="0" max="990" value="495" step="1">
-				<input type="range" name="Low Treble" class="slider-bar" min="0" max="990" value="495" step="1">
-				<input type="range" name="Treble" class="slider-bar" min="0" max="990" value="495" step="1">
-				<input type="range" name="High Treble" class="slider-bar" min="0" max="990" value="495" step="1">
+				<input type="range" name="Mids" class="slider-bar" min="0" max="990" value="446" step="1">
+				<input type="range" name="High Mids" class="slider-bar" min="0" max="990" value="446" step="1">
+				<input type="range" name="Low Treble" class="slider-bar" min="0" max="990" value="446" step="1">
+				<input type="range" name="Treble" class="slider-bar" min="0" max="990" value="446" step="1">
+				<input type="range" name="High Treble" class="slider-bar" min="0" max="990" value="446" step="1">
 			</div>
 		</div>
 		<div class="control-bar">
@@ -309,6 +309,9 @@ get_header();
 	const DB_FLOOR = -129;
 	/** Slider step for +/- buttons (units of the range input, 0..990). */
 	const SLIDER_STEP = 20;
+	/** Initial / reset band level: matches `levelToDb` (26·ln(level)). */
+	const DEFAULT_START_DBFS = -21;
+	const DEFAULT_START_LEVEL = Math.min(LEVEL_MAX, Math.exp(DEFAULT_START_DBFS / 26));
 
 	/* --- Slider animation + sleep timer (ported from white_noise.html intent) --- */
 	// animEnabled = user intent (button state). Animation only RUNS while audio is playing.
@@ -714,7 +717,7 @@ get_header();
 		nextB[i] = 0;
 		interval[i] = 0;
 		lastPlayedA[i] = 0;
-		currentLevel[i] = 0;
+		currentLevel[i] = DEFAULT_START_LEVEL;
 	}
 
 	let sourceFileA = [];
@@ -1188,9 +1191,8 @@ get_header();
 		return 26 * Math.log(level);
 	}
 
-	function setSliderToMidpoint(sliderEl) {
-		var mx = Number(sliderEl.max) || 990;
-		sliderEl.value = String(Math.round(mx / 2));
+	function setSliderToDefaultStart(sliderEl) {
+		sliderEl.value = String(levelToSliderValue(DEFAULT_START_LEVEL, sliderEl));
 	}
 
 	function finishedLoading() {
@@ -1382,11 +1384,11 @@ get_header();
 		}
 	}
 
-	/** Set all sliders to half-thumb position (like your request). */
+	/** Set all sliders to the default start level (-21 dBFS per band). */
 	function applyHalfRangeToAllSliders(immediateGain) {
 		for (let i = 0; i < b.sliderBar.length; i++) {
 			var el = b.sliderBar[i];
-			setSliderToMidpoint(el);
+			setSliderToDefaultStart(el);
 			applyBandGainFromSlider(el, immediateGain);
 		}
 		if (b.displayInfo && b.sliderBar.length) {
@@ -1503,9 +1505,9 @@ get_header();
 			ensureTimerLabelUi();
 
 			for (let i of b.sliderBar) {
-				// Ensure numeric value; default to midpoint.
+				// Ensure numeric value; default to -21 dBFS.
 				if (i.value === '' || i.value == null || isNaN(Number(i.value))) {
-					setSliderToMidpoint(i);
+					setSliderToDefaultStart(i);
 				}
 			}
 
@@ -1550,7 +1552,7 @@ get_header();
 				b.resetBtn.addEventListener('click', () => {
 					clearPresetChipActive();
 					for (let i of b.sliderBar) {
-						setSliderToMidpoint(i);
+						setSliderToDefaultStart(i);
 						applyBandGainFromSlider(i);
 					}
 					refreshAnimationAfterControlChange();
