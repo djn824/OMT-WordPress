@@ -268,6 +268,10 @@ get_header();
 	const fMASTERGAIN = 0.5;
 	/** Very short master fade-in — audible within ~20–30 ms of pressing Play */
 	const PLAY_FADE_IN_S = 0.025;
+	/** After Stop, stemsMixGain can stay at 1; brief dip to 0 avoids a click when re-arming the swell */
+	const STEMS_PLAY_ARM_SILENCE_S = 0.012;
+	/** Stems bus fade-in on every Play (first or resume) — slightly snappier than the original 0.5 s */
+	const STEMS_PLAY_FADE_IN_S = 0.32;
 	/** Slightly longer fade-out on Stop to avoid clicks */
 	const STOP_FADE_OUT_S = 0.35;
 
@@ -1419,13 +1423,15 @@ get_header();
 
 			// If stems are ready, crossfade synth -> stems (perceived “no loading”).
 			if (stemsReady && stemsMixGain) {
+				var stemSw = STEMS_PLAY_ARM_SILENCE_S + STEMS_PLAY_FADE_IN_S;
 				stemsMixGain.gain.cancelScheduledValues(now);
 				stemsMixGain.gain.setValueAtTime(stemsMixGain.gain.value, now);
-				stemsMixGain.gain.linearRampToValueAtTime(1, now + 0.5);
+				stemsMixGain.gain.linearRampToValueAtTime(0, now + STEMS_PLAY_ARM_SILENCE_S);
+				stemsMixGain.gain.linearRampToValueAtTime(1, now + stemSw);
 				if (synthMasterGain) {
 					synthMasterGain.gain.cancelScheduledValues(now);
 					synthMasterGain.gain.setValueAtTime(synthMasterGain.gain.value, now);
-					synthMasterGain.gain.linearRampToValueAtTime(0, now + 0.5);
+					synthMasterGain.gain.linearRampToValueAtTime(0, now + stemSw);
 				}
 
 				if (!stemsStarted) {
