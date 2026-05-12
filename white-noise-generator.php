@@ -8,7 +8,7 @@ get_header();
 	flex-direction: row;
 	align-items: stretch;
 	gap: 1.25rem;
-	max-width: 1200px;
+	max-width: 1320px;
 	margin-left: auto;
 	margin-right: auto;
 }
@@ -17,18 +17,20 @@ get_header();
 	min-width: 0;
 }
 .white-noise-presets {
-	flex: 0 0 220px;
-	max-width: 360px;
+	flex: 0 0 clamp(300px, 34vw, 460px);
+	min-width: 280px;
+	max-width: 340px;
+	width: 100%;
 	box-sizing: border-box;
-	padding: 1rem 1rem 1.1rem;
+	padding: 1.1rem 1.25rem 1.2rem;
 	border-radius: 14px;
 	background: #fff;
 	border: 1px solid rgba(0, 0, 0, 0.08);
 	box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
 	color: #333;
 	font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-	font-size: 0.8125rem;
-	line-height: 1.35;
+	font-size: 0.875rem;
+	line-height: 1.42;
 	overflow-y: auto;
 	-webkit-overflow-scrolling: touch;
 }
@@ -39,7 +41,7 @@ get_header();
 }
 .white-noise-presets .preset-section-title {
 	margin: 0 0 0.45rem;
-	font-size: 0.68rem;
+	font-size: 0.75rem;
 	font-weight: 600;
 	letter-spacing: 0.12em;
 	text-transform: uppercase;
@@ -48,7 +50,7 @@ get_header();
 .white-noise-presets .preset-chip-row {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 0.2rem 0.55rem;
+	gap: 0.35rem 0.75rem;
 	align-items: center;
 }
 /* Preset spans: brand orange */
@@ -59,7 +61,7 @@ get_header();
 	background: transparent;
 	color: #e25c1b;
 	font: inherit;
-	font-size: 0.8125rem;
+	font-size: 0.875rem;
 	font-weight: 400;
 	text-decoration: none;
 	cursor: pointer;
@@ -88,11 +90,7 @@ get_header();
 		gap: 1rem;
 		max-width: 100%;
 	}
-	.white-noise-mainpanel {
-		order: 1;
-	}
 	.white-noise-presets {
-		order: 2;
 		flex: 1 1 auto;
 		max-width: none;
 		width: 100%;
@@ -109,6 +107,62 @@ get_header();
 </style>
 <div class="noise-container">
 	<div class="width-100 my-20 white-noise-layout">
+		<div class="white-noise white-noise-mainpanel">
+		<div class="display-info">
+			<span></span>
+		</div>
+		<div class="equalizer">
+			<div class="slider">
+				<input type="range" name="Sub-Bass" class="slider-bar" min="0" max="990" value="495" step="1">
+				<input type="range" name="Low Bass" class="slider-bar" min="0" max="990" value="495" step="1">
+				<input type="range" name="Bass" class="slider-bar" min="0" max="990" value="495" step="1">
+				<input type="range" name="High Bass" class="slider-bar" min="0" max="990" value="495" step="1">
+				<input type="range" name="Low Mids" class="slider-bar" min="0" max="990" value="495" step="1">
+			</div>
+			<div class="slider">
+				<input type="range" name="Mids" class="slider-bar" min="0" max="990" value="495" step="1">
+				<input type="range" name="High Mids" class="slider-bar" min="0" max="990" value="495" step="1">
+				<input type="range" name="Low Treble" class="slider-bar" min="0" max="990" value="495" step="1">
+				<input type="range" name="Treble" class="slider-bar" min="0" max="990" value="495" step="1">
+				<input type="range" name="High Treble" class="slider-bar" min="0" max="990" value="495" step="1">
+			</div>
+		</div>
+		<div class="control-bar">
+			<div id="main-btn" class="main-btn">
+				<div>
+					<div id="pause-btn" class="pause-btn">
+					</div>
+					<div id="play-btn" class="play-btn">
+					</div>
+				</div>
+			</div>
+			<div class="general">
+				<button id="animate" class="general-btn" type="button" aria-pressed="false">
+					Random
+				</button>
+			</div>
+			<div class="general">	
+				<button id="timer" class="general-btn" type="button" aria-pressed="false">
+					Timer
+				</button>
+			</div>
+			<div class="general">	
+				<button id="decrease" class="general-btn">
+					<i class="fa fa-volume-up fa-2x"></i>
+				</button>
+			</div>
+			<div class="general">	
+				<button id="increase" class="general-btn">
+					<i class="fa fa-volume-down fa-2x"></i>
+				</button>
+			</div>
+			<div class="general">	
+				<button id="reset" class="general-btn">
+					<i class="fa fa-reply fa-2x"></i>
+				</button>
+			</div>
+		</div>
+		</div>
 		<aside class="white-noise-presets" id="white-noise-presets" aria-label="Sound presets">
 			<section class="preset-section">
 				<h3 class="preset-section-title">Noise Colors</h3>
@@ -160,62 +214,6 @@ get_header();
 				</div>
 			</section>
 		</aside>
-		<div class="white-noise white-noise-mainpanel">
-		<div class="display-info">
-			<span></span>
-		</div>
-		<div class="equalizer">
-			<div class="slider">
-				<input type="range" name="Sub-Bass" class="slider-bar" min="0" max="990" value="495" step="1">
-				<input type="range" name="Low Bass" class="slider-bar" min="0" max="990" value="495" step="1">
-				<input type="range" name="Bass" class="slider-bar" min="0" max="990" value="495" step="1">
-				<input type="range" name="High Bass" class="slider-bar" min="0" max="990" value="495" step="1">
-				<input type="range" name="Low Mids" class="slider-bar" min="0" max="990" value="495" step="1">
-			</div>
-			<div class="slider">
-				<input type="range" name="Mids" class="slider-bar" min="0" max="990" value="495" step="1">
-				<input type="range" name="High Mids" class="slider-bar" min="0" max="990" value="495" step="1">
-				<input type="range" name="Low Treble" class="slider-bar" min="0" max="990" value="495" step="1">
-				<input type="range" name="Treble" class="slider-bar" min="0" max="990" value="495" step="1">
-				<input type="range" name="High Treble" class="slider-bar" min="0" max="990" value="495" step="1">
-			</div>
-		</div>
-		<div class="control-bar">
-			<div id="main-btn" class="main-btn">
-				<div>
-					<div id="pause-btn" class="pause-btn">
-					</div>
-					<div id="play-btn" class="play-btn">
-					</div>
-				</div>
-			</div>
-			<div class="general">
-				<button id="animate" class="general-btn" type="button" aria-pressed="false">
-					Animate
-				</button>
-			</div>
-			<div class="general">	
-				<button id="timer" class="general-btn" type="button" aria-pressed="false">
-					Timer
-				</button>
-			</div>
-			<div class="general">	
-				<button id="decrease" class="general-btn">
-					<i class="fa fa-volume-up fa-2x"></i>
-				</button>
-			</div>
-			<div class="general">	
-				<button id="increase" class="general-btn">
-					<i class="fa fa-volume-down fa-2x"></i>
-				</button>
-			</div>
-			<div class="general">	
-				<button id="reset" class="general-btn">
-					<i class="fa fa-reply fa-2x"></i>
-				</button>
-			</div>
-		</div>
-		</div>
 	</div>
 </div>
 </div>
