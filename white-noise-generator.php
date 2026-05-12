@@ -783,16 +783,6 @@ get_header();
 		return best;
 	}
 
-	/** Raw shape for “hear this region” — then normalizeMyNoiseLevels (same pipeline as setPreset). */
-	function makeRawFreqHighlightHz(hz) {
-		const raw = new Array(iNUMBERBANDS).fill(0.03);
-		const j = bandIndexForHz(hz);
-		raw[j] = 0.5;
-		if (j > 0) raw[j - 1] = Math.max(raw[j - 1], 0.36);
-		if (j < iNUMBERBANDS - 1) raw[j + 1] = Math.max(raw[j + 1], 0.36);
-		return raw;
-	}
-
 	/** Frequency chip: nearest band to `hz` at midDb, neighbours at sideDb; all other bands 0. */
 	function makeFixedFreqChipLevels(hz, sideDb, midDb) {
 		const j = bandIndexForHz(hz);
@@ -807,13 +797,17 @@ get_header();
 		return out;
 	}
 
-	function makeF63HighlightLevels() {
-		return makeFixedFreqChipLevels(63, -17, -7);
-	}
-
-	function makeF125HighlightLevels() {
-		return makeFixedFreqChipLevels(125, -13, -7);
-	}
+	/** Preset key → [ centreHz, sideDb, midDb ]; neighbours at sideDb, centre band at midDb, rest 0. */
+	const FIXED_FREQ_CHIP_PRESETS = {
+		f63: [63, -17, -7],
+		f125: [125, -13, -7],
+		f250: [250, -14, -7],
+		f500: [500, -15, -7],
+		f1k: [1000, -15, -7],
+		f2k: [2000, -15, -7],
+		f4k: [4000, -15, -7],
+		f8k: [8000, -14, -7]
+	};
 
 	/**
 	 * Grey noise — slider curve from myNoise reference UI (Sub-Bass → High Treble).
@@ -859,13 +853,7 @@ get_header();
 		'quiet-bubble': [0.14, 0.14, 0.15, 0.16, 0.17, 0.16, 0.15, 0.14, 0.13, 0.12],
 		'night-drift': [0.4, 0.36, 0.32, 0.28, 0.22, 0.18, 0.14, 0.11, 0.09, 0.07],
 		'deep-sleep': [0.42, 0.35, 0.26, 0.18, 0.12, 0.08, 0.06, 0.05, 0.04, 0.04],
-		'calm-hush': [0.1, 0.1, 0.11, 0.12, 0.12, 0.11, 0.1, 0.09, 0.08, 0.07],
-		f250: makeRawFreqHighlightHz(250),
-		f500: makeRawFreqHighlightHz(500),
-		f1k: makeRawFreqHighlightHz(1000),
-		f2k: makeRawFreqHighlightHz(2000),
-		f4k: makeRawFreqHighlightHz(4000),
-		f8k: makeRawFreqHighlightHz(8000)
+		'calm-hush': [0.1, 0.1, 0.11, 0.12, 0.12, 0.11, 0.1, 0.09, 0.08, 0.07]
 	};
 
 	function clampPresetLevel(lv) {
@@ -883,10 +871,9 @@ get_header();
 
 	function applyNoisePreset(presetKey, displayLabel, activeButton) {
 		let levels;
-		if (presetKey === 'f63') {
-			levels = makeF63HighlightLevels().map(clampPresetLevel);
-		} else if (presetKey === 'f125') {
-			levels = makeF125HighlightLevels().map(clampPresetLevel);
+		const chip = FIXED_FREQ_CHIP_PRESETS[presetKey];
+		if (chip) {
+			levels = makeFixedFreqChipLevels(chip[0], chip[1], chip[2]).map(clampPresetLevel);
 		} else {
 			const rawTemplate = NOISE_PRESET_RAW[presetKey];
 			if (!rawTemplate || rawTemplate.length !== iNUMBERBANDS) return;
