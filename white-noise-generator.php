@@ -17,9 +17,10 @@ get_header();
 	min-width: 0;
 }
 .white-noise-presets {
+	align-self: flex-start;
 	flex: 0 0 clamp(300px, 34vw, 460px);
 	min-width: 280px;
-	max-width: 340px;
+	max-width: 360px;
 	width: 100%;
 	box-sizing: border-box;
 	padding: 1.1rem 1.25rem 1.2rem;
@@ -41,20 +42,34 @@ get_header();
 }
 .white-noise-presets .preset-section-title {
 	margin: 0 0 0.45rem;
-	font-size: 0.75rem;
+	font-family: system-ui !important;
 	font-weight: 600;
-	letter-spacing: 0.12em;
-	text-transform: uppercase;
+	font-size: 1.112em !important;
 	color: #436f8e;
 }
 .white-noise-presets .preset-chip-row {
+	--preset-chip-sep: 0.75rem;
 	display: flex;
 	flex-wrap: wrap;
-	gap: 0.35rem 0.75rem;
+	gap: 0.35rem var(--preset-chip-sep);
 	align-items: center;
+}
+/* Dot after each chip (not inside next chip): stays out of hover/active backgrounds and avoids a stray dot when the row wraps */
+.white-noise-presets .preset-chip-row .actionlink:not(:last-child)::after {
+	content: '•';
+	position: absolute;
+	left: calc(100% + 0.5 * var(--preset-chip-sep));
+	top: 50%;
+	transform: translate(-50%, -50%);
+	line-height: 1;
+	color: #436f8e;
+	font-weight: 600;
+	pointer-events: none;
+	user-select: none;
 }
 /* Preset spans: brand orange */
 .white-noise-presets span.actionlink {
+	position: relative;
 	margin: 0;
 	padding: 0 1px;
 	border-radius: 4px;
@@ -94,12 +109,9 @@ get_header();
 		flex: 1 1 auto;
 		max-width: none;
 		width: 100%;
-		max-height: min(48vh, 420px);
 		padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
 	}
 	.white-noise-presets span.actionlink {
-		min-height: 44px;
-		padding: 0.35rem 6px;
 		display: inline-flex;
 		align-items: center;
 	}
