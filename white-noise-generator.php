@@ -268,10 +268,8 @@ get_header();
 	const fMASTERGAIN = 0.5;
 	/** Very short master fade-in — audible within ~20–30 ms of pressing Play */
 	const PLAY_FADE_IN_S = 0.025;
-	/** After Stop, stemsMixGain can stay at 1; brief dip to 0 avoids a click when re-arming the swell */
-	const STEMS_PLAY_ARM_SILENCE_S = 0.012;
-	/** Stems bus fade-in on every Play (first or resume) — slightly snappier than the original 0.5 s */
-	const STEMS_PLAY_FADE_IN_S = 0.32;
+	/** Stems bus fade-in on every Play — mix is faded to 0 during Stop so the next Play is a clean swell only */
+	const STEMS_PLAY_FADE_IN_S = 0.93;
 	/** Slightly longer fade-out on Stop to avoid clicks */
 	const STOP_FADE_OUT_S = 0.35;
 
@@ -300,6 +298,8 @@ get_header();
 	let lastPlayedA = [];
 	let lastSchedulerTime = 0;
 	let schedulerTimer = null;
+	/** Pending suspend after Stop fade — must be cleared on Play or overlapping Stops */
+	let stopAfterFadeTimeoutId = null;
 	let launchCounter = 0;
 	/** True after loadAllSounds() has been started — never load stems again on Play */
 	let stemLoadStarted = false;
@@ -1407,11 +1407,19 @@ get_header();
 			return;
 		}
 
+		if (stopAfterFadeTimeoutId !== null) {
+			clearTimeout(stopAfterFadeTimeoutId);
+			stopAfterFadeTimeoutId = null;
+		}
+
 		// Flip state immediately so UI animations stay in sync with user intent.
 		// Audio start is async (AudioContext.resume), but the button/animation should not lag.
 		isplaying = true;
 
 		function beginPlayback() {
+			if (!isplaying) {
+				return;
+			}
 			// Snap gains to current slider values BEFORE any audio becomes audible.
 			syncLevelsFromSliders();
 			setAllLevelsImmediate();
@@ -1423,15 +1431,13 @@ get_header();
 
 			// If stems are ready, crossfade synth -> stems (perceived “no loading”).
 			if (stemsReady && stemsMixGain) {
-				var stemSw = STEMS_PLAY_ARM_SILENCE_S + STEMS_PLAY_FADE_IN_S;
 				stemsMixGain.gain.cancelScheduledValues(now);
 				stemsMixGain.gain.setValueAtTime(stemsMixGain.gain.value, now);
-				stemsMixGain.gain.linearRampToValueAtTime(0, now + STEMS_PLAY_ARM_SILENCE_S);
-				stemsMixGain.gain.linearRampToValueAtTime(1, now + stemSw);
+				stemsMixGain.gain.linearRampToValueAtTime(1, now + STEMS_PLAY_FADE_IN_S);
 				if (synthMasterGain) {
 					synthMasterGain.gain.cancelScheduledValues(now);
 					synthMasterGain.gain.setValueAtTime(synthMasterGain.gain.value, now);
-					synthMasterGain.gain.linearRampToValueAtTime(0, now + stemSw);
+					synthMasterGain.gain.linearRampToValueAtTime(0, now + STEMS_PLAY_FADE_IN_S);
 				}
 
 				if (!stemsStarted) {
@@ -1484,8 +1490,23 @@ get_header();
 		masterGain.gain.cancelScheduledValues(now);
 		masterGain.gain.setValueAtTime(masterGain.gain.value, now);
 		masterGain.gain.linearRampToValueAtTime(0, now + STOP_FADE_OUT_S);
+		// Fade stem/synth buses with the master so the next Play is not a fast 1→0 “erase” before the swell.
+		if (stemsMixGain) {
+			stemsMixGain.gain.cancelScheduledValues(now);
+			stemsMixGain.gain.setValueAtTime(stemsMixGain.gain.value, now);
+			stemsMixGain.gain.linearRampToValueAtTime(0, now + STOP_FADE_OUT_S);
+		}
+		if (synthMasterGain) {
+			synthMasterGain.gain.cancelScheduledValues(now);
+			synthMasterGain.gain.setValueAtTime(synthMasterGain.gain.value, now);
+			synthMasterGain.gain.linearRampToValueAtTime(0, now + STOP_FADE_OUT_S);
+		}
 
-		window.setTimeout(function () {
+		if (stopAfterFadeTimeoutId !== null) {
+			clearTimeout(stopAfterFadeTimeoutId);
+		}
+		stopAfterFadeTimeoutId = window.setTimeout(function () {
+			stopAfterFadeTimeoutId = null;
 			stopScheduler();
 			if (context && context.state === 'running') {
 				context.suspend();
