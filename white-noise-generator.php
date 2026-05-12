@@ -18,7 +18,7 @@ get_header();
 }
 .white-noise-presets {
 	flex: 0 0 220px;
-	max-width: 260px;
+	max-width: 360px;
 	box-sizing: border-box;
 	padding: 1rem 1rem 1.1rem;
 	border-radius: 14px;
