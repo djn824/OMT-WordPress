@@ -51,7 +51,7 @@
 	}	
 }
 
-.control-bar button: hover {
+.control-bar button:hover {
 	box-shadow: 0 0 0 0 #ffffff inset, 0 0 6px 0px #436f8e;
 }
 .control-bar label,
