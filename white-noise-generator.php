@@ -793,6 +793,28 @@ get_header();
 		return raw;
 	}
 
+	/** Frequency chip: nearest band to `hz` at midDb, neighbours at sideDb; all other bands 0. */
+	function makeFixedFreqChipLevels(hz, sideDb, midDb) {
+		const j = bandIndexForHz(hz);
+		const out = new Array(iNUMBERBANDS).fill(0);
+		if (j > 0) {
+			out[j - 1] = dbfsToLevel(sideDb);
+		}
+		out[j] = dbfsToLevel(midDb);
+		if (j < iNUMBERBANDS - 1) {
+			out[j + 1] = dbfsToLevel(sideDb);
+		}
+		return out;
+	}
+
+	function makeF63HighlightLevels() {
+		return makeFixedFreqChipLevels(63, -17, -7);
+	}
+
+	function makeF125HighlightLevels() {
+		return makeFixedFreqChipLevels(125, -13, -7);
+	}
+
 	/**
 	 * Grey noise — slider curve from myNoise reference UI (Sub-Bass → High Treble).
 	 * Plateau ~40%, dip ~30% (dark blue), then ~40%, ~50%, ~65% on the right.
@@ -838,8 +860,6 @@ get_header();
 		'night-drift': [0.4, 0.36, 0.32, 0.28, 0.22, 0.18, 0.14, 0.11, 0.09, 0.07],
 		'deep-sleep': [0.42, 0.35, 0.26, 0.18, 0.12, 0.08, 0.06, 0.05, 0.04, 0.04],
 		'calm-hush': [0.1, 0.1, 0.11, 0.12, 0.12, 0.11, 0.1, 0.09, 0.08, 0.07],
-		f63: makeRawFreqHighlightHz(63),
-		f125: makeRawFreqHighlightHz(125),
 		f250: makeRawFreqHighlightHz(250),
 		f500: makeRawFreqHighlightHz(500),
 		f1k: makeRawFreqHighlightHz(1000),
@@ -862,9 +882,16 @@ get_header();
 	}
 
 	function applyNoisePreset(presetKey, displayLabel, activeButton) {
-		const rawTemplate = NOISE_PRESET_RAW[presetKey];
-		if (!rawTemplate || rawTemplate.length !== iNUMBERBANDS) return;
-		const levels = normalizeMyNoiseLevels(rawTemplate).map(clampPresetLevel);
+		let levels;
+		if (presetKey === 'f63') {
+			levels = makeF63HighlightLevels().map(clampPresetLevel);
+		} else if (presetKey === 'f125') {
+			levels = makeF125HighlightLevels().map(clampPresetLevel);
+		} else {
+			const rawTemplate = NOISE_PRESET_RAW[presetKey];
+			if (!rawTemplate || rawTemplate.length !== iNUMBERBANDS) return;
+			levels = normalizeMyNoiseLevels(rawTemplate).map(clampPresetLevel);
+		}
 		for (let i = 0; i < iNUMBERBANDS; i++) {
 			currentLevel[i] = levels[i];
 		}
@@ -1193,6 +1220,13 @@ get_header();
 		// myNoise convention: dBFS ≈ 26 * ln(level), floor at ~-129 dBFS
 		if (!level || level <= 0) return DB_FLOOR;
 		return 26 * Math.log(level);
+	}
+
+	function dbfsToLevel(db) {
+		if (!isFinite(db) || db <= DB_FLOOR) {
+			return 0;
+		}
+		return Math.min(LEVEL_MAX, Math.exp(db / 26));
 	}
 
 	function setSliderToDefaultStart(sliderEl) {
