@@ -818,27 +818,30 @@ get_header();
 
 	const PINK_RAW = new Array(iNUMBERBANDS).fill(0.3);
 
-	/** Blue / violet: steeper highs than white (not in saved HTML; raw shapes only, still via normalizeLevels). */
-	function blueRawSteep() {
+	/** Blue noise: +3 dB/oct power (amplitude ~ sqrt(Hz)); matches common web blue-noise generators. */
+	function blueRawStandard() {
+		const f0 = MY_EQ_CENTER_FREQS[0];
 		const out = [];
 		for (let i = 0; i < iNUMBERBANDS; i++) {
-			out.push(0.12 + 0.38 * Math.pow(i / 9, 1.35));
+			out.push(Math.sqrt(MY_EQ_CENTER_FREQS[i] / f0));
 		}
 		return out;
 	}
 
-	function violetRawSteep() {
+	/** Violet noise: +6 dB/oct power (amplitude ~ Hz); matches common web violet-noise generators. */
+	function violetRawStandard() {
+		const f0 = MY_EQ_CENTER_FREQS[0];
 		const out = [];
 		for (let i = 0; i < iNUMBERBANDS; i++) {
-			out.push(0.08 + 0.42 * Math.pow(i / 9, 2.05));
+			out.push(MY_EQ_CENTER_FREQS[i] / f0);
 		}
 		return out;
 	}
 
 	const NOISE_PRESET_RAW = {
 		pink: PINK_RAW,
-		blue: blueRawSteep(),
-		violet: violetRawSteep(),
+		blue: blueRawStandard(),
+		violet: violetRawStandard(),
 		'focus-flow': [0.24, 0.26, 0.28, 0.3, 0.33, 0.36, 0.34, 0.3, 0.26, 0.22],
 		coding: [0.26, 0.28, 0.3, 0.32, 0.34, 0.33, 0.28, 0.22, 0.18, 0.15],
 		reading: [0.36, 0.34, 0.32, 0.3, 0.28, 0.24, 0.2, 0.18, 0.15, 0.12],
