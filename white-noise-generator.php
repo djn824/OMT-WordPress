@@ -809,16 +809,14 @@ get_header();
 		f8k: [8000, -14, -7]
 	};
 
-	/**
-	 * Grey noise — slider curve from myNoise reference UI (Sub-Bass → High Treble).
-	 * Plateau ~40%, dip ~30% (dark blue), then ~40%, ~50%, ~65% on the right.
-	 */
-	const GREY_RAW_VISUAL = [0.9, 0.5, 0.4, 0.35, 0.35, 0.35, 0.28, 0.35, 0.4, 0.55];
+	/** Full-band presets: exact dBFS per slider (Sub-Bass → High Treble), no normalize pass. */
+	const FIXED_FULLBAND_DB_PRESETS = {
+		white: [-39, -35, -31, -28, -26, -22, -19, -17, -14, -13],
+		brown: [-13, -15, -17, -20, -23, -26, -29, -32, -35, -39],
+		grey: [-7, -21, -25, -31, -31, -31, -34, -37, -31, -21]
+	};
 
-	/** Mousetrap w / n / b — white_noise.html lines 3049–3051 */
-	const WHITE_RAW = [0.18, 0.21, 0.24, 0.27, 0.3, 0.34, 0.38, 0.42, 0.46, 0.5];
 	const PINK_RAW = new Array(iNUMBERBANDS).fill(0.3);
-	const BROWN_RAW = [0.5, 0.46, 0.42, 0.38, 0.34, 0.3, 0.27, 0.24, 0.21, 0.18];
 
 	/** Blue / violet: steeper highs than white (not in saved HTML; raw shapes only, still via normalizeLevels). */
 	function blueRawSteep() {
@@ -838,10 +836,7 @@ get_header();
 	}
 
 	const NOISE_PRESET_RAW = {
-		white: WHITE_RAW,
 		pink: PINK_RAW,
-		brown: BROWN_RAW,
-		grey: GREY_RAW_VISUAL,
 		blue: blueRawSteep(),
 		violet: violetRawSteep(),
 		'focus-flow': [0.24, 0.26, 0.28, 0.3, 0.33, 0.36, 0.34, 0.3, 0.26, 0.22],
@@ -871,8 +866,13 @@ get_header();
 
 	function applyNoisePreset(presetKey, displayLabel, activeButton) {
 		let levels;
-		const chip = FIXED_FREQ_CHIP_PRESETS[presetKey];
-		if (chip) {
+		const bandDb = FIXED_FULLBAND_DB_PRESETS[presetKey];
+		if (bandDb && bandDb.length === iNUMBERBANDS) {
+			levels = bandDb.map(function (db) {
+				return clampPresetLevel(dbfsToLevel(db));
+			});
+		} else if (FIXED_FREQ_CHIP_PRESETS[presetKey]) {
+			const chip = FIXED_FREQ_CHIP_PRESETS[presetKey];
 			levels = makeFixedFreqChipLevels(chip[0], chip[1], chip[2]).map(clampPresetLevel);
 		} else {
 			const rawTemplate = NOISE_PRESET_RAW[presetKey];
