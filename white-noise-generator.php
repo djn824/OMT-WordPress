@@ -85,8 +85,7 @@ get_header();
 	-webkit-tap-highlight-color: transparent;
 }
 .white-noise-presets span.actionlink:hover {
-	background-color: #e25c1b;
-	color: #fff;
+	font-weight: 600;
 }
 .white-noise-presets span.actionlink:focus-visible {
 	outline: 2px solid #e25c1b;
@@ -96,6 +95,7 @@ get_header();
 .white-noise-presets span.actionlink[aria-pressed="true"] {
 	background-color: #e25c1b;
 	color: #fff;
+	font-weight: 300;
 }
 @media (max-width: 900px) {
 	.white-noise-layout {
