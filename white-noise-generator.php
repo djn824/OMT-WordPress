@@ -188,10 +188,10 @@ get_header();
 			<section class="preset-section">
 				<h3 class="preset-section-title">Focus</h3>
 				<div class="preset-chip-row" role="group" aria-label="Focus">
-					<span class="actionlink" role="button" tabindex="0" data-preset-group="focus" data-preset="focus-flow">Focus Flow</span>
-					<span class="actionlink" role="button" tabindex="0" data-preset-group="focus" data-preset="coding">Coding</span>
-					<span class="actionlink" role="button" tabindex="0" data-preset-group="focus" data-preset="reading">Reading</span>
-					<span class="actionlink" role="button" tabindex="0" data-preset-group="focus" data-preset="study-hall">Study Hall</span>
+					<span class="actionlink" role="button" tabindex="0" data-preset-group="focus" data-preset="focus-flow">Deep Focus</span>
+					<span class="actionlink" role="button" tabindex="0" data-preset-group="focus" data-preset="coding">Coding Focus</span>
+					<span class="actionlink" role="button" tabindex="0" data-preset-group="focus" data-preset="reading">Reading Focus</span>
+					<span class="actionlink" role="button" tabindex="0" data-preset-group="focus" data-preset="study-hall">Study Sounds</span>
 				</div>
 			</section>
 			<section class="preset-section">
@@ -813,7 +813,11 @@ get_header();
 	const FIXED_FULLBAND_DB_PRESETS = {
 		white: [-39, -35, -31, -28, -26, -22, -19, -17, -14, -13],
 		brown: [-13, -15, -17, -20, -23, -26, -29, -32, -35, -39],
-		grey: [-7, -21, -25, -31, -31, -31, -34, -37, -31, -21]
+		grey: [-7, -21, -25, -31, -31, -31, -34, -37, -31, -21],
+		'study-hall': [-129, -17, -4, 0, -22, -54, -129, -129, -129, -129],
+		'focus-flow': [-21, -8, 0, -7, -17, -29, -47, -90, -129, -129],
+		reading: [-24, -20, -15, -10, -25, -46, -63, -63, -63, -63],
+		coding: [0, 0, 0, 0, -4, -15, -15, -15, -15, -15],
 	};
 
 	const PINK_RAW = new Array(iNUMBERBANDS).fill(0.3);
@@ -842,10 +846,7 @@ get_header();
 		pink: PINK_RAW,
 		blue: blueRawStandard(),
 		violet: violetRawStandard(),
-		'focus-flow': [0.24, 0.26, 0.28, 0.3, 0.33, 0.36, 0.34, 0.3, 0.26, 0.22],
-		coding: [0.26, 0.28, 0.3, 0.32, 0.34, 0.33, 0.28, 0.22, 0.18, 0.15],
-		reading: [0.36, 0.34, 0.32, 0.3, 0.28, 0.24, 0.2, 0.18, 0.15, 0.12],
-		'study-hall': [0.31, 0.31, 0.32, 0.32, 0.33, 0.33, 0.32, 0.31, 0.3, 0.28],
+		reading: [0.3, 0.31, 0.32, 0.34, 0.35, 0.36, 0.34, 0.3, 0.26, 0.22],
 		'voice-mask': [0.34, 0.32, 0.26, 0.2, 0.16, 0.18, 0.24, 0.32, 0.38, 0.4],
 		'cafe-blur': [0.28, 0.3, 0.32, 0.33, 0.3, 0.28, 0.29, 0.31, 0.29, 0.26],
 		'quiet-bubble': [0.14, 0.14, 0.15, 0.16, 0.17, 0.16, 0.15, 0.14, 0.13, 0.12],
