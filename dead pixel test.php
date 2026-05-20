@@ -314,9 +314,21 @@ html, body {
 
 <script>
 	(function () {
-		let colors = ['black', 'white', '#ff0000', '#00ff00', '#0000ff', 'cyan', 'magenta', 'yellow', '#008080', '#0080ff', '#00ff80', '#8000ff', '#808000', '#808080', '#80ff00', '#800080', '#80ffff',
-					 '#ff0080', '#ff8000', '#ff8080', '#ff80ff', '#ffff80'];
-		let colorNames = ['Black', 'White', 'Red', 'Green', 'Blue', 'Cyan', 'Magenta', 'Yellow', 'Teal', 'Azure', 'Spring Green', 'Violet', 'Olive', 'Gray', 'Chartreuse', 'Purple', 'Electric Blue', 'Deep Pink', 'Dark Orange', 'Ligt Coral', 'Light Magenta', 'Witch Hazel'];
+		<?php
+		$colors_arr = [];
+		$color_names_arr = [];
+		$font_colors_arr = [];
+		if (have_rows('color_values')):
+			while (have_rows('color_values')): the_row();
+				$colors_arr[] = get_sub_field('color');
+				$color_names_arr[] = get_sub_field('label');
+				$font_colors_arr[] = get_sub_field('font_color');
+			endwhile;
+		endif;
+		?>
+		let colors = <?php echo wp_json_encode($colors_arr); ?>;
+		let colorNames = <?php echo wp_json_encode($color_names_arr); ?>;
+		let fontColors = <?php echo wp_json_encode($font_colors_arr); ?>;
 		let index = 0;
 		let hideTimer = null;
 		let isHoveringControl = false;
@@ -397,18 +409,14 @@ html, body {
 				function showColor() {
 // 					if (index < 0) index = colors.length - 1;
 					if (index >= colors.length) index = 0;
-					if (index == -2) index = 20;
-					if (index == -1) index = 21;
+					if (index == -2) index = colors.length - 2;
+					if (index == -1) index = colors.length - 1;
       				a.testScreen.style.backgroundColor = colors[index];
 					a.colorNames.innerHTML = colorNames[index];
       				a.colorBtns.forEach((btn, i) => {
         				btn.classList.toggle("active", i === index);
       				});
-					if(index == 1 || index == 3 || index == 5 || index == 7 || index == 10 || index == 14 || index == 16 || index == 21) {
-						a.colorNames.style.color = '#000000';
-					} else {
-						a.colorNames.style.color = '#ffffff';
-					}
+					a.colorNames.style.color = fontColors[index];
 
 					scrollToSelectedColor(index);
 // 					if(index >= colors.length) {

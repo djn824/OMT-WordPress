@@ -490,8 +490,8 @@ get_header();?>
 		<div id="video-box">
 			<div class="view-tabs" style="text-align:center; margin-bottom:10px;">
 				<div class="view-tab-group">
-				<button class="view-tab active" data-view="side">Side by Side</button>
-				<button class="view-tab" data-view="split">Split View</button>
+				<button class="view-tab active" data-view="side"><?php the_field("side_view_btn");?></button>
+				<button class="view-tab" data-view="split"><?php the_field("split_view_btn");?></button>
 				</div>
 			</div>
 			
@@ -499,22 +499,34 @@ get_header();?>
 				<div class="fps-select fps-left">
 <!-- 						<label>Left Video FPS</label> -->
 					<select id="fps-left">
-						<option value="12">12 FPS</option>
-						<option value="24">24 FPS</option>
-						<option value="30">30 FPS</option>
-						<option value="60">60 FPS</option>
-						<option value="120">120 FPS</option>
+						<?php
+							// check if the repeater field has rows of data
+							if (have_rows('fps_values')):
+
+								// loop through the rows of data
+							while (have_rows('fps_values')): the_row(); ?>
+								<option value="<?php the_sub_field('value'); ?>"><?php the_sub_field('label'); ?></option>
+						<?php endwhile;
+							else:
+							endif;
+						?>
 					</select>
 				</div>
 
 				<div class="fps-select fps-right">
 <!-- 						<label>Right Video FPS</label> -->
 					<select id="fps-right">
-						<option value="12">12 FPS</option>
-						<option value="24">24 FPS</option>
-						<option value="30">30 FPS</option>
-						<option value="60">60 FPS</option>
-						<option value="120">120 FPS</option>
+						<?php
+							// check if the repeater field has rows of data
+							if (have_rows('fps_values')):
+
+								// loop through the rows of data
+							while (have_rows('fps_values')): the_row(); ?>
+								<option value="<?php the_sub_field('value'); ?>"><?php the_sub_field('label'); ?></option>
+						<?php endwhile;
+							else:
+							endif;
+						?>
 					</select>
 				</div>
 			</div>
