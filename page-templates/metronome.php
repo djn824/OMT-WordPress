@@ -436,7 +436,7 @@ $metronome_theme_uri = get_stylesheet_directory_uri();
 					</div>
 					<div class="bpm">
 						<p class="bpm-value" style="margin-bottom: 0rem;"><strong id="bpm-label">135</strong></p>
-						<p class="bpm-unit"><strong><?=the_field('bpm_unit');?></strong></p>
+						<p class="bpm-unit"><strong>BPM</strong></p>
 					</div>
 					<div class="plus-btn">
 						<img class="img-fluid skip-lazy minus-plus-btn" id='plus-btn' src="<?=get_stylesheet_directory_uri();?>/assets/images/plus-inactive.svg" alt="">
@@ -448,33 +448,19 @@ $metronome_theme_uri = get_stylesheet_directory_uri();
 						<p class="strong-label" style="margin-bottom: 0rem !important;"><?php the_field('strong_beat_label'); ?></p>
 						<div class="custom-select-wrapper" style="padding-top: 5px;">
 							<div class="beat-custom-select" id="custom-beat-select">
-
-								
-								<?php
-									// check if the repeater field has rows of data
-									$default_beat_value = 0;
-									if (have_rows('beat_values')):
-
-										// loop through the rows of data
-									while (have_rows('beat_values')): the_row(); 
-										if(get_sub_field('is_default')) $default_beat_value = get_sub_field('value');
-									endwhile;
-									else:
-									endif;
-								?>
-								<div class="custom-select-trigger"><?php echo $default_beat_value; ?> <?php the_field('beat_unit');?> ▾</div>
+								<div class="custom-select-trigger">4 beats ▾</div>
 								<div class="custom-options">
-									<?php
-										// check if the repeater field has rows of data
-										if (have_rows('beat_values')):
-
-											// loop through the rows of data
-										while (have_rows('beat_values')): the_row(); ?>
-										<div class="custom-option <?php if (get_sub_field('is_default')) echo 'selected'; ?>" data-value="<?php the_sub_field('value'); ?>"><?php the_sub_field('value'); ?> <?php the_field('beat_unit'); ?></div>
-									<?php endwhile;
-										else:
-										endif;
-									?>
+									<div class="custom-option" data-value="2">2 beats</div>
+									<div class="custom-option" data-value="3">3 beats</div>
+									<div class="custom-option selected" data-value="4">4 beats</div>
+									<div class="custom-option" data-value="5">5 beats</div>
+									<div class="custom-option" data-value="6">6 beats</div>
+									<div class="custom-option" data-value="7">7 beats</div>
+									<div class="custom-option" data-value="8">8 beats</div>
+									<div class="custom-option" data-value="9">9 beats</div>
+									<div class="custom-option" data-value="10">10 beats</div>
+									<div class="custom-option" data-value="11">11 beats</div>
+									<div class="custom-option" data-value="0">0 beats</div>
 								</div>
 							</div>
 						</div>
@@ -521,9 +507,38 @@ $metronome_theme_uri = get_stylesheet_directory_uri();
 				</div>
 			</div>
 			<div class="wid-sm-100 wid-xs-100">
+				<div class="ct-row mar-bot-15 dis-flex">
+					<img class="tve_image" alt="" style="width: 64px;" src="<?php the_field('red_icon'); ?>" width="64" height="64">
+					<div class="webcam-1-text_">
+						<div class="icon-text-1">
+							<h3 class="ct-bold-text" style="color: rgb(226, 92, 27)"><?php the_field('trouble-shooting_title'); ?></h3>
+						</div>
+					</div>
+				</div>
 
 				<div class="trouble-shooting-2 dis-flex">
 					<div>
+						<div class="trouble-shooting-text-1 pd-1">
+							<ul>
+								<?php
+
+									// check if the repeater field has rows of data
+									if (have_rows('leftside_guide_list')):
+
+										// loop through the rows of data
+									while (have_rows('leftside_guide_list')): the_row(); ?>
+														<li>
+															<span class="fw-bold color-link">
+																<?php the_sub_field('left_side_list_title'); ?>
+															</span>
+														</li>
+
+													<?php endwhile;
+														else:
+														endif;
+													?>
+							</ul>
+						</div>
 
 						<div align="center">
 							<style>
@@ -636,9 +651,6 @@ $metronome_theme_uri = get_stylesheet_directory_uri();
 	let pointerId = null;
 	let isPlaying = false;
 	let rafId     = null;
-	let currentAngle = 0;
-	let returnTimer = null;
-	const RETURN_TO_CENTER_MS = 220;
 	
 	// ── Audio Setup ───────────────────────────────────────────────
 	const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -750,7 +762,7 @@ $metronome_theme_uri = get_stylesheet_directory_uri();
 			pointEl.style.height  = 'auto';
 			const wrapperRect = wrapperEl.getBoundingClientRect();
 			const needleRect  = needle.getBoundingClientRect();
-			const pointBottom = Math.round((wrapperRect.bottom - needleRect.bottom) + wrapperW * 0.020);
+			const pointBottom = Math.round((wrapperRect.bottom - needleRect.bottom) - wrapperW * 0.005);
 			pointEl.style.bottom = pointBottom + 'px';
 		}
 
@@ -885,7 +897,7 @@ $metronome_theme_uri = get_stylesheet_directory_uri();
 	
 	function getBeatInterval() {
 		const selected = document.querySelector('#custom-beat-select .custom-option.selected');
-		return selected ? parseInt(selected.getAttribute('data-value'), 10) : <?php echo (int) $default_beat_value; ?>;
+		return selected ? parseInt(selected.getAttribute('data-value')) : 4;
 	}
 	
 	function bpmToAmplitude(bpm) {
@@ -896,34 +908,19 @@ $metronome_theme_uri = get_stylesheet_directory_uri();
 	function setNeedlePivot(){
   		if (!rotator || !pivotEl) return;
 
-  		// Use stable layout coordinates (not rotator's transformed box),
-  		// so zoom/resize while swinging does not skew the pivot.
-  		const needleRect = needle.getBoundingClientRect();
-  		const pivotRect  = pivotEl.getBoundingClientRect();
+  		// Compute pivot position relative to the rotator box
+  		const r = rotator.getBoundingClientRect();
+  		const p = pivotEl.getBoundingClientRect();
 
-  		const rotatorLeft = needleRect.left + rotator.offsetLeft;
-  		const rotatorTop  = needleRect.top + rotator.offsetTop;
-  		const pivotX = (pivotRect.left + pivotRect.width / 2) - rotatorLeft;
-  		const pivotY = (pivotRect.top  + pivotRect.height / 2) - rotatorTop;
+  		const pivotX = (p.left + p.width/2) - r.left;
+  		const pivotY = (p.top  + p.height/2) - r.top;
 
   		rotator.style.transformOrigin = `${Math.round(pivotX * 100) / 100}px ${Math.round(pivotY * 100) / 100}px`;
-	}
-
-	if (window.visualViewport) {
-		window.visualViewport.addEventListener('resize', () => {
-			scaleNeedle();
-			setNeedlePivot();
-		});
 	}
 
 	// Animate back/forth: one full cycle (left->right->left) = 2 beats
 	function startSwing(){
   		if (!rotator) return;
-		if (returnTimer) {
-			clearTimeout(returnTimer);
-			returnTimer = null;
-		}
-		rotator.style.transition = 'none';
   		setNeedlePivot();
 		
 		// TOGGLE CSS SHAPES INSTEAD OF IMAGE SRC
@@ -951,7 +948,6 @@ $metronome_theme_uri = get_stylesheet_directory_uri();
 
 			const swingDeg = bpmToAmplitude(currentBPM); // <-- dynamic amplitude
 			const angle = s * swingDeg;
-			currentAngle = angle;
 
 			rotator.style.transform = `rotate(${angle}deg)`;
 			// Detect endpoint and play click
@@ -981,22 +977,8 @@ $metronome_theme_uri = get_stylesheet_directory_uri();
   		if (rafId) cancelAnimationFrame(rafId);
   		rafId = null;
 
-  		// Return quickly with a short ease-out instead of snapping.
-  		if (rotator) {
-			if (returnTimer) {
-				clearTimeout(returnTimer);
-				returnTimer = null;
-			}
-
-			rotator.style.transition = `transform ${RETURN_TO_CENTER_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`;
-			rotator.style.transform = 'rotate(0deg)';
-
-			returnTimer = setTimeout(() => {
-				rotator.style.transition = 'none';
-				currentAngle = 0;
-				returnTimer = null;
-			}, RETURN_TO_CENTER_MS + 30);
-  		}
+  		// return to center
+  		if (rotator) rotator.style.transform = 'rotate(0deg)';
 	}
 	
 	if (playBtn) {
