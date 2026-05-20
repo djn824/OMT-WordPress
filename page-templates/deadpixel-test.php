@@ -1,6 +1,15 @@
 <?php
     /* Template Name:Dead Pixel Test */
-get_header(); ?>
+get_header();
+
+$test_btn_width = '180px';
+if (function_exists('pll_current_language')) {
+	$lang = pll_current_language();
+	if ($lang === 'fr' || $lang === 'vi') {
+		$test_btn_width = '300px';
+	}
+}
+?>
 <style media="screen">
 	@media all and (max-width: 1024px) {
 		#sAs-menu-responsive span {
@@ -21,9 +30,10 @@ get_header(); ?>
 		background-color: #e25d26;
 		border: 1px solid #e25d26;
 		border-radius: 5px;
-		padding: 6px;
-		width: 180px;
+		padding: 6px 16px;
+		width: <?php echo esc_attr($test_btn_width); ?>;
 		height: 50px;
+		white-space: nowrap;
 		font-size: 24px;
   	}
 
