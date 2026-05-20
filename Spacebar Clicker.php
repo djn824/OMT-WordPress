@@ -473,6 +473,69 @@ get_header();?>
 
 		const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
+		function wrapCanvasTextLines(ctx, text, maxWidth) {
+			const normalized = String(text || "").trim();
+			if (!normalized) return [];
+
+			const words = normalized.split(/\s+/);
+			const lines = [];
+			let line = "";
+
+			const pushLongWord = (word) => {
+				let chunk = "";
+				for (const ch of word) {
+					const next = chunk + ch;
+					if (chunk && ctx.measureText(next).width > maxWidth) {
+						lines.push(chunk);
+						chunk = ch;
+					} else {
+						chunk = next;
+					}
+				}
+				return chunk;
+			};
+
+			for (const word of words) {
+				const candidate = line ? `${line} ${word}` : word;
+				if (ctx.measureText(candidate).width <= maxWidth) {
+					line = candidate;
+					continue;
+				}
+				if (line) lines.push(line);
+				line = ctx.measureText(word).width <= maxWidth ? word : pushLongWord(word);
+			}
+			if (line) lines.push(line);
+			return lines;
+		}
+
+		function drawWrappedCenteredText(ctx, text, cx, cy, maxWidth, maxHeight, baseFontPx) {
+			const fontFamily = "Raleway, sans-serif";
+			let fontPx = Math.round(baseFontPx);
+			const minFontPx = 10;
+
+			let lines = [];
+			let lineHeight = 0;
+
+			while (fontPx >= minFontPx) {
+				ctx.font = `700 ${fontPx}px ${fontFamily}`;
+				lines = wrapCanvasTextLines(ctx, text, maxWidth);
+				lineHeight = fontPx * 1.15;
+				const blockHeight = lines.length * lineHeight;
+				const widest = lines.reduce((w, ln) => Math.max(w, ctx.measureText(ln).width), 0);
+				if (blockHeight <= maxHeight && widest <= maxWidth) break;
+				fontPx -= 1;
+			}
+
+			if (!lines.length) return;
+
+			const blockHeight = lines.length * lineHeight;
+			let y = cy - blockHeight / 2 + lineHeight / 2;
+			for (const ln of lines) {
+				ctx.fillText(ln, cx, y);
+				y += lineHeight;
+			}
+		}
+
 		function rgb(r,g,b,a=1){ return `rgba(${r|0},${g|0},${b|0},${a})`; }
       	function hsl(h,s,l,a=1){ return `hsla(${h},${s}%,${l}%,${a})`; }
 
@@ -1547,10 +1610,19 @@ get_header();?>
 			ctx.textAlign = "center";
 			ctx.textBaseline = "middle";
 			const labelFontPx = Math.round(clamp(innerR * 0.24, 13, 18));
-			ctx.font = `700 ${labelFontPx}px Raleway, sans-serif`;
 			ctx.shadowBlur = 6;
 			ctx.shadowColor = "rgba(0,0,0,0.25)";
-			ctx.fillText(<?php echo json_encode(get_field('press_label')); ?>, cx, cy);
+			const maxTextWidth = innerR * 2 * 0.88;
+			const maxTextHeight = innerR * 1.65;
+			drawWrappedCenteredText(
+				ctx,
+				<?php echo json_encode(get_field('press_label')); ?>,
+				cx,
+				cy,
+				maxTextWidth,
+				maxTextHeight,
+				labelFontPx
+			);
 // 			ctx.fillText("SPACE", cx, cy + 14);
 			ctx.restore();
 

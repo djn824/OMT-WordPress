@@ -399,7 +399,7 @@ get_header();?>
 					</div>
 					<div class="bpm">
 						<p class="bpm-value" style="margin-bottom: 0rem;"><strong id="bpm-label">135</strong></p>
-						<p class="bpm-unit"><strong>BPM</strong></p>
+						<p class="bpm-unit"><strong><?=the_field('bpm_unit');?></strong></p>
 					</div>
 					<div class="plus-btn">
 						<img class="img-fluid skip-lazy minus-plus-btn" id='plus-btn' src="<?=get_stylesheet_directory_uri();?>/assets/images/plus-inactive.svg" alt="">
@@ -411,19 +411,33 @@ get_header();?>
 						<p class="strong-label" style="margin-bottom: 0rem !important;"><?php the_field('strong_beat_label'); ?></p>
 						<div class="custom-select-wrapper" style="padding-top: 5px;">
 							<div class="beat-custom-select" id="custom-beat-select">
-								<div class="custom-select-trigger">4 beats ▾</div>
+
+								
+								<?php
+									// check if the repeater field has rows of data
+									$default_beat_value = 0;
+									if (have_rows('beat_values')):
+
+										// loop through the rows of data
+									while (have_rows('beat_values')): the_row(); 
+										if(get_sub_field('is_default')) $default_beat_value = get_sub_field('value');
+									endwhile;
+									else:
+									endif;
+								?>
+								<div class="custom-select-trigger"><?php echo $default_beat_value; ?> <?php the_field('beat_unit');?> ▾</div>
 								<div class="custom-options">
-									<div class="custom-option" data-value="2">2 beats</div>
-									<div class="custom-option" data-value="3">3 beats</div>
-									<div class="custom-option selected" data-value="4">4 beats</div>
-									<div class="custom-option" data-value="5">5 beats</div>
-									<div class="custom-option" data-value="6">6 beats</div>
-									<div class="custom-option" data-value="7">7 beats</div>
-									<div class="custom-option" data-value="8">8 beats</div>
-									<div class="custom-option" data-value="9">9 beats</div>
-									<div class="custom-option" data-value="10">10 beats</div>
-									<div class="custom-option" data-value="11">11 beats</div>
-									<div class="custom-option" data-value="0">0 beats</div>
+									<?php
+										// check if the repeater field has rows of data
+										if (have_rows('beat_values')):
+
+											// loop through the rows of data
+										while (have_rows('beat_values')): the_row(); ?>
+										<div class="custom-option <?php if (get_sub_field('is_default')) echo 'selected'; ?>" data-value="<?php the_sub_field('value'); ?>"><?php the_sub_field('value'); ?> <?php the_field('beat_unit'); ?></div>
+									<?php endwhile;
+										else:
+										endif;
+									?>
 								</div>
 							</div>
 						</div>
@@ -832,7 +846,7 @@ get_header();?>
 	
 	function getBeatInterval() {
 		const selected = document.querySelector('#custom-beat-select .custom-option.selected');
-		return selected ? parseInt(selected.getAttribute('data-value')) : 4;
+		return selected ? parseInt(selected.getAttribute('data-value'), 10) : <?php echo (int) $default_beat_value; ?>;
 	}
 	
 	function bpmToAmplitude(bpm) {
