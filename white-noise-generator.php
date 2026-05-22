@@ -822,6 +822,8 @@ get_header();
 		'cafe-blur': [-11, -11, -11, -12, -16, -20, -22, -23, -24, -24],
 		'quiet-bubble': [-129, -129, -41, -37, -129, -41, -32, -19, -19, -19],
 		'night-drift': [0, 0, 0, 0, -7, -17, -24, -34, -49, -49],
+		'deep-sleep': [-5, 0, -4, -10, -20, -32, -48, -70, -100, -100],
+		'calm-hush': [-15, -6, -3, -4, -10, -18, -29, -37, -38, -38],
 	};
 
 	const PINK_RAW = new Array(iNUMBERBANDS).fill(0.3);
@@ -850,8 +852,6 @@ get_header();
 		pink: PINK_RAW,
 		blue: blueRawStandard(),
 		violet: violetRawStandard(),
-		'deep-sleep': [0.42, 0.35, 0.26, 0.18, 0.12, 0.08, 0.06, 0.05, 0.04, 0.04],
-		'calm-hush': [0.1, 0.1, 0.11, 0.12, 0.12, 0.11, 0.1, 0.09, 0.08, 0.07]
 	};
 
 	function clampPresetLevel(lv) {
