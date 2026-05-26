@@ -107,11 +107,104 @@ get_header();
 		flex: 1 1 auto;
 		max-width: none;
 		width: 100%;
+		margin: 1rem auto 0;
 		padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
 	}
 	.white-noise-presets span.actionlink {
 		display: inline-flex;
 		align-items: center;
+	}
+}
+/* --- Three.js flowing-water background --- */
+.noise-container {
+	position: relative;
+	isolation: isolate;
+	height: 545px;
+	overflow: hidden;
+	border-radius: 18px;
+	background:
+		radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 31%),
+		linear-gradient(180deg, #eafaff 0%, #9edcec 48%, #2d94b7 100%);
+	box-shadow:
+		inset 0 0 100px rgba(255, 255, 255, 0.38),
+		inset 0 -70px 140px rgba(0, 94, 130, 0.24);
+}
+.noise-container::before,
+.noise-container::after {
+	content: '';
+	position: absolute;
+	inset: -18%;
+	z-index: 1;
+	pointer-events: none;
+}
+.noise-container::before {
+	background:
+		radial-gradient(ellipse at 22% 22%, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0) 24%),
+		radial-gradient(ellipse at 70% 74%, rgba(78, 206, 230, 0.32), rgba(78, 206, 230, 0) 36%),
+		linear-gradient(105deg, rgba(255, 255, 255, 0) 28%, rgba(255, 255, 255, 0.35) 48%, rgba(255, 255, 255, 0) 68%);
+	mix-blend-mode: screen;
+	opacity: 0.84;
+	transform: translate3d(-3%, 0, 0) rotate(-2deg);
+	animation: noiseWaterGlow 14s ease-in-out infinite alternate;
+}
+.noise-container::after {
+	background-image:
+		linear-gradient(112deg, rgba(255, 255, 255, 0) 0 38%, rgba(255, 255, 255, 0.54) 48%, rgba(255, 255, 255, 0) 58%),
+		repeating-linear-gradient(102deg, rgba(255, 255, 255, 0) 0 30px, rgba(255, 255, 255, 0.20) 35px, rgba(255, 255, 255, 0) 43px);
+	background-size: 190% 100%, 240px 100%;
+	filter: blur(0.2px);
+	opacity: 0.34;
+	animation: noiseWaterSheen 9s linear infinite;
+}
+@keyframes noiseWaterGlow {
+	from {
+		transform: translate3d(-4%, -1%, 0) rotate(-2deg) scale(1.02);
+	}
+	to {
+		transform: translate3d(4%, 2%, 0) rotate(2deg) scale(1.06);
+	}
+}
+@keyframes noiseWaterSheen {
+	from {
+		background-position: 120% 0, 0 0;
+	}
+	to {
+		background-position: -80% 0, 260px 0;
+	}
+}
+.noise-container .noise-bg-canvas {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	display: block;
+	z-index: 0;
+	opacity: 0;
+	pointer-events: none;
+	filter: saturate(1.26) contrast(1.08) brightness(1.02);
+	transition: opacity 1.25s ease;
+}
+.noise-container .noise-bg-canvas.is-ready {
+	opacity: 1;
+}
+/* Keep every interactive control above the animated background */
+.noise-container .white-noise-layout {
+	position: relative;
+	z-index: 2;
+}
+/* Frosted panel so preset text stays legible over the animated background */
+.white-noise-presets {
+	background: rgba(255, 255, 255, 0.8);
+	-webkit-backdrop-filter: blur(8px);
+	backdrop-filter: blur(8px);
+}
+.white-noise .display-info span {
+	text-shadow: 0 1px 6px rgba(255, 255, 255, 0.95);
+}
+@media (prefers-reduced-motion: reduce) {
+	.noise-container::before,
+	.noise-container::after {
+		animation: none;
 	}
 }
 </style>
@@ -238,7 +331,13 @@ get_header();
 ((q) => {
 	var b = () => {};
 
+	const setSecondaryControlsVisible = (visible) => {
+		if (!b.controlBar) return;
+		b.controlBar.classList.toggle('is-controls-visible', !!visible);
+	};
+
 	const placeButton = () => {
+		setSecondaryControlsVisible(true);
 		let num = b.btnGroup.length;
 		let space = Math.PI / (num - 1);
 		let initialTime = 180;
@@ -252,6 +351,7 @@ get_header();
 	};
 
 	const replaceButton = () => {
+		setSecondaryControlsVisible(false);
 		let num = b.btnGroup.length;
 
 		for (let i = num - 1; i >= 0; i--) {
@@ -266,12 +366,15 @@ get_header();
 	const SCHEDULE_INTERVAL = 50;
 	const fAUDIOFADETIME = 0.1;
 	const fMASTERGAIN = 0.5;
-	/** Very short master fade-in — audible within ~20–30 ms of pressing Play */
-	const PLAY_FADE_IN_S = 0.025;
+	/** Soft first-play fade-in so the fallback synth never appears as a hard burst. */
+	const PLAY_FADE_IN_S = 0.18;
 	/** Stems bus fade-in on every Play — mix is faded to 0 during Stop so the next Play is a clean swell only */
 	const STEMS_PLAY_FADE_IN_S = 0.93;
 	/** Slightly longer fade-out on Stop to avoid clicks */
 	const STOP_FADE_OUT_S = 0.35;
+	/** The instant fallback is raw synthesized noise, so keep it below the calibrated stems. */
+	const SYNTH_FALLBACK_GAIN = 0.62;
+	const SYNTH_BAND_VOICING = [0.92, 0.94, 0.92, 0.88, 0.80, 0.70, 0.56, 0.42, 0.30, 0.22];
 
 	let fileExt = '.mp3';
 	let bSUPPORTOGG = 0;
@@ -329,6 +432,8 @@ get_header();
 	let animationProfileHigh = new Array(iNUMBERBANDS).fill(0.5);
 	const ANIM_PERIOD_MS = 2500;
 	const ANIM_TWEEN_MS = 1600;
+	const ANIM_MIN_RANDOM_SPAN = 0.18;
+	const ANIM_ZERO_RANDOM_HIGH = 0.42;
 
 	let sleepTimerMinutes = -1;
 	let sleepTimerTimeout = null;
@@ -361,6 +466,10 @@ get_header();
 	function formatTimerLabel(mins) {
 		if (!mins || mins < 0) return 'Timer: Off';
 		return 'Timer: ' + mins + ' min';
+	}
+
+	function formatTimerInputValue(mins) {
+		return String(mins) + 'm';
 	}
 
 	function formatRemainingMs(ms) {
@@ -432,7 +541,7 @@ get_header();
 		input.style.maxWidth = '100px';
 		input.style.minWidth = '45px';
 		input.style.boxSizing = 'border-box';
-		input.style.padding = '6px 8px';
+		input.style.padding = '6px 2px';
 		input.style.borderRadius = '8px';
 		input.style.border = '1px solid rgba(255,255,255,0.35)';
 		input.style.background = 'rgba(0,0,0,0.15)';
@@ -541,10 +650,10 @@ get_header();
 		if (sleepTimerEndAtMs && isplaying) {
 			const remMs = Math.max(0, sleepTimerEndAtMs - Date.now());
 			const remMin = Math.ceil(remMs / (60 * 1000));
-			b.timerLabelInput.value = String(remMin);
+			b.timerLabelInput.value = formatTimerInputValue(remMin);
 			return;
 		}
-		b.timerLabelInput.value = String(sleepTimerMinutes);
+		b.timerLabelInput.value = formatTimerInputValue(sleepTimerMinutes);
 	}
 
 	function setSlidersDisabled(disabled) {
@@ -604,10 +713,23 @@ get_header();
 	}
 
 	function captureAnimationProfilesFromCurrent() {
-		// Mirror white_noise.html logic: low = 0.5x current, high = 1.25x current (clamped)
+		// Random should still move silent bands; otherwise 0 creates a locked 0..0 range.
 		for (let i = 0; i < iNUMBERBANDS; i++) {
-			animationProfileLow[i] = clamp(currentLevel[i] * 0.5, 0, LEVEL_MAX);
-			animationProfileHigh[i] = clamp(currentLevel[i] * 1.25, 0, LEVEL_MAX);
+			const level = clamp(currentLevel[i], 0, LEVEL_MAX);
+			let lo = clamp(level * 0.5, 0, LEVEL_MAX);
+			let hi = clamp(level * 1.25, 0, LEVEL_MAX);
+
+			if (level <= 0.001) {
+				lo = 0;
+				hi = clamp(ANIM_ZERO_RANDOM_HIGH, 0, LEVEL_MAX);
+			} else if (hi - lo < ANIM_MIN_RANDOM_SPAN) {
+				lo = clamp(level - ANIM_MIN_RANDOM_SPAN / 2, 0, LEVEL_MAX);
+				hi = clamp(lo + ANIM_MIN_RANDOM_SPAN, 0, LEVEL_MAX);
+				lo = clamp(hi - ANIM_MIN_RANDOM_SPAN, 0, LEVEL_MAX);
+			}
+
+			animationProfileLow[i] = lo;
+			animationProfileHigh[i] = hi;
 		}
 	}
 
@@ -1157,7 +1279,7 @@ get_header();
 				gainNode[i].gain.setTargetAtTime(g, now, fAUDIOFADETIME);
 			}
 			if (synthBandGain[i] && synthBandGain[i].gain) {
-				synthBandGain[i].gain.setTargetAtTime(g, now, fAUDIOFADETIME);
+				synthBandGain[i].gain.setTargetAtTime(g * SYNTH_BAND_VOICING[i], now, fAUDIOFADETIME);
 			}
 		}
 	}
@@ -1175,7 +1297,7 @@ get_header();
 			}
 			if (synthBandGain[i] && synthBandGain[i].gain) {
 				synthBandGain[i].gain.cancelScheduledValues(now);
-				synthBandGain[i].gain.setValueAtTime(g, now);
+				synthBandGain[i].gain.setValueAtTime(g * SYNTH_BAND_VOICING[i], now);
 			}
 		}
 	}
@@ -1283,7 +1405,11 @@ get_header();
 		synthMasterGain = context.createGain();
 		// Keep synth muted until Play sets gains (prevents “max volume” burst).
 		synthMasterGain.gain.value = 0;
-		synthMasterGain.connect(masterGain);
+		const synthTone = context.createBiquadFilter();
+		synthTone.type = 'lowpass';
+		synthTone.frequency.value = 6200;
+		synthTone.Q.value = 0.35;
+		synthMasterGain.connect(synthTone).connect(masterGain);
 
 		const freqs = [40, 80, 160, 320, 640, 1250, 2500, 5000, 10000, 14000];
 		const qVals = [0.8, 0.9, 1.0, 1.0, 1.1, 1.2, 1.3, 1.4, 1.4, 1.2];
@@ -1403,11 +1529,12 @@ get_header();
 			}
 		}
 		if (synthBandGain[idx] && synthBandGain[idx].gain) {
+			var synthG = g * SYNTH_BAND_VOICING[idx];
 			if (immediateGain) {
 				synthBandGain[idx].gain.cancelScheduledValues(t);
-				synthBandGain[idx].gain.setValueAtTime(g, t);
+				synthBandGain[idx].gain.setValueAtTime(synthG, t);
 			} else {
-				synthBandGain[idx].gain.setTargetAtTime(g, t, fAUDIOFADETIME);
+				synthBandGain[idx].gain.setTargetAtTime(synthG, t, fAUDIOFADETIME);
 			}
 		}
 	}
@@ -1478,7 +1605,7 @@ get_header();
 				if (synthMasterGain) {
 					synthMasterGain.gain.cancelScheduledValues(now);
 					synthMasterGain.gain.setValueAtTime(synthMasterGain.gain.value, now);
-					synthMasterGain.gain.linearRampToValueAtTime(1, now + PLAY_FADE_IN_S);
+					synthMasterGain.gain.linearRampToValueAtTime(SYNTH_FALLBACK_GAIN, now + PLAY_FADE_IN_S);
 				}
 				if (stemsMixGain) {
 					stemsMixGain.gain.cancelScheduledValues(now);
@@ -1539,10 +1666,42 @@ get_header();
 
 	}
 
+	function setupResponsivePresetPanel() {
+		const panel = b.presetPanel;
+		const layout = window.document.querySelector('.white-noise-layout');
+		const container = window.document.querySelector('.noise-container');
+		if (!panel || !layout || !container || !container.parentNode) return;
+
+		const mediaQuery = window.matchMedia('(max-width: 900px)');
+		const anchor = window.document.createComment('white-noise-presets-anchor');
+		layout.insertBefore(anchor, panel);
+
+		const syncPlacement = () => {
+			if (mediaQuery.matches) {
+				if (panel.parentNode !== container.parentNode || panel.previousElementSibling !== container) {
+					container.insertAdjacentElement('afterend', panel);
+				}
+				return;
+			}
+
+			if (anchor.parentNode && panel.parentNode !== layout) {
+				anchor.parentNode.insertBefore(panel, anchor.nextSibling);
+			}
+		};
+
+		syncPlacement();
+		if (mediaQuery.addEventListener) {
+			mediaQuery.addEventListener('change', syncPlacement);
+		} else {
+			mediaQuery.addListener(syncPlacement);
+		}
+	}
+
 	b.__name__ = !0;
 	b.main = () => {
 		window.addEventListener('DOMContentLoaded', function () {
 			b.check = window.document.getElementById('main-btn');
+			b.controlBar = window.document.querySelector('.control-bar');
 			b.btnGroup = window.document.querySelectorAll('.control-bar > .general');
 			b.presetPanel = window.document.getElementById('white-noise-presets');
 			b.displayInfo = window.document.querySelector('.display-info span');
@@ -1554,6 +1713,8 @@ get_header();
 			b.animateBtn = window.document.getElementById('animate');
 			b.timerBtn = window.document.getElementById('timer');
 			ensureTimerLabelUi();
+			setupResponsivePresetPanel();
+			replaceButton();
 
 			for (let i of b.sliderBar) {
 				// Ensure numeric value; default to -21 dBFS.
@@ -1642,7 +1803,7 @@ get_header();
 					if (sleepTimerMinutes > 0) {
 						b.timerBtn.setAttribute('aria-pressed', 'true');
 						showTimerLabelUi();
-						if (b.timerLabelInput) b.timerLabelInput.value = String(sleepTimerMinutes);
+						if (b.timerLabelInput) b.timerLabelInput.value = formatTimerInputValue(sleepTimerMinutes);
 						if (b.displayInfo && !animEnabled) b.displayInfo.textContent = formatTimerLabel(sleepTimerMinutes);
 						armSleepTimerIfPlaying();
 					} else {
@@ -1728,5 +1889,246 @@ get_header();
 
 	b.main();
 })('undefined' != typeof window ? window : 'undefined' != typeof global ? global : 'undefined' != typeof self ? self : this);
+</script>
+<script type="module">
+/**
+ * Procedural flowing-water background for .noise-container.
+ * A Three.js full-bleed quad draws rolling aqua waves, foam crests,
+ * pearlescent depth, and subtle caustic highlights over a cool white ground.
+ * No video, no images. Degrades silently to nothing if WebGL is unavailable.
+ */
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+(function () {
+	const container = document.querySelector('.noise-container');
+	if (!container) return;
+
+	const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+	// --- Renderer -------------------------------------------------------
+	let renderer;
+	try {
+		renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'low-power' });
+	} catch (e) {
+		// No WebGL support — the generator UI works fine without the background.
+		return;
+	}
+	renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+	const canvas = renderer.domElement;
+	canvas.className = 'noise-bg-canvas';
+	canvas.setAttribute('aria-hidden', 'true');
+	container.insertBefore(canvas, container.firstChild);
+
+	// --- Scene / camera -------------------------------------------------
+	const scene = new THREE.Scene();
+	const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
+	camera.position.z = 1;
+
+	// --- Water Pro inspired surface --------------------------------------
+	// WebGPU FFT water is not embedded here; this WebGL shader recreates the
+	// visible style with Gerstner-like swells, ripples, Fresnel, foam, and caustics.
+	const uniforms = {
+		uTime: { value: 0 },
+		uShallow: { value: new THREE.Color(0x78e4ee) },
+		uMid: { value: new THREE.Color(0x1aa4c8) },
+		uDeep: { value: new THREE.Color(0x07577c) },
+		uSky: { value: new THREE.Color(0xe8fbff) },
+		uFoam: { value: new THREE.Color(0xf8ffff) },
+		uSun: { value: new THREE.Color(0xffffff) }
+	};
+
+	const material = new THREE.ShaderMaterial({
+		uniforms: uniforms,
+		extensions: {
+			derivatives: true
+		},
+		vertexShader: `
+			varying vec2 vUv;
+			void main() {
+				vUv = uv;
+				gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+			}
+		`,
+		fragmentShader: `
+			precision highp float;
+			#define TAU 6.2831853
+			uniform float uTime;
+			uniform vec3 uShallow;
+			uniform vec3 uMid;
+			uniform vec3 uDeep;
+			uniform vec3 uSky;
+			uniform vec3 uFoam;
+			uniform vec3 uSun;
+			varying vec2 vUv;
+
+			float hash21(vec2 p) {
+				p = fract(p * vec2(127.1, 311.7));
+				p += dot(p, p + 34.13);
+				return fract(p.x * p.y);
+			}
+
+			float noise(vec2 p) {
+				vec2 i = floor(p);
+				vec2 f = fract(p);
+				f = f * f * (3.0 - 2.0 * f);
+				float a = hash21(i);
+				float b = hash21(i + vec2(1.0, 0.0));
+				float c = hash21(i + vec2(0.0, 1.0));
+				float d = hash21(i + vec2(1.0, 1.0));
+				return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+			}
+
+			float fbm(vec2 p) {
+				float v = 0.0;
+				float a = 0.52;
+				mat2 m = mat2(1.62, 1.17, -1.17, 1.62);
+				for (int i = 0; i < 5; i++) {
+					v += a * noise(p);
+					p = m * p + vec2(4.7, 2.3);
+					a *= 0.48;
+				}
+				return v;
+			}
+
+			float waveHeight(vec2 p, float t) {
+				float swell =
+					0.34 * sin(dot(p, vec2(0.62, 0.34)) * TAU * 0.72 - t * 0.46) +
+					0.22 * sin(dot(p, vec2(-0.25, 0.86)) * TAU * 1.05 + t * 0.38) +
+					0.12 * sin(dot(p, vec2(0.92, 0.12)) * TAU * 2.10 - t * 0.78);
+				float ripples = fbm(p * 3.4 + vec2(t * 0.18, -t * 0.10)) - 0.5;
+				return swell + ripples * 0.34;
+			}
+
+			vec3 waterNormal(vec2 p, float t) {
+				float e = 0.025;
+				float h = waveHeight(p, t);
+				float hx = waveHeight(p + vec2(e, 0.0), t);
+				float hy = waveHeight(p + vec2(0.0, e), t);
+				return normalize(vec3((h - hx) / e, 1.4, (h - hy) / e));
+			}
+
+			void main() {
+				float x = vUv.x;
+				float y = vUv.y;
+
+				float t = uTime;
+				float depth = smoothstep(0.0, 1.0, y);
+
+				// Stable full-frame water coordinates. Avoid a horizon split so the
+				// lower panel never stretches into vertical stripe artifacts.
+				float perspective = mix(2.45, 0.92, smoothstep(0.0, 1.0, y));
+				vec2 p = vec2((x - 0.5) * perspective * 2.15, (1.0 - y) * 2.35 + y * 0.42);
+				p += vec2(t * 0.045, -t * 0.11);
+
+				float h = waveHeight(p, t);
+				vec3 n = waterNormal(p, t);
+				vec3 viewDir = normalize(vec3(0.0, 0.78, 1.25));
+				vec3 sunDir = normalize(vec3(-0.42, 0.82, 0.35));
+				float fresnel = pow(1.0 - clamp(dot(n, viewDir), 0.0, 1.0), 3.0);
+				float spec = pow(max(dot(reflect(-sunDir, n), viewDir), 0.0), 90.0);
+
+				vec3 sky = mix(vec3(0.88, 0.98, 1.0), uSky, smoothstep(0.18, 1.0, y));
+				vec3 water = mix(uDeep, uMid, depth);
+				water = mix(water, uShallow, smoothstep(0.08, 0.88, h * 0.42 + fbm(p * 0.7)));
+				vec3 col = mix(water, sky, fresnel * 0.66);
+
+				// White breaking foam appears where the simulated surface folds sharply.
+				float steep = length(vec2(dFdx(h), dFdy(h))) * 7.5;
+				float foam = smoothstep(0.36, 0.92, steep + h * 0.28);
+				foam *= smoothstep(0.04, 0.64, y);
+				foam *= 0.62 + 0.38 * fbm(p * 6.8 + vec2(t * 0.55, -t * 0.24));
+
+				float crestLines = sin((p.x * 1.8 + h * 1.4 - t * 0.32) * TAU);
+				foam += smoothstep(0.78, 1.0, crestLines) * depth * 0.18;
+				col = mix(col, uFoam, clamp(foam, 0.0, 0.70));
+
+				// Caustic lattice and sun sparkle, strongest near the foreground.
+				float caustic =
+					sin((p.x * 3.8 + h * 1.7 + t * 0.20) * TAU) *
+					sin((p.y * 2.9 - h * 1.2 - t * 0.16) * TAU);
+				col += uShallow * smoothstep(0.62, 1.0, caustic) * depth * 0.08;
+				col += uSun * spec * 0.85;
+
+				float glitter = smoothstep(0.992, 1.0, hash21(floor((p + n.xz * 0.3) * 42.0)) + spec * 0.28);
+				col = mix(col, uFoam, glitter * depth * 0.22);
+
+				// Soft reflection keeps the water bright behind the controls.
+				float mist = smoothstep(0.34, 1.0, y);
+				col = mix(col, sky, mist * 0.30);
+				float vignette = smoothstep(1.05, 0.18, distance(vec2(x, y), vec2(0.52, 0.58)));
+				col *= 0.90 + 0.10 * vignette;
+
+				gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
+			}
+		`
+	});
+
+	const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
+	scene.add(quad);
+
+	// --- Resize ---------------------------------------------------------
+	function resize() {
+		renderer.setSize(container.clientWidth || 1, container.clientHeight || 1, false);
+	}
+	resize();
+
+	if (typeof ResizeObserver !== 'undefined') {
+		new ResizeObserver(resize).observe(container);
+	} else {
+		window.addEventListener('resize', resize);
+	}
+
+	let revealed = false;
+	function reveal() {
+		if (revealed) return;
+		revealed = true;
+		canvas.classList.add('is-ready');
+	}
+
+	// --- Render loop ----------------------------------------------------
+	const clock = new THREE.Clock();
+	let running = !reduceMotion;
+	function render() {
+		uniforms.uTime.value += clock.getDelta();
+		renderer.render(scene, camera);
+		reveal();
+		if (running) requestAnimationFrame(render);
+	}
+
+	if (reduceMotion) {
+		// Reduced motion: draw a single static frame, no animation loop.
+		renderer.render(scene, camera);
+		reveal();
+	} else {
+		requestAnimationFrame(render);
+	}
+
+	// Pause the loop while the tab is hidden to save battery.
+	document.addEventListener('visibilitychange', function () {
+		if (reduceMotion) return;
+		if (document.hidden) {
+			running = false;
+		} else if (!running) {
+			running = true;
+			clock.getDelta();
+			requestAnimationFrame(render);
+		}
+	});
+
+	// Recover gracefully from a lost WebGL context.
+	canvas.addEventListener('webglcontextlost', function (e) {
+		e.preventDefault();
+		running = false;
+	});
+	canvas.addEventListener('webglcontextrestored', function () {
+		resize();
+		if (!reduceMotion && !running) {
+			running = true;
+			clock.getDelta();
+			requestAnimationFrame(render);
+		}
+	});
+})();
 </script>
 <?php get_footer();

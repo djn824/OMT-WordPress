@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:soundcloud.com)"
+      "WebFetch(domain:soundcloud.com)",
+      "Bash(php -l white-noise-generator.php)"
     ]
   }
 }

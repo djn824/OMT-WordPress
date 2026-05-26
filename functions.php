@@ -264,6 +264,300 @@ function add_body_class($classes) {
 }
 add_filter('body_class', 'add_body_class');
 
+/**
+ * Whether the current page is Russian (Polylang or locale fallback).
+ */
+function wpb_is_russian_language() {
+    if ( function_exists( 'pll_current_language' ) ) {
+        return pll_current_language( 'slug' ) === 'ru';
+    }
+
+    $locale = get_locale();
+
+    return $locale === 'ru_RU' || strpos( $locale, 'ru_' ) === 0;
+}
+
+/**
+ * Body class for Russian pages (used by global Raleway font styles).
+ */
+function wpb_russian_body_class( $classes ) {
+    if ( wpb_is_russian_language() ) {
+        $classes[] = 'lang-ru';
+    }
+
+    return $classes;
+}
+add_filter( 'body_class', 'wpb_russian_body_class', 20 );
+
+/**
+ * Raleway on every element for Russian pages (CSS + JS for inline styles).
+ */
+function wpb_russian_raleway_styles() {
+    if ( ! wpb_is_russian_language() ) {
+        return;
+    }
+    ?>
+    <style id="wpb-russian-raleway">
+        html[lang^="ru"] body.lang-ru,
+        html[lang^="ru"] body.lang-ru *:not(.fa):not(.fas):not(.far):not(.fab):not(.fal):not([class*=" fa-"]):not([class^="fa-"]):not(.sw):not([class*="swp_"]):not(i),
+        html[lang^="ru"] body.lang-ru h1,
+        html[lang^="ru"] body.lang-ru h2,
+        html[lang^="ru"] body.lang-ru h3,
+        html[lang^="ru"] body.lang-ru h4,
+        html[lang^="ru"] body.lang-ru h5,
+        html[lang^="ru"] body.lang-ru h6,
+        html[lang^="ru"] body.lang-ru p,
+        html[lang^="ru"] body.lang-ru a,
+        html[lang^="ru"] body.lang-ru span,
+        html[lang^="ru"] body.lang-ru div,
+        html[lang^="ru"] body.lang-ru li,
+        html[lang^="ru"] body.lang-ru ul,
+        html[lang^="ru"] body.lang-ru ol,
+        html[lang^="ru"] body.lang-ru table,
+        html[lang^="ru"] body.lang-ru tr,
+        html[lang^="ru"] body.lang-ru td,
+        html[lang^="ru"] body.lang-ru th,
+        html[lang^="ru"] body.lang-ru label,
+        html[lang^="ru"] body.lang-ru input,
+        html[lang^="ru"] body.lang-ru button,
+        html[lang^="ru"] body.lang-ru select,
+        html[lang^="ru"] body.lang-ru textarea,
+        html[lang^="ru"] body.lang-ru nav,
+        html[lang^="ru"] body.lang-ru section,
+        html[lang^="ru"] body.lang-ru article,
+        html[lang^="ru"] body.lang-ru header,
+        html[lang^="ru"] body.lang-ru footer,
+        html[lang^="ru"] body.lang-ru aside,
+        html[lang^="ru"] body.lang-ru main,
+        html[lang^="ru"] body.lang-ru blockquote,
+        html[lang^="ru"] body.lang-ru pre,
+        html[lang^="ru"] body.lang-ru code,
+        html[lang^="ru"] body.lang-ru strong,
+        html[lang^="ru"] body.lang-ru em,
+        html[lang^="ru"] body.lang-ru small,
+        html[lang^="ru"] body.lang-ru figcaption,
+        html[lang^="ru"] body.lang-ru dt,
+        html[lang^="ru"] body.lang-ru dd,
+        html[lang^="ru"] body.lang-ru legend,
+        html[lang^="ru"] body.lang-ru option,
+        html[lang^="ru"] body.lang-ru svg text,
+        html[lang^="ru"] body.lang-ru svg tspan {
+            font-family: 'Raleway', sans-serif !important;
+        }
+    </style>
+    <?php
+}
+add_action( 'wp_head', 'wpb_russian_raleway_styles', 100 );
+
+/**
+ * Apply Raleway via JS so inline font-family rules are overridden on Russian pages.
+ */
+function wpb_russian_raleway_scripts() {
+    if ( ! wpb_is_russian_language() ) {
+        return;
+    }
+    ?>
+    <script id="wpb-russian-raleway-js">
+    (function () {
+        var font = "'Raleway', sans-serif";
+        var iconSelector = '.fa, .fas, .far, .fab, .fal, .sw, [class*="swp_"], [class*=" fa-"], [class^="fa-"]';
+
+        function shouldSkip(el) {
+            if (!el || el.nodeType !== 1) {
+                return true;
+            }
+            if (el.tagName === 'I' && el.closest && el.closest(iconSelector)) {
+                return true;
+            }
+            return el.closest ? !!el.closest(iconSelector) : false;
+        }
+
+        function applyRaleway(root) {
+            if (!root || shouldSkip(root)) {
+                return;
+            }
+            root.style.setProperty('font-family', font, 'important');
+            var nodes = root.querySelectorAll('*');
+            for (var i = 0; i < nodes.length; i++) {
+                var el = nodes[i];
+                if (shouldSkip(el)) {
+                    continue;
+                }
+                el.style.setProperty('font-family', font, 'important');
+            }
+            var svgText = root.querySelectorAll('svg text, svg tspan');
+            for (var j = 0; j < svgText.length; j++) {
+                if (!shouldSkip(svgText[j])) {
+                    svgText[j].setAttribute('font-family', font);
+                }
+            }
+        }
+
+        function run() {
+            if (!document.body || !document.body.classList.contains('lang-ru')) {
+                return;
+            }
+            applyRaleway(document.body);
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', run);
+        } else {
+            run();
+        }
+    })();
+    </script>
+    <?php
+}
+add_action( 'wp_footer', 'wpb_russian_raleway_scripts', 100 );
+
+/**
+ * Whether the current page is Chinese, Korean, or Japanese (Polylang or locale fallback).
+ */
+function wpb_is_cjk_language() {
+    if ( function_exists( 'pll_current_language' ) ) {
+        return in_array( pll_current_language( 'slug' ), array( 'zh', 'zh-cn', 'zh-tw', 'ko', 'ja' ), true );
+    }
+
+    $locale = get_locale();
+
+    return strpos( $locale, 'zh_' ) === 0 || strpos( $locale, 'ko_' ) === 0 || strpos( $locale, 'ja_' ) === 0;
+}
+
+/**
+ * Body class for Chinese, Korean, and Japanese pages.
+ */
+function wpb_cjk_body_class( $classes ) {
+    if ( wpb_is_cjk_language() ) {
+        $classes[] = 'lang-cjk';
+    }
+
+    return $classes;
+}
+add_filter( 'body_class', 'wpb_cjk_body_class', 20 );
+
+/**
+ * Noto Sans SC on every element for Chinese, Korean, and Japanese pages.
+ */
+function wpb_cjk_noto_sans_styles() {
+    if ( ! wpb_is_cjk_language() ) {
+        return;
+    }
+    ?>
+    <style id="wpb-cjk-noto-sans">
+        body.lang-cjk,
+        body.lang-cjk *:not(.fa):not(.fas):not(.far):not(.fab):not(.fal):not([class*=" fa-"]):not([class^="fa-"]):not(.sw):not([class*="swp_"]):not(i),
+        body.lang-cjk h1,
+        body.lang-cjk h2,
+        body.lang-cjk h3,
+        body.lang-cjk h4,
+        body.lang-cjk h5,
+        body.lang-cjk h6,
+        body.lang-cjk p,
+        body.lang-cjk a,
+        body.lang-cjk span,
+        body.lang-cjk div,
+        body.lang-cjk li,
+        body.lang-cjk ul,
+        body.lang-cjk ol,
+        body.lang-cjk table,
+        body.lang-cjk tr,
+        body.lang-cjk td,
+        body.lang-cjk th,
+        body.lang-cjk label,
+        body.lang-cjk input,
+        body.lang-cjk button,
+        body.lang-cjk select,
+        body.lang-cjk textarea,
+        body.lang-cjk nav,
+        body.lang-cjk section,
+        body.lang-cjk article,
+        body.lang-cjk header,
+        body.lang-cjk footer,
+        body.lang-cjk aside,
+        body.lang-cjk main,
+        body.lang-cjk blockquote,
+        body.lang-cjk pre,
+        body.lang-cjk code,
+        body.lang-cjk strong,
+        body.lang-cjk em,
+        body.lang-cjk small,
+        body.lang-cjk figcaption,
+        body.lang-cjk dt,
+        body.lang-cjk dd,
+        body.lang-cjk legend,
+        body.lang-cjk option,
+        body.lang-cjk svg text,
+        body.lang-cjk svg tspan {
+            font-family: "Noto Sans SC", sans-serif !important;
+        }
+    </style>
+    <?php
+}
+add_action( 'wp_head', 'wpb_cjk_noto_sans_styles', 100 );
+
+/**
+ * Apply Noto Sans SC via JS so inline font-family rules are overridden on CJK pages.
+ */
+function wpb_cjk_noto_sans_scripts() {
+    if ( ! wpb_is_cjk_language() ) {
+        return;
+    }
+    ?>
+    <script id="wpb-cjk-noto-sans-js">
+    (function () {
+        var font = '"Noto Sans SC", sans-serif';
+        var iconSelector = '.fa, .fas, .far, .fab, .fal, .sw, [class*="swp_"], [class*=" fa-"], [class^="fa-"]';
+
+        function shouldSkip(el) {
+            if (!el || el.nodeType !== 1) {
+                return true;
+            }
+            if (el.tagName === 'I' && el.closest && el.closest(iconSelector)) {
+                return true;
+            }
+            return el.closest ? !!el.closest(iconSelector) : false;
+        }
+
+        function applyNotoSans(root) {
+            if (!root || shouldSkip(root)) {
+                return;
+            }
+            root.style.setProperty('font-family', font, 'important');
+            var nodes = root.querySelectorAll('*');
+            for (var i = 0; i < nodes.length; i++) {
+                var el = nodes[i];
+                if (shouldSkip(el)) {
+                    continue;
+                }
+                el.style.setProperty('font-family', font, 'important');
+            }
+            var svgText = root.querySelectorAll('svg text, svg tspan');
+            for (var j = 0; j < svgText.length; j++) {
+                if (!shouldSkip(svgText[j])) {
+                    svgText[j].setAttribute('font-family', font);
+                }
+            }
+        }
+
+        function run() {
+            if (!document.body || !document.body.classList.contains('lang-cjk')) {
+                return;
+            }
+            applyNotoSans(document.body);
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', run);
+        } else {
+            run();
+        }
+    })();
+    </script>
+    <?php
+}
+add_action( 'wp_footer', 'wpb_cjk_noto_sans_scripts', 100 );
+
 add_action( 'wp_enqueue_scripts', 'wpb_load_scripts' );
 add_action( 'wp_enqueue_scripts', 'wpb_deque_styles', 9999 );
 add_action( 'wp_print_scripts', 'wpb_deque_scripts', 100 );
