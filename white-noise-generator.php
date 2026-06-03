@@ -140,21 +140,14 @@ get_header();
 .noise-container::before {
 	background:
 		radial-gradient(ellipse at 22% 22%, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0) 24%),
-		radial-gradient(ellipse at 70% 74%, rgba(78, 206, 230, 0.32), rgba(78, 206, 230, 0) 36%),
-		linear-gradient(105deg, rgba(255, 255, 255, 0) 28%, rgba(255, 255, 255, 0.35) 48%, rgba(255, 255, 255, 0) 68%);
+		radial-gradient(ellipse at 70% 74%, rgba(78, 206, 230, 0.32), rgba(78, 206, 230, 0) 36%);
 	mix-blend-mode: screen;
 	opacity: 0.84;
 	transform: translate3d(-3%, 0, 0) rotate(-2deg);
 	animation: noiseWaterGlow 14s ease-in-out infinite alternate;
 }
 .noise-container::after {
-	background-image:
-		linear-gradient(112deg, rgba(255, 255, 255, 0) 0 38%, rgba(255, 255, 255, 0.54) 48%, rgba(255, 255, 255, 0) 58%),
-		repeating-linear-gradient(102deg, rgba(255, 255, 255, 0) 0 30px, rgba(255, 255, 255, 0.20) 35px, rgba(255, 255, 255, 0) 43px);
-	background-size: 190% 100%, 240px 100%;
-	filter: blur(0.2px);
-	opacity: 0.34;
-	animation: noiseWaterSheen 9s linear infinite;
+	display: none;
 }
 @keyframes noiseWaterGlow {
 	from {
@@ -164,13 +157,8 @@ get_header();
 		transform: translate3d(4%, 2%, 0) rotate(2deg) scale(1.06);
 	}
 }
-@keyframes noiseWaterSheen {
-	from {
-		background-position: 120% 0, 0 0;
-	}
-	to {
-		background-position: -80% 0, 260px 0;
-	}
+.noise-container:not(.is-playing)::before {
+	animation-play-state: paused;
 }
 .noise-container .noise-bg-canvas {
 	position: absolute;
@@ -201,9 +189,24 @@ get_header();
 .white-noise .display-info span {
 	text-shadow: 0 1px 6px rgba(255, 255, 255, 0.95);
 }
+.timer-label.is-running input {
+	animation: timerPulse 1.4s ease-in-out infinite;
+}
+@keyframes timerPulse {
+	0%,
+	100% {
+		box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.28);
+		transform: scale(1);
+	}
+	50% {
+		box-shadow: 0 0 0 5px rgba(255, 255, 255, 0);
+		transform: scale(1.045);
+	}
+}
 @media (prefers-reduced-motion: reduce) {
 	.noise-container::before,
-	.noise-container::after {
+	.noise-container::after,
+	.timer-label.is-running input {
 		animation: none;
 	}
 }
@@ -409,6 +412,9 @@ get_header();
 	let engineReady = false;
 	let stemsStarted = false;
 	let isplaying = false;
+	window.__whiteNoiseIsPlaying = false;
+	/** Precomputed motion from slider dB (amp, speed, ripple, narrow, rough, focusX). */
+	window.__whiteNoiseWaterMotion = null;
 
 	/** Slider represents linear level 0..0.99 (like white_noise.html). */
 	const LEVEL_MAX = 0.99;
@@ -461,6 +467,7 @@ get_header();
 			sleepTimerRemainingInterval = null;
 		}
 		sleepTimerEndAtMs = null;
+		setTimerPulseActive(false);
 	}
 
 	function formatTimerLabel(mins) {
@@ -470,6 +477,11 @@ get_header();
 
 	function formatTimerInputValue(mins) {
 		return String(mins) + 'm';
+	}
+
+	function setTimerPulseActive(active) {
+		if (!b.timerLabelWrap) return;
+		b.timerLabelWrap.classList.toggle('is-running', !!active);
 	}
 
 	function formatRemainingMs(ms) {
@@ -682,6 +694,7 @@ get_header();
 		if (!isplaying || !engineReady) return;
 		if (!sleepTimerMinutes || sleepTimerMinutes < 0) return;
 		sleepTimerEndAtMs = Date.now() + sleepTimerMinutes * 60 * 1000;
+		setTimerPulseActive(true);
 		sleepTimerRemainingInterval = setInterval(() => {
 			updateTimerLabelUi();
 		}, 250);
@@ -948,6 +961,27 @@ get_header();
 		'calm-hush': [-15, -6, -3, -4, -10, -18, -29, -37, -38, -38],
 	};
 
+	/** Per-slider wave routing from band position: bass swell, rising speed, treble narrow/ripple. */
+	function buildBandIndexWaterWeights() {
+		const amp = new Float32Array(iNUMBERBANDS);
+		const speed = new Float32Array(iNUMBERBANDS);
+		const ripple = new Float32Array(iNUMBERBANDS);
+		const narrow = new Float32Array(iNUMBERBANDS);
+		const rough = new Float32Array(iNUMBERBANDS);
+		for (let i = 0; i < iNUMBERBANDS; i++) {
+			const t = i / (iNUMBERBANDS - 1);
+			amp[i] = t < 0.38 ? 1.05 - t * 0.22 : -(0.42 + (t - 0.38) * 1.15);
+			speed[i] = 0.08 + Math.pow(t, 0.82) * 0.92;
+			ripple[i] = 0.55 + t * 0.45;
+			narrow[i] = Math.pow(t, 1.15);
+			rough[i] = 0.22 + t * 0.62;
+		}
+		return { amp: amp, speed: speed, ripple: ripple, narrow: narrow, rough: rough };
+	}
+
+	const DEFAULT_WATER_BAND_WEIGHTS = buildBandIndexWaterWeights();
+	window.__whiteNoiseDefaultWaterBandWeights = DEFAULT_WATER_BAND_WEIGHTS;
+
 	const PINK_RAW = new Array(iNUMBERBANDS).fill(0.3);
 
 	/** Blue noise: +3 dB/oct power (amplitude ~ sqrt(Hz)); matches common web blue-noise generators. */
@@ -1014,6 +1048,7 @@ get_header();
 			activeButton.classList.add('is-active');
 			activeButton.setAttribute('aria-pressed', 'true');
 		}
+		publishWaterBandLevels();
 		if (b.displayInfo && !animEnabled) {
 			b.displayInfo.textContent = displayLabel;
 		}
@@ -1272,6 +1307,7 @@ get_header();
 		if (!engineReady) {
 			return;
 		}
+		publishWaterBandLevels();
 		var now = context.currentTime;
 		for (let i = 0; i < iNUMBERBANDS; ++i) {
 			const g = Math.pow(currentLevel[i], 3);
@@ -1288,6 +1324,7 @@ get_header();
 		if (!engineReady) {
 			return;
 		}
+		publishWaterBandLevels();
 		var now = context.currentTime;
 		for (let i = 0; i < iNUMBERBANDS; ++i) {
 			const g = Math.pow(currentLevel[i], 3);
@@ -1333,6 +1370,107 @@ get_header();
 		if (!level || level <= 0) return DB_FLOOR;
 		return 26 * Math.log(level);
 	}
+
+	function waterDbResponse(db) {
+		const clamped = clamp(db, -60, 0);
+		const t = clamp((clamped + 58) / 50, 0, 1);
+		const smooth = t * t * (3 - 2 * t);
+		return Math.pow(smooth, 0.72);
+	}
+
+	function waterRegionEnergy(dbArr, from, to) {
+		let sum = 0;
+		for (let i = from; i <= to; i++) {
+			sum += waterDbResponse(dbArr[i]);
+		}
+		return sum / (to - from + 1);
+	}
+
+	/** Weighted blend: each slider contributes by its level × band-index weight. */
+	function waterSliderBlend(weights, bandE) {
+		let num = 0;
+		let den = 0;
+		for (let i = 0; i < iNUMBERBANDS; i++) {
+			const e = bandE[i];
+			if (e < 0.001) {
+				continue;
+			}
+			const w = weights[i];
+			num += w < 0 ? (1 - e) * Math.abs(w) : w * e;
+			den += e;
+		}
+		return den > 0.001 ? clamp(num / den, 0, 1) : 0;
+	}
+
+	/** Motion derived only from live slider dB levels (each band weighted by index). */
+	function computeWaterMotionState() {
+		const dbArr = window.__whiteNoiseBandDbLevels;
+		if (!dbArr || dbArr.length !== iNUMBERBANDS) {
+			return null;
+		}
+		const weights = window.__whiteNoiseDefaultWaterBandWeights;
+		if (!weights) {
+			return null;
+		}
+
+		const bandE = new Array(iNUMBERBANDS);
+		let totalE = 0;
+		let centroid = 0;
+		for (let i = 0; i < iNUMBERBANDS; i++) {
+			bandE[i] = waterDbResponse(dbArr[i]);
+			totalE += bandE[i];
+			centroid += bandE[i] * (i / (iNUMBERBANDS - 1));
+		}
+		totalE = Math.max(totalE, 0.001);
+		centroid /= totalE;
+
+		const bassE = waterRegionEnergy(dbArr, 0, 3);
+		const midE = waterRegionEnergy(dbArr, 4, 6);
+		const trebleE = waterRegionEnergy(dbArr, 7, 9);
+
+		let amp = waterSliderBlend(weights.amp, bandE);
+		let speed = waterSliderBlend(weights.speed, bandE);
+		let ripple = waterSliderBlend(weights.ripple, bandE);
+		let narrow = waterSliderBlend(weights.narrow, bandE);
+		const roughBase = waterSliderBlend(weights.rough, bandE);
+
+		amp = clamp(amp + bassE * 0.22, 0.04, 1);
+		narrow = clamp(narrow * (1 - bassE * 0.38), 0, 1);
+		speed = clamp(speed * (0.22 + centroid * 1.05), 0, 1);
+		speed = clamp(speed + trebleE * 0.18 * (1 - bassE * 0.55), 0, 1);
+		speed = clamp(speed + midE * 0.14, 0, 1);
+		narrow = clamp(narrow + trebleE * 0.12 * (1 - bassE * 0.45), 0, 1);
+		let rough = clamp(roughBase * ripple * (0.32 + Math.min(bassE, midE) * 0.5), 0, 1);
+		rough = clamp(rough + midE * 0.08, 0, 1);
+		const chop = rough;
+
+		// Energy-weighted band index → horizontal vanishing point (bass left, treble right).
+		const focusX = clamp(0.22 + centroid * 0.56, 0.18, 0.82);
+
+		return {
+			amp: amp,
+			speed: speed,
+			ripple: ripple,
+			narrow: clamp(narrow, 0, 1),
+			rough: rough,
+			chop: chop,
+			focusX: focusX,
+			bassE: bassE,
+			midE: midE,
+			trebleE: trebleE,
+		};
+	}
+
+	function publishWaterBandLevels() {
+		const out = new Array(iNUMBERBANDS);
+		for (let i = 0; i < iNUMBERBANDS; i++) {
+			const db = levelToDb(currentLevel[i]);
+			out[i] = clamp(db, -60, 0);
+		}
+		window.__whiteNoiseBandDbLevels = out;
+		window.__whiteNoiseWaterMotion = computeWaterMotionState();
+	}
+	publishWaterBandLevels();
 
 	function dbfsToLevel(db) {
 		if (!isFinite(db) || db <= DB_FLOOR) {
@@ -1509,6 +1647,7 @@ get_header();
 		}
 		var level = sliderToLevel(sliderEl);
 		currentLevel[idx] = level;
+		publishWaterBandLevels();
 		var db = Math.round(levelToDb(level));
 		var info = sliderEl.name + ': ' + db.toLocaleString() + ' dBFS';
 		// When animation is enabled, keep the display locked to "Animation: On"
@@ -1553,6 +1692,12 @@ get_header();
 		}
 	}
 
+	function syncWaterBackgroundPlayback() {
+		const container = window.document.querySelector('.noise-container');
+		if (!container) return;
+		container.classList.toggle('is-playing', !!isplaying);
+	}
+
 	function playNoise() {
 		if (!engineReady) {
 			return;
@@ -1566,6 +1711,8 @@ get_header();
 		// Flip state immediately so UI animations stay in sync with user intent.
 		// Audio start is async (AudioContext.resume), but the button/animation should not lag.
 		isplaying = true;
+		window.__whiteNoiseIsPlaying = true;
+		syncWaterBackgroundPlayback();
 
 		function beginPlayback() {
 			if (!isplaying) {
@@ -1620,6 +1767,8 @@ get_header();
 		void Promise.resolve(context.resume()).then(beginPlayback, function () {
 			// If resume fails, revert UI state.
 			isplaying = false;
+			window.__whiteNoiseIsPlaying = false;
+			syncWaterBackgroundPlayback();
 		});
 
 		// Resume animation (if enabled) when audio starts.
@@ -1630,6 +1779,8 @@ get_header();
 	function stopNoise() {
 		// Flip state immediately so UI animations stay in sync with user intent.
 		isplaying = false;
+		window.__whiteNoiseIsPlaying = false;
+		syncWaterBackgroundPlayback();
 		// Pause animation when audio is paused/stopped, but keep enabled state.
 		syncAnimationToPlaybackState();
 		clearSleepTimer();
@@ -1928,8 +2079,23 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 	// --- Water Pro inspired surface --------------------------------------
 	// WebGPU FFT water is not embedded here; this WebGL shader recreates the
 	// visible style with Gerstner-like swells, ripples, Fresnel, foam, and caustics.
+	const BAND_COUNT = 10;
+	const WATER_DB_FLOOR = -60;
+	const bandDbLevels = new Float32Array(BAND_COUNT).fill(WATER_DB_FLOOR);
+	const smoothedBandDbLevels = new Float32Array(BAND_COUNT).fill(WATER_DB_FLOOR);
+	const ZERO_WATER_MOTION = { amp: 0.04, speed: 0, ripple: 0.02, narrow: 0.1, rough: 0.04, chop: 0.03, focusX: 0.5 };
 	const uniforms = {
 		uTime: { value: 0 },
+		uBandDb: { value: smoothedBandDbLevels },
+		uAudioEnergy: { value: 0 },
+		uMotionAmp: { value: ZERO_WATER_MOTION.amp },
+		uMotionSpeed: { value: ZERO_WATER_MOTION.speed },
+		uMotionRipple: { value: ZERO_WATER_MOTION.ripple },
+		uNarrow: { value: ZERO_WATER_MOTION.narrow },
+		uRough: { value: ZERO_WATER_MOTION.rough },
+		uChop: { value: ZERO_WATER_MOTION.chop },
+		uFocusX: { value: ZERO_WATER_MOTION.focusX },
+		uFlowMix: { value: 0 },
 		uShallow: { value: new THREE.Color(0x78e4ee) },
 		uMid: { value: new THREE.Color(0x1aa4c8) },
 		uDeep: { value: new THREE.Color(0x07577c) },
@@ -1953,7 +2119,18 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 		fragmentShader: `
 			precision highp float;
 			#define TAU 6.2831853
+			#define BAND_COUNT ${BAND_COUNT}
 			uniform float uTime;
+			uniform float uBandDb[BAND_COUNT];
+			uniform float uAudioEnergy;
+			uniform float uMotionAmp;
+			uniform float uMotionSpeed;
+			uniform float uMotionRipple;
+			uniform float uNarrow;
+			uniform float uRough;
+			uniform float uChop;
+			uniform float uFocusX;
+			uniform float uFlowMix;
 			uniform vec3 uShallow;
 			uniform vec3 uMid;
 			uniform vec3 uDeep;
@@ -1991,20 +2168,33 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 				return v;
 			}
 
-			float waveHeight(vec2 p, float t) {
+			float waveHeight(vec2 p, float t, float waveAmp, float waveSpeed, float rippleEnergy, float energy, float narrow, float rough, float chop) {
+				float swellWide = 1.0 + (1.0 - narrow) * 0.85;
+				float swellFreq = (0.52 + narrow * 1.35) / swellWide;
+				float swellAmp = (0.06 + 0.92 * waveAmp) * swellWide;
+				float motion = 0.06 + 1.85 * waveSpeed;
+				float rippleScale = 1.6 + 5.2 * rippleEnergy + narrow * 2.4;
+				float rippleAmp = (0.04 + 0.64 * rippleEnergy) * (0.75 + rough * 0.55 + chop * 0.35);
 				float swell =
-					0.34 * sin(dot(p, vec2(0.62, 0.34)) * TAU * 0.72 - t * 0.46) +
-					0.22 * sin(dot(p, vec2(-0.25, 0.86)) * TAU * 1.05 + t * 0.38) +
-					0.12 * sin(dot(p, vec2(0.92, 0.12)) * TAU * 2.10 - t * 0.78);
-				float ripples = fbm(p * 3.4 + vec2(t * 0.18, -t * 0.10)) - 0.5;
-				return swell + ripples * 0.34;
+					swellAmp * sin(dot(p, vec2(0.62, 0.34)) * TAU * swellFreq - t * motion) +
+					(0.03 + 0.5 * waveAmp) * sin(dot(p, vec2(-0.25, 0.86)) * TAU * (1.02 + narrow * 0.55) + t * (0.06 + motion * 0.78)) +
+					(0.02 + 0.24 * energy) * sin(dot(p, vec2(0.92, 0.12)) * TAU * (1.85 + narrow * 1.1) - t * (0.1 + motion * 0.92));
+				vec2 rippleUv = p * rippleScale + vec2(
+					t * (0.03 + waveSpeed * 0.68 + chop * 0.22),
+					-t * (0.02 + rippleEnergy * 0.48 + rough * 0.18)
+				);
+				float ripples = fbm(rippleUv) - 0.5;
+				if (rough > 0.35) {
+					ripples += 0.22 * rough * (fbm(rippleUv * 2.15 + vec2(t * 0.18, -t * 0.12)) - 0.5);
+				}
+				return swell + ripples * rippleAmp;
 			}
 
-			vec3 waterNormal(vec2 p, float t) {
+			vec3 waterNormal(vec2 p, float t, float waveAmp, float waveSpeed, float rippleEnergy, float energy, float narrow, float rough, float chop) {
 				float e = 0.025;
-				float h = waveHeight(p, t);
-				float hx = waveHeight(p + vec2(e, 0.0), t);
-				float hy = waveHeight(p + vec2(0.0, e), t);
+				float h = waveHeight(p, t, waveAmp, waveSpeed, rippleEnergy, energy, narrow, rough, chop);
+				float hx = waveHeight(p + vec2(e, 0.0), t, waveAmp, waveSpeed, rippleEnergy, energy, narrow, rough, chop);
+				float hy = waveHeight(p + vec2(0.0, e), t, waveAmp, waveSpeed, rippleEnergy, energy, narrow, rough, chop);
 				return normalize(vec3((h - hx) / e, 1.4, (h - hy) / e));
 			}
 
@@ -2014,15 +2204,24 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 
 				float t = uTime;
 				float depth = smoothstep(0.0, 1.0, y);
+				float ampControl = clamp(uMotionAmp, 0.04, 1.0);
+				float speedControl = clamp(uMotionSpeed, 0.0, 1.0);
+				float rippleControl = clamp(uMotionRipple, 0.0, 1.0);
+				float narrow = clamp(uNarrow, 0.0, 1.0);
+				float rough = clamp(uRough, 0.0, 1.0);
+				float chop = clamp(uChop, 0.0, 1.0);
+				float energy = clamp(uAudioEnergy, 0.0, 1.0);
+				float flow = clamp(uFlowMix, 0.0, 1.0);
 
 				// Stable full-frame water coordinates. Avoid a horizon split so the
 				// lower panel never stretches into vertical stripe artifacts.
-				float perspective = mix(2.45, 0.92, smoothstep(0.0, 1.0, y));
-				vec2 p = vec2((x - 0.5) * perspective * 2.15, (1.0 - y) * 2.35 + y * 0.42);
-				p += vec2(t * 0.045, -t * 0.11);
+				float focusX = clamp(uFocusX, 0.18, 0.82);
+				float perspective = mix(2.08 + ampControl * 0.76, 0.92, smoothstep(0.0, 1.0, y));
+				vec2 p = vec2((x - focusX) * perspective * 2.15, (1.0 - y) * 2.35 + y * 0.42);
+				p += vec2(t * (0.010 + speedControl * 0.18), -t * (0.028 + speedControl * 0.28));
 
-				float h = waveHeight(p, t);
-				vec3 n = waterNormal(p, t);
+				float h = waveHeight(p, t, ampControl, speedControl, rippleControl, energy, narrow, rough, chop);
+				vec3 n = waterNormal(p, t, ampControl, speedControl, rippleControl, energy, narrow, rough, chop);
 				vec3 viewDir = normalize(vec3(0.0, 0.78, 1.25));
 				vec3 sunDir = normalize(vec3(-0.42, 0.82, 0.35));
 				float fresnel = pow(1.0 - clamp(dot(n, viewDir), 0.0, 1.0), 3.0);
@@ -2035,28 +2234,27 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 
 				// White breaking foam appears where the simulated surface folds sharply.
 				float steep = length(vec2(dFdx(h), dFdy(h))) * 7.5;
-				float foam = smoothstep(0.36, 0.92, steep + h * 0.28);
+				float foam = smoothstep(0.30, 0.82, steep + h * (0.09 + energy * 0.44));
 				foam *= smoothstep(0.04, 0.64, y);
-				foam *= 0.62 + 0.38 * fbm(p * 6.8 + vec2(t * 0.55, -t * 0.24));
+				foam *= 0.38 + 0.62 * fbm(p * (4.2 + rippleControl * 5.0 + rough * 3.5) + vec2(t * (0.12 + speedControl * 1.05 + chop * 0.35), -t * 0.24));
+				foam *= flow;
 
-				float crestLines = sin((p.x * 1.8 + h * 1.4 - t * 0.32) * TAU);
-				foam += smoothstep(0.78, 1.0, crestLines) * depth * 0.18;
 				col = mix(col, uFoam, clamp(foam, 0.0, 0.70));
 
 				// Caustic lattice and sun sparkle, strongest near the foreground.
 				float caustic =
-					sin((p.x * 3.8 + h * 1.7 + t * 0.20) * TAU) *
-					sin((p.y * 2.9 - h * 1.2 - t * 0.16) * TAU);
-				col += uShallow * smoothstep(0.62, 1.0, caustic) * depth * 0.08;
-				col += uSun * spec * 0.85;
+					sin((p.x * (2.4 + rippleControl * 3.2) + h * 1.7 + t * (0.045 + speedControl * 0.44)) * TAU) *
+					sin((p.y * 2.9 - h * 1.2 - t * (0.035 + speedControl * 0.36)) * TAU);
+				col += uShallow * smoothstep(0.56, 1.0, caustic) * depth * (0.025 + rippleControl * 0.19) * flow;
+				col += uSun * spec * (0.22 + energy * 1.05) * flow;
 
 				float glitter = smoothstep(0.992, 1.0, hash21(floor((p + n.xz * 0.3) * 42.0)) + spec * 0.28);
-				col = mix(col, uFoam, glitter * depth * 0.22);
+				col = mix(col, uFoam, glitter * depth * (0.04 + rippleControl * 0.50) * flow);
 
 				// Soft reflection keeps the water bright behind the controls.
 				float mist = smoothstep(0.34, 1.0, y);
 				col = mix(col, sky, mist * 0.30);
-				float vignette = smoothstep(1.05, 0.18, distance(vec2(x, y), vec2(0.52, 0.58)));
+				float vignette = smoothstep(1.05, 0.18, distance(vec2(x, y), vec2(focusX, 0.58)));
 				col *= 0.90 + 0.10 * vignette;
 
 				gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
@@ -2089,8 +2287,70 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 	// --- Render loop ----------------------------------------------------
 	const clock = new THREE.Clock();
 	let running = !reduceMotion;
+	let flowActivity = 0;
+	const WATER_FLOW_ATTACK_S = 0.18;
+	const WATER_FLOW_RELEASE_S = 0.28;
+	function easeToward(current, target, dt, timeConstant) {
+		const tc = Math.max(0.0001, timeConstant || 0.0001);
+		const alpha = 1 - Math.exp(-dt / tc);
+		return current + (target - current) * alpha;
+	}
+	function dbToVisualResponse(db) {
+		return Math.min(1, Math.max(0, (db + 54) / 48));
+	}
+	function updateWaterAudioUniforms(flowMix) {
+		const source = window.__whiteNoiseBandDbLevels;
+		let energy = 0;
+		for (let i = 0; i < BAND_COUNT; i++) {
+			const rawTarget = source && Number.isFinite(source[i]) ? source[i] : bandDbLevels[i];
+			const gatedTarget = WATER_DB_FLOOR + (rawTarget - WATER_DB_FLOOR) * flowMix;
+			bandDbLevels[i] = gatedTarget;
+			smoothedBandDbLevels[i] += (gatedTarget - smoothedBandDbLevels[i]) * 0.08;
+			energy += dbToVisualResponse(smoothedBandDbLevels[i]);
+		}
+		uniforms.uAudioEnergy.value += (energy / BAND_COUNT - uniforms.uAudioEnergy.value) * 0.08;
+	}
+	const motionSmooth = { ...ZERO_WATER_MOTION };
+	function lerpWaterMotion(from, to, t) {
+		const mix = Math.min(1, Math.max(0, t));
+		return {
+			amp: from.amp + (to.amp - from.amp) * mix,
+			speed: from.speed + (to.speed - from.speed) * mix,
+			ripple: from.ripple + (to.ripple - from.ripple) * mix,
+			narrow: from.narrow + (to.narrow - from.narrow) * mix,
+			rough: from.rough + (to.rough - from.rough) * mix,
+			chop: from.chop + (to.chop - from.chop) * mix,
+			focusX: from.focusX + (to.focusX - from.focusX) * mix,
+		};
+	}
+	function updateWaterMotionUniforms(dt, flowMix) {
+		const live = window.__whiteNoiseWaterMotion || ZERO_WATER_MOTION;
+		const target = lerpWaterMotion(ZERO_WATER_MOTION, live, flowMix);
+		const alpha = 1 - Math.exp(-(dt || 0.016) / (flowMix > 0.01 ? 0.14 : 0.08));
+		motionSmooth.amp += (target.amp - motionSmooth.amp) * alpha;
+		motionSmooth.speed += (target.speed - motionSmooth.speed) * alpha;
+		motionSmooth.ripple += (target.ripple - motionSmooth.ripple) * alpha;
+		motionSmooth.narrow += (target.narrow - motionSmooth.narrow) * alpha;
+		motionSmooth.rough += (target.rough - motionSmooth.rough) * alpha;
+		motionSmooth.chop += (target.chop - motionSmooth.chop) * alpha;
+		motionSmooth.focusX += (target.focusX - motionSmooth.focusX) * alpha;
+		uniforms.uMotionAmp.value = motionSmooth.amp;
+		uniforms.uMotionSpeed.value = motionSmooth.speed;
+		uniforms.uMotionRipple.value = motionSmooth.ripple;
+		uniforms.uNarrow.value = motionSmooth.narrow;
+		uniforms.uRough.value = motionSmooth.rough;
+		uniforms.uChop.value = motionSmooth.chop;
+		uniforms.uFocusX.value = motionSmooth.focusX;
+	}
 	function render() {
-		uniforms.uTime.value += clock.getDelta();
+		const dt = clock.getDelta();
+		const shouldFlow = !!window.__whiteNoiseIsPlaying;
+		const tc = shouldFlow ? WATER_FLOW_ATTACK_S : WATER_FLOW_RELEASE_S;
+		flowActivity = easeToward(flowActivity, shouldFlow ? 1 : 0, dt, tc);
+		uniforms.uFlowMix.value = flowActivity;
+		uniforms.uTime.value += dt * flowActivity;
+		updateWaterAudioUniforms(flowActivity);
+		updateWaterMotionUniforms(dt, flowActivity);
 		renderer.render(scene, camera);
 		reveal();
 		if (running) requestAnimationFrame(render);
@@ -2098,6 +2358,9 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 
 	if (reduceMotion) {
 		// Reduced motion: draw a single static frame, no animation loop.
+		uniforms.uFlowMix.value = 0;
+		updateWaterAudioUniforms(0);
+		updateWaterMotionUniforms(0.016, 0);
 		renderer.render(scene, camera);
 		reveal();
 	} else {
