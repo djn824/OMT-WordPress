@@ -1049,6 +1049,9 @@ get_header();
 			activeButton.setAttribute('aria-pressed', 'true');
 		}
 		publishWaterBandLevels();
+		// Preset/chip change: let the water jump straight to the new shape (manual slider
+		// drags leave this clear so they ease in gradually instead).
+		window.__whiteNoiseWaterMotionSnap = true;
 		if (b.displayInfo && !animEnabled) {
 			b.displayInfo.textContent = displayLabel;
 		}
@@ -1421,8 +1424,10 @@ get_header();
 			totalE += bandE[i];
 			centroid += bandE[i] * (i / (iNUMBERBANDS - 1));
 		}
+		// With effectively no energy, leave the centroid at the centre so the funnel
+		// stays mid-frame instead of snapping to an edge once amplified below.
+		centroid = totalE > 0.01 ? centroid / totalE : 0.5;
 		totalE = Math.max(totalE, 0.001);
-		centroid /= totalE;
 
 		const bassE = waterRegionEnergy(dbArr, 0, 3);
 		const midE = waterRegionEnergy(dbArr, 4, 6);
@@ -1445,7 +1450,19 @@ get_header();
 		const chop = rough;
 
 		// Energy-weighted band index → horizontal vanishing point (bass left, treble right).
-		const focusX = clamp(0.22 + centroid * 0.56, 0.18, 0.82);
+		// The raw centroid clusters tightly around 0.5 for most presets (every audible band
+		// contributes), so amplify its deviation from centre and spread it across a wider
+		// horizontal range. This makes the funnel/vanishing point visibly track the spectral
+		// balance and drift as the sliders (or Random) move, instead of sitting mid-frame.
+		const FOCUS_SPREAD_GAIN = 2.35;
+		const centroidSpread = clamp(0.5 + (centroid - 0.5) * FOCUS_SPREAD_GAIN, 0, 1);
+		const focusX = clamp(0.18 + centroidSpread * 0.64, 0.18, 0.82);
+
+		// Horizontal flow direction from the same spectral balance: -1 = water flows
+		// toward the left (bass-heavy), +1 = toward the right (treble-heavy), 0 = neutral
+		// (waves fall straight down). Shares the amplified centroid so the funnel point
+		// and the flow direction always agree.
+		const flowDir = clamp((centroidSpread - 0.5) * 2, -1, 1);
 
 		return {
 			amp: amp,
@@ -1455,6 +1472,7 @@ get_header();
 			rough: rough,
 			chop: chop,
 			focusX: focusX,
+			flowDir: flowDir,
 			bassE: bassE,
 			midE: midE,
 			trebleE: trebleE,
@@ -2083,7 +2101,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 	const WATER_DB_FLOOR = -60;
 	const bandDbLevels = new Float32Array(BAND_COUNT).fill(WATER_DB_FLOOR);
 	const smoothedBandDbLevels = new Float32Array(BAND_COUNT).fill(WATER_DB_FLOOR);
-	const ZERO_WATER_MOTION = { amp: 0.04, speed: 0, ripple: 0.02, narrow: 0.1, rough: 0.04, chop: 0.03, focusX: 0.5 };
+	const ZERO_WATER_MOTION = { amp: 0.04, speed: 0, ripple: 0.02, narrow: 0.1, rough: 0.04, chop: 0.03, focusX: 0.5, flowDir: 0 };
 	const uniforms = {
 		uTime: { value: 0 },
 		uBandDb: { value: smoothedBandDbLevels },
@@ -2095,6 +2113,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 		uRough: { value: ZERO_WATER_MOTION.rough },
 		uChop: { value: ZERO_WATER_MOTION.chop },
 		uFocusX: { value: ZERO_WATER_MOTION.focusX },
+		uFlowDir: { value: ZERO_WATER_MOTION.flowDir },
 		uFlowMix: { value: 0 },
 		uShallow: { value: new THREE.Color(0x78e4ee) },
 		uMid: { value: new THREE.Color(0x1aa4c8) },
@@ -2130,6 +2149,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 			uniform float uRough;
 			uniform float uChop;
 			uniform float uFocusX;
+			uniform float uFlowDir;
 			uniform float uFlowMix;
 			uniform vec3 uShallow;
 			uniform vec3 uMid;
@@ -2216,9 +2236,18 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 				// Stable full-frame water coordinates. Avoid a horizon split so the
 				// lower panel never stretches into vertical stripe artifacts.
 				float focusX = clamp(uFocusX, 0.18, 0.82);
+				float flowDir = clamp(uFlowDir, -1.0, 1.0);
 				float perspective = mix(2.08 + ampControl * 0.76, 0.92, smoothstep(0.0, 1.0, y));
 				vec2 p = vec2((x - focusX) * perspective * 2.15, (1.0 - y) * 2.35 + y * 0.42);
-				p += vec2(t * (0.010 + speedControl * 0.18), -t * (0.028 + speedControl * 0.28));
+				// Horizontal flow follows the spectral balance: bass-heavy (flowDir < 0)
+				// scrolls the field so the water visibly travels left, treble-heavy travels
+				// right. Sampling-offset sign is inverted because shifting the lookup point
+				// +x makes the pattern appear to move -x on screen.
+				// Driven purely by flowDir so left and right are symmetric — a constant
+				// horizontal bias here would cancel the rightward flow while doubling the
+				// leftward one. Balanced spectrum => no sideways drift, water falls straight.
+				float sideDrift = -flowDir * t * (0.04 + speedControl * 0.28);
+				p += vec2(sideDrift, -t * (0.028 + speedControl * 0.28));
 
 				float h = waveHeight(p, t, ampControl, speedControl, rippleControl, energy, narrow, rough, chop);
 				vec3 n = waterNormal(p, t, ampControl, speedControl, rippleControl, energy, narrow, rough, chop);
@@ -2298,19 +2327,32 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 	function dbToVisualResponse(db) {
 		return Math.min(1, Math.max(0, (db + 54) / 48));
 	}
-	function updateWaterAudioUniforms(flowMix) {
+	function updateWaterAudioUniforms(flowMix, snap) {
 		const source = window.__whiteNoiseBandDbLevels;
 		let energy = 0;
 		for (let i = 0; i < BAND_COUNT; i++) {
 			const rawTarget = source && Number.isFinite(source[i]) ? source[i] : bandDbLevels[i];
 			const gatedTarget = WATER_DB_FLOOR + (rawTarget - WATER_DB_FLOOR) * flowMix;
 			bandDbLevels[i] = gatedTarget;
-			smoothedBandDbLevels[i] += (gatedTarget - smoothedBandDbLevels[i]) * 0.08;
+			// snap = preset/chip change: jump straight to the new shape. Otherwise ease.
+			if (snap) {
+				smoothedBandDbLevels[i] = gatedTarget;
+			} else {
+				smoothedBandDbLevels[i] += (gatedTarget - smoothedBandDbLevels[i]) * 0.08;
+			}
 			energy += dbToVisualResponse(smoothedBandDbLevels[i]);
 		}
-		uniforms.uAudioEnergy.value += (energy / BAND_COUNT - uniforms.uAudioEnergy.value) * 0.08;
+		const energyTarget = energy / BAND_COUNT;
+		if (snap) {
+			uniforms.uAudioEnergy.value = energyTarget;
+		} else {
+			uniforms.uAudioEnergy.value += (energyTarget - uniforms.uAudioEnergy.value) * 0.08;
+		}
 	}
-	const motionSmooth = { ...ZERO_WATER_MOTION };
+	// liveSmooth = the slider-driven wave shape, damped on its own time constant and
+	// maintained regardless of play state. The start/stop fade is applied separately by
+	// gating this with flowMix, so damping never bleeds into the fade.
+	const liveSmooth = { ...ZERO_WATER_MOTION };
 	function lerpWaterMotion(from, to, t) {
 		const mix = Math.min(1, Math.max(0, t));
 		return {
@@ -2321,36 +2363,72 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 			rough: from.rough + (to.rough - from.rough) * mix,
 			chop: from.chop + (to.chop - from.chop) * mix,
 			focusX: from.focusX + (to.focusX - from.focusX) * mix,
+			flowDir: from.flowDir + (to.flowDir - from.flowDir) * mix,
 		};
 	}
-	function updateWaterMotionUniforms(dt, flowMix) {
+	// Manual slider changes ease into the new wave shape over this many seconds so the
+	// transition feels like a gradual morph rather than a disorienting snap. Preset/chip
+	// changes bypass this (snap = true) and jump straight to the new shape.
+	const WATER_MOTION_MORPH_S = 0.9;
+	function updateWaterMotionUniforms(dt, flowMix, snap, resetFlat) {
 		const live = window.__whiteNoiseWaterMotion || ZERO_WATER_MOTION;
-		const target = lerpWaterMotion(ZERO_WATER_MOTION, live, flowMix);
-		const alpha = 1 - Math.exp(-(dt || 0.016) / (flowMix > 0.01 ? 0.14 : 0.08));
-		motionSmooth.amp += (target.amp - motionSmooth.amp) * alpha;
-		motionSmooth.speed += (target.speed - motionSmooth.speed) * alpha;
-		motionSmooth.ripple += (target.ripple - motionSmooth.ripple) * alpha;
-		motionSmooth.narrow += (target.narrow - motionSmooth.narrow) * alpha;
-		motionSmooth.rough += (target.rough - motionSmooth.rough) * alpha;
-		motionSmooth.chop += (target.chop - motionSmooth.chop) * alpha;
-		motionSmooth.focusX += (target.focusX - motionSmooth.focusX) * alpha;
-		uniforms.uMotionAmp.value = motionSmooth.amp;
-		uniforms.uMotionSpeed.value = motionSmooth.speed;
-		uniforms.uMotionRipple.value = motionSmooth.ripple;
-		uniforms.uNarrow.value = motionSmooth.narrow;
-		uniforms.uRough.value = motionSmooth.rough;
-		uniforms.uChop.value = motionSmooth.chop;
-		uniforms.uFocusX.value = motionSmooth.focusX;
+		if (resetFlat) {
+			// Rising edge of playback: collapse the shape to flat so every Play grows the
+			// waves in from calm water over the morph time — the consistent "first fade"
+			// look, regardless of how many presets were set (which otherwise leave the
+			// shape pre-formed and make the fade-in look instant).
+			liveSmooth.amp = ZERO_WATER_MOTION.amp;
+			liveSmooth.speed = ZERO_WATER_MOTION.speed;
+			liveSmooth.ripple = ZERO_WATER_MOTION.ripple;
+			liveSmooth.narrow = ZERO_WATER_MOTION.narrow;
+			liveSmooth.rough = ZERO_WATER_MOTION.rough;
+			liveSmooth.chop = ZERO_WATER_MOTION.chop;
+			liveSmooth.focusX = ZERO_WATER_MOTION.focusX;
+			liveSmooth.flowDir = ZERO_WATER_MOTION.flowDir;
+		}
+		// 1. Ease the slider-driven shape into liveSmooth (snap jumps it for presets).
+		//    This runs every frame independent of flowMix, so it never touches the fade.
+		const alpha = snap ? 1 : 1 - Math.exp(-(dt || 0.016) / WATER_MOTION_MORPH_S);
+		liveSmooth.amp += (live.amp - liveSmooth.amp) * alpha;
+		liveSmooth.speed += (live.speed - liveSmooth.speed) * alpha;
+		liveSmooth.ripple += (live.ripple - liveSmooth.ripple) * alpha;
+		liveSmooth.narrow += (live.narrow - liveSmooth.narrow) * alpha;
+		liveSmooth.rough += (live.rough - liveSmooth.rough) * alpha;
+		liveSmooth.chop += (live.chop - liveSmooth.chop) * alpha;
+		liveSmooth.focusX += (live.focusX - liveSmooth.focusX) * alpha;
+		liveSmooth.flowDir += (live.flowDir - liveSmooth.flowDir) * alpha;
+		// 2. Apply the start/stop fade by gating with flowMix only. flowActivity is already
+		//    eased on the flow attack/release constants, so the fade-in/out is unchanged by
+		//    any preset or slider damping — it always looks like the original first fade.
+		const gated = lerpWaterMotion(ZERO_WATER_MOTION, liveSmooth, flowMix);
+		uniforms.uMotionAmp.value = gated.amp;
+		uniforms.uMotionSpeed.value = gated.speed;
+		uniforms.uMotionRipple.value = gated.ripple;
+		uniforms.uNarrow.value = gated.narrow;
+		uniforms.uRough.value = gated.rough;
+		uniforms.uChop.value = gated.chop;
+		uniforms.uFocusX.value = gated.focusX;
+		uniforms.uFlowDir.value = gated.flowDir;
 	}
+	let wasFlowing = false;
 	function render() {
 		const dt = clock.getDelta();
 		const shouldFlow = !!window.__whiteNoiseIsPlaying;
+		// Rising edge of playback: grow the waves in from flat water (resetFlat) so every
+		// Play looks like the very first fade — flat -> waves build up -> full shape — no
+		// matter how many presets were set while stopped.
+		const startEdge = shouldFlow && !wasFlowing;
+		wasFlowing = shouldFlow;
 		const tc = shouldFlow ? WATER_FLOW_ATTACK_S : WATER_FLOW_RELEASE_S;
 		flowActivity = easeToward(flowActivity, shouldFlow ? 1 : 0, dt, tc);
 		uniforms.uFlowMix.value = flowActivity;
 		uniforms.uTime.value += dt * flowActivity;
-		updateWaterAudioUniforms(flowActivity);
-		updateWaterMotionUniforms(dt, flowActivity);
+		// A preset/chip change requests an instant jump to the new shape (while playing);
+		// manual slider changes leave the flag clear and ease in gradually.
+		const snap = !!window.__whiteNoiseWaterMotionSnap;
+		if (snap) window.__whiteNoiseWaterMotionSnap = false;
+		updateWaterAudioUniforms(flowActivity, snap);
+		updateWaterMotionUniforms(dt, flowActivity, snap, startEdge);
 		renderer.render(scene, camera);
 		reveal();
 		if (running) requestAnimationFrame(render);
@@ -2359,8 +2437,8 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 	if (reduceMotion) {
 		// Reduced motion: draw a single static frame, no animation loop.
 		uniforms.uFlowMix.value = 0;
-		updateWaterAudioUniforms(0);
-		updateWaterMotionUniforms(0.016, 0);
+		updateWaterAudioUniforms(0, true);
+		updateWaterMotionUniforms(0.016, 0, true);
 		renderer.render(scene, camera);
 		reveal();
 	} else {
