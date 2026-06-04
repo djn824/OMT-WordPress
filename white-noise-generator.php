@@ -1076,9 +1076,8 @@ get_header();
 			activeButton.setAttribute('aria-pressed', 'true');
 		}
 		publishWaterBandLevels();
-		// Preset/chip change: let the water jump straight to the new shape (manual slider
-		// drags leave this clear so they ease in gradually instead).
-		window.__whiteNoiseWaterMotionSnap = true;
+		// Preset/chip change eases in like a slider change, so the water animates a smooth
+		// transition from the previous preset's shape to the new one.
 		if (b.displayInfo && !animEnabled) {
 			b.displayInfo.textContent = displayLabel;
 		}
@@ -2142,6 +2141,10 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 	const ZERO_WATER_MOTION = { amp: 0.04, speed: 0, ripple: 0.02, narrow: 0.1, rough: 0.04, chop: 0.03, focusX: 0.5, flowDir: 0 };
 	const uniforms = {
 		uTime: { value: 0 },
+		uSpeedPhase: { value: 0 },
+		uRipplePhase: { value: 0 },
+		uRoughPhase: { value: 0 },
+		uChopPhase: { value: 0 },
 		uBandDb: { value: smoothedBandDbLevels },
 		uAudioEnergy: { value: 0 },
 		uMotionAmp: { value: ZERO_WATER_MOTION.amp },
@@ -2189,6 +2192,10 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 			uniform float uFocusX;
 			uniform float uFlowDir;
 			uniform float uFlowMix;
+			uniform float uSpeedPhase;
+			uniform float uRipplePhase;
+			uniform float uRoughPhase;
+			uniform float uChopPhase;
 			uniform vec3 uShallow;
 			uniform vec3 uMid;
 			uniform vec3 uDeep;
@@ -2204,13 +2211,18 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 			}
 
 			float noise(vec2 p) {
+				// Wrap to a 256-unit period so the hash inputs stay small no matter how far the
+				// field has scrolled. The accumulated flow time/length never grows big enough to
+				// wreck float precision, and the mod + wrapped corners keep tiling seamless (no jump).
+				const float WRAP = 256.0;
+				p = mod(p, WRAP);
 				vec2 i = floor(p);
 				vec2 f = fract(p);
 				f = f * f * (3.0 - 2.0 * f);
-				float a = hash21(i);
-				float b = hash21(i + vec2(1.0, 0.0));
-				float c = hash21(i + vec2(0.0, 1.0));
-				float d = hash21(i + vec2(1.0, 1.0));
+				float a = hash21(mod(i, WRAP));
+				float b = hash21(mod(i + vec2(1.0, 0.0), WRAP));
+				float c = hash21(mod(i + vec2(0.0, 1.0), WRAP));
+				float d = hash21(mod(i + vec2(1.0, 1.0), WRAP));
 				return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
 			}
 
@@ -2230,20 +2242,23 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 				float swellWide = 1.0 + (1.0 - narrow) * 0.85;
 				float swellFreq = (0.52 + narrow * 1.35) / swellWide;
 				float swellAmp = (0.06 + 0.92 * waveAmp) * swellWide;
-				float motion = 0.06 + 1.85 * waveSpeed;
 				float rippleScale = 1.6 + 5.2 * rippleEnergy + narrow * 2.4;
 				float rippleAmp = (0.04 + 0.64 * rippleEnergy) * (0.75 + rough * 0.55 + chop * 0.35);
+				// Temporal phases are pre-integrated (uTime, uSpeedPhase) so a preset that changes
+				// the speed only alters motion from here on — it never rescales the accumulated
+				// phase, so the waves never jump on a switch. (motion = 0.06 + 1.85*speed, so its
+				// integral is 0.06*uTime + 1.85*uSpeedPhase.)
 				float swell =
-					swellAmp * sin(dot(p, vec2(0.62, 0.34)) * TAU * swellFreq - t * motion) +
-					(0.03 + 0.5 * waveAmp) * sin(dot(p, vec2(-0.25, 0.86)) * TAU * (1.02 + narrow * 0.55) + t * (0.06 + motion * 0.78)) +
-					(0.02 + 0.24 * energy) * sin(dot(p, vec2(0.92, 0.12)) * TAU * (1.85 + narrow * 1.1) - t * (0.1 + motion * 0.92));
+					swellAmp * sin(dot(p, vec2(0.0, 1.0)) * TAU * swellFreq - (0.06 * t + 1.85 * uSpeedPhase)) +
+					(0.03 + 0.5 * waveAmp) * sin(dot(p, vec2(-0.14, 0.99)) * TAU * (1.02 + narrow * 0.55) + (0.1068 * t + 1.443 * uSpeedPhase)) +
+					(0.02 + 0.24 * energy) * sin(dot(p, vec2(0.12, 0.99)) * TAU * (1.85 + narrow * 1.1) - (0.1552 * t + 1.702 * uSpeedPhase));
 				vec2 rippleUv = p * rippleScale + vec2(
-					t * (0.03 + waveSpeed * 0.68 + chop * 0.22),
-					-t * (0.02 + rippleEnergy * 0.48 + rough * 0.18)
+					0.0,
+					-(0.05 * t + 0.55 * uSpeedPhase + 0.48 * uRipplePhase + 0.18 * uRoughPhase)
 				);
 				float ripples = fbm(rippleUv) - 0.5;
 				if (rough > 0.35) {
-					ripples += 0.22 * rough * (fbm(rippleUv * 2.15 + vec2(t * 0.18, -t * 0.12)) - 0.5);
+					ripples += 0.22 * rough * (fbm(rippleUv * 2.15 + vec2(0.0, -t * 0.18)) - 0.5);
 				}
 				return swell + ripples * rippleAmp;
 			}
@@ -2277,7 +2292,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 				float perspective = mix(2.08 + ampControl * 0.76, 0.92, smoothstep(0.0, 1.0, y));
 				vec2 p = vec2((x - focusX) * perspective * 2.15, (1.0 - y) * 2.35 + y * 0.42);
 				// Water falls straight down toward the foreground — no horizontal or diagonal current.
-				p += vec2(0.0, -t * (0.045 + speedControl * 0.40));
+				p += vec2(0.0, -(0.045 * t + 0.40 * uSpeedPhase));
 
 				float h = waveHeight(p, t, ampControl, speedControl, rippleControl, energy, narrow, rough, chop);
 				vec3 n = waterNormal(p, t, ampControl, speedControl, rippleControl, energy, narrow, rough, chop);
@@ -2295,15 +2310,15 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 				float steep = length(vec2(dFdx(h), dFdy(h))) * 7.5;
 				float foam = smoothstep(0.30, 0.82, steep + h * (0.09 + energy * 0.44));
 				foam *= smoothstep(0.04, 0.64, y);
-				foam *= 0.38 + 0.62 * fbm(p * (4.2 + rippleControl * 5.0 + rough * 3.5) + vec2(t * (0.12 + speedControl * 1.05 + chop * 0.35), -t * 0.24));
+				foam *= 0.38 + 0.62 * fbm(p * (4.2 + rippleControl * 5.0 + rough * 3.5) + vec2(0.0, -(0.24 * t + 0.5 * uSpeedPhase + 0.2 * uChopPhase)));
 				foam *= flow;
 
 				col = mix(col, uFoam, clamp(foam, 0.0, 0.70));
 
 				// Caustic lattice and sun sparkle, strongest near the foreground.
 				float caustic =
-					sin((p.x * (2.4 + rippleControl * 3.2) + h * 1.7 + t * (0.045 + speedControl * 0.44)) * TAU) *
-					sin((p.y * 2.9 - h * 1.2 - t * (0.035 + speedControl * 0.36)) * TAU);
+					sin((p.x * (2.4 + rippleControl * 3.2) + h * 1.7) * TAU) *
+					sin((p.y * 2.9 - h * 1.2 - (0.035 * t + 0.36 * uSpeedPhase)) * TAU);
 				col += uShallow * smoothstep(0.56, 1.0, caustic) * depth * (0.025 + rippleControl * 0.19) * flow;
 				col += uSun * spec * (0.22 + energy * 1.05) * flow;
 
@@ -2346,6 +2361,15 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 	// --- Render loop ----------------------------------------------------
 	const clock = new THREE.Clock();
 	let running = !reduceMotion;
+	let rafScheduled = false;
+	// One render loop only: scheduleFrame() ignores duplicate requests, so visibility or
+	// WebGL context-restore events can never stack extra RAF loops (stacked loops made the
+	// motion look sped-up / confused). Every (re)start of the loop goes through here.
+	function scheduleFrame() {
+		if (rafScheduled) return;
+		rafScheduled = true;
+		requestAnimationFrame(render);
+	}
 	let flowActivity = 0;
 	const WATER_FLOW_ATTACK_S = 0.18;
 	const WATER_FLOW_RELEASE_S = 0.28;
@@ -2357,29 +2381,21 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 	function dbToVisualResponse(db) {
 		return Math.min(1, Math.max(0, (db + 54) / 48));
 	}
-	function updateWaterAudioUniforms(dt, flowMix, snap) {
+	function updateWaterAudioUniforms(dt, flowMix, morphSeconds) {
 		const source = window.__whiteNoiseBandDbLevels;
-		// Frame-rate-independent ease toward the live levels (snap bypasses it instantly).
-		const alpha = 1 - Math.exp(-(dt || 0.016) / WATER_LEVEL_MORPH_S);
+		// Frame-rate-independent ease toward the live levels over morphSeconds (the gradual
+		// morph time; the reduced-motion path passes a tiny value for an instant static draw).
+		const alpha = 1 - Math.exp(-(dt || 0.016) / morphSeconds);
 		let energy = 0;
 		for (let i = 0; i < BAND_COUNT; i++) {
 			const rawTarget = source && Number.isFinite(source[i]) ? source[i] : bandDbLevels[i];
 			const gatedTarget = WATER_DB_FLOOR + (rawTarget - WATER_DB_FLOOR) * flowMix;
 			bandDbLevels[i] = gatedTarget;
-			// snap = preset/chip change: jump straight to the new shape. Otherwise ease.
-			if (snap) {
-				smoothedBandDbLevels[i] = gatedTarget;
-			} else {
-				smoothedBandDbLevels[i] += (gatedTarget - smoothedBandDbLevels[i]) * alpha;
-			}
+			smoothedBandDbLevels[i] += (gatedTarget - smoothedBandDbLevels[i]) * alpha;
 			energy += dbToVisualResponse(smoothedBandDbLevels[i]);
 		}
 		const energyTarget = energy / BAND_COUNT;
-		if (snap) {
-			uniforms.uAudioEnergy.value = energyTarget;
-		} else {
-			uniforms.uAudioEnergy.value += (energyTarget - uniforms.uAudioEnergy.value) * alpha;
-		}
+		uniforms.uAudioEnergy.value += (energyTarget - uniforms.uAudioEnergy.value) * alpha;
 	}
 	// liveSmooth = the slider-driven wave shape, damped on its own time constant and
 	// maintained regardless of play state. The start/stop fade is applied separately by
@@ -2398,14 +2414,10 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 			flowDir: from.flowDir + (to.flowDir - from.flowDir) * mix,
 		};
 	}
-	// Manual slider changes ease into the new wave shape over this many seconds so the
-	// transition feels like a gradual morph rather than a disorienting snap. Preset/chip
-	// changes bypass this (snap = true) and jump straight to the new shape.
+	// Every change — presets and slider drags alike — eases the wave shape AND heights into
+	// place over this many seconds, so switching is always fully smooth (no jump, no speed-up).
 	const WATER_MOTION_MORPH_S = 1.2;
-	// Slider drags ease the wave heights/energy over this time constant so the shape
-	// morphs gradually instead of snapping. Preset/chip changes bypass it (snap = true).
-	const WATER_LEVEL_MORPH_S = 1.2;
-	function updateWaterMotionUniforms(dt, flowMix, snap, resetFlat) {
+	function updateWaterMotionUniforms(dt, flowMix, morphSeconds, resetFlat) {
 		const live = window.__whiteNoiseWaterMotion || ZERO_WATER_MOTION;
 		if (resetFlat) {
 			// Rising edge of playback: collapse the shape to flat so every Play grows the
@@ -2421,9 +2433,9 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 			liveSmooth.focusX = ZERO_WATER_MOTION.focusX;
 			liveSmooth.flowDir = ZERO_WATER_MOTION.flowDir;
 		}
-		// 1. Ease the slider-driven shape into liveSmooth (snap jumps it for presets).
+		// 1. Ease the slider-driven shape into liveSmooth at the requested morph rate.
 		//    This runs every frame independent of flowMix, so it never touches the fade.
-		const alpha = snap ? 1 : 1 - Math.exp(-(dt || 0.016) / WATER_MOTION_MORPH_S);
+		const alpha = 1 - Math.exp(-(dt || 0.016) / morphSeconds);
 		liveSmooth.amp += (live.amp - liveSmooth.amp) * alpha;
 		liveSmooth.speed += (live.speed - liveSmooth.speed) * alpha;
 		liveSmooth.ripple += (live.ripple - liveSmooth.ripple) * alpha;
@@ -2447,6 +2459,9 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 	}
 	let wasFlowing = false;
 	function render() {
+		// Mark this frame as running so scheduleFrame() at the end (or from an event) arms
+		// exactly one next frame — never two.
+		rafScheduled = false;
 		const dt = clock.getDelta();
 		const shouldFlow = !!window.__whiteNoiseIsPlaying;
 		// Rising edge of playback: grow the waves in from flat water (resetFlat) so every
@@ -2457,27 +2472,44 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 		const tc = shouldFlow ? WATER_FLOW_ATTACK_S : WATER_FLOW_RELEASE_S;
 		flowActivity = easeToward(flowActivity, shouldFlow ? 1 : 0, dt, tc);
 		uniforms.uFlowMix.value = flowActivity;
-		uniforms.uTime.value += dt * flowActivity;
-		// A preset/chip change requests an instant jump to the new shape (while playing);
-		// manual slider changes leave the flag clear and ease in gradually.
-		const snap = !!window.__whiteNoiseWaterMotionSnap;
-		if (snap) window.__whiteNoiseWaterMotionSnap = false;
-		updateWaterAudioUniforms(dt, flowActivity, snap);
-		updateWaterMotionUniforms(dt, flowActivity, snap, startEdge);
+		// Reset the wave clock + motion phases on each Play rising edge (water is flat/faded
+		// there, so it's invisible) so time never piles up across plays.
+		if (startEdge) {
+			uniforms.uTime.value = 0;
+			uniforms.uSpeedPhase.value = 0;
+			uniforms.uRipplePhase.value = 0;
+			uniforms.uRoughPhase.value = 0;
+			uniforms.uChopPhase.value = 0;
+		}
+		// Presets and slider drags alike ease into the new shape over the morph time, so a
+		// preset switch animates a smooth transition from the previous shape to the new one.
+		const morphSeconds = WATER_MOTION_MORPH_S;
+		updateWaterAudioUniforms(dt, flowActivity, morphSeconds);
+		updateWaterMotionUniforms(dt, flowActivity, morphSeconds, startEdge);
+		// Integrate the temporal phases using THIS frame's morphed rates. Because the motion is
+		// driven by these integrals (not uTime × current-param), changing a param on a preset
+		// switch only affects motion from here on — it never rescales the accumulated phase, so
+		// the scroll/waves never jump on a switch no matter how long it has been flowing.
+		const dPhase = dt * flowActivity;
+		uniforms.uTime.value += dPhase;
+		uniforms.uSpeedPhase.value += dPhase * Math.min(1, Math.max(0, uniforms.uMotionSpeed.value));
+		uniforms.uRipplePhase.value += dPhase * Math.min(1, Math.max(0, uniforms.uMotionRipple.value));
+		uniforms.uRoughPhase.value += dPhase * Math.min(1, Math.max(0, uniforms.uRough.value));
+		uniforms.uChopPhase.value += dPhase * Math.min(1, Math.max(0, uniforms.uChop.value));
 		renderer.render(scene, camera);
 		reveal();
-		if (running) requestAnimationFrame(render);
+		if (running) scheduleFrame();
 	}
 
 	if (reduceMotion) {
 		// Reduced motion: draw a single static frame, no animation loop.
 		uniforms.uFlowMix.value = 0;
-		updateWaterAudioUniforms(0.016, 0, true);
-		updateWaterMotionUniforms(0.016, 0, true);
+		updateWaterAudioUniforms(0.016, 0, 0.0001);
+		updateWaterMotionUniforms(0.016, 0, 0.0001);
 		renderer.render(scene, camera);
 		reveal();
 	} else {
-		requestAnimationFrame(render);
+		scheduleFrame();
 	}
 
 	// Pause the loop while the tab is hidden to save battery.
@@ -2488,7 +2520,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 		} else if (!running) {
 			running = true;
 			clock.getDelta();
-			requestAnimationFrame(render);
+			scheduleFrame();
 		}
 	});
 
@@ -2502,7 +2534,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 		if (!reduceMotion && !running) {
 			running = true;
 			clock.getDelta();
-			requestAnimationFrame(render);
+			scheduleFrame();
 		}
 	});
 })();
