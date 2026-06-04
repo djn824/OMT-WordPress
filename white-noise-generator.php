@@ -2226,26 +2226,17 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 				return v;
 			}
 
-			float waveHeight(vec2 p, float t, float waveAmp, float waveSpeed, float rippleEnergy, float energy, float narrow, float rough, float chop, float flowDir) {
+			float waveHeight(vec2 p, float t, float waveAmp, float waveSpeed, float rippleEnergy, float energy, float narrow, float rough, float chop) {
 				float swellWide = 1.0 + (1.0 - narrow) * 0.85;
 				float swellFreq = (0.52 + narrow * 1.35) / swellWide;
 				float swellAmp = (0.06 + 0.92 * waveAmp) * swellWide;
 				float motion = 0.06 + 1.85 * waveSpeed;
 				float rippleScale = 1.6 + 5.2 * rippleEnergy + narrow * 2.4;
 				float rippleAmp = (0.04 + 0.64 * rippleEnergy) * (0.75 + rough * 0.55 + chop * 0.35);
-					// Tilt every wave train toward the current so the crests travel across the
-					// panel with the spectral balance, instead of the whole field sliding rigidly.
-					float ang = flowDir * 0.7;
-					float cs = cos(ang);
-					float sn = sin(ang);
-					mat2 flowRot = mat2(cs, -sn, sn, cs);
-					vec2 d0 = flowRot * vec2(0.62, 0.34);
-					vec2 d1 = flowRot * vec2(-0.25, 0.86);
-					vec2 d2 = flowRot * vec2(0.92, 0.12);
 				float swell =
-					swellAmp * sin(dot(p, d0) * TAU * swellFreq - t * motion) +
-					(0.03 + 0.5 * waveAmp) * sin(dot(p, d1) * TAU * (1.02 + narrow * 0.55) + t * (0.06 + motion * 0.78)) +
-					(0.02 + 0.24 * energy) * sin(dot(p, d2) * TAU * (1.85 + narrow * 1.1) - t * (0.1 + motion * 0.92));
+					swellAmp * sin(dot(p, vec2(0.62, 0.34)) * TAU * swellFreq - t * motion) +
+					(0.03 + 0.5 * waveAmp) * sin(dot(p, vec2(-0.25, 0.86)) * TAU * (1.02 + narrow * 0.55) + t * (0.06 + motion * 0.78)) +
+					(0.02 + 0.24 * energy) * sin(dot(p, vec2(0.92, 0.12)) * TAU * (1.85 + narrow * 1.1) - t * (0.1 + motion * 0.92));
 				vec2 rippleUv = p * rippleScale + vec2(
 					t * (0.03 + waveSpeed * 0.68 + chop * 0.22),
 					-t * (0.02 + rippleEnergy * 0.48 + rough * 0.18)
@@ -2257,11 +2248,11 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 				return swell + ripples * rippleAmp;
 			}
 
-			vec3 waterNormal(vec2 p, float t, float waveAmp, float waveSpeed, float rippleEnergy, float energy, float narrow, float rough, float chop, float flowDir) {
+			vec3 waterNormal(vec2 p, float t, float waveAmp, float waveSpeed, float rippleEnergy, float energy, float narrow, float rough, float chop) {
 				float e = 0.025;
-				float h = waveHeight(p, t, waveAmp, waveSpeed, rippleEnergy, energy, narrow, rough, chop, flowDir);
-				float hx = waveHeight(p + vec2(e, 0.0), t, waveAmp, waveSpeed, rippleEnergy, energy, narrow, rough, chop, flowDir);
-				float hy = waveHeight(p + vec2(0.0, e), t, waveAmp, waveSpeed, rippleEnergy, energy, narrow, rough, chop, flowDir);
+				float h = waveHeight(p, t, waveAmp, waveSpeed, rippleEnergy, energy, narrow, rough, chop);
+				float hx = waveHeight(p + vec2(e, 0.0), t, waveAmp, waveSpeed, rippleEnergy, energy, narrow, rough, chop);
+				float hy = waveHeight(p + vec2(0.0, e), t, waveAmp, waveSpeed, rippleEnergy, energy, narrow, rough, chop);
 				return normalize(vec3((h - hx) / e, 1.4, (h - hy) / e));
 			}
 
@@ -2282,26 +2273,14 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 
 				// Stable full-frame water coordinates. Avoid a horizon split so the
 				// lower panel never stretches into vertical stripe artifacts.
-				float focusX = mix(clamp(uFocusX, 0.18, 0.82), 0.5, 0.85);
-				float flowDir = clamp(uFlowDir, -1.0, 1.0);
+				float focusX = 0.5;
 				float perspective = mix(2.08 + ampControl * 0.76, 0.92, smoothstep(0.0, 1.0, y));
 				vec2 p = vec2((x - focusX) * perspective * 2.15, (1.0 - y) * 2.35 + y * 0.42);
-				// Diagonal current from the spectral balance. With the bottom pinch centred at
-				// bottom-mid, a leftward lean (flowDir < 0, bass) flows from the TOP-RIGHT down to
-				// bottom-mid, and a rightward lean (flowDir > 0, treble) flows from the TOP-LEFT down.
-				// (Sampling-offset sign is inverted: lookup +x moves the pattern -x on screen.)
-				// Driven purely by flowDir so left and right are symmetric — a constant
-				// horizontal bias here would cancel the rightward flow while doubling the
-				// leftward one. Balanced spectrum => no sideways drift, water falls straight.
-				// The meander adds a slow depth-dependent wobble so the flow
-					// curves gently across the panel rather than sliding as one flat sheet.
-					float lateral = flowDir * (0.06 + speedControl * 0.34);
-					float meander = flowDir * 0.05 * sin(t * 0.45 + (1.0 - y) * 2.6);
-					float sideDrift = -(lateral * t) - meander;
-				p += vec2(sideDrift, -t * (0.028 + speedControl * 0.28));
+				// Water falls straight down toward the foreground — no horizontal or diagonal current.
+				p += vec2(0.0, -t * (0.045 + speedControl * 0.40));
 
-				float h = waveHeight(p, t, ampControl, speedControl, rippleControl, energy, narrow, rough, chop, flowDir);
-				vec3 n = waterNormal(p, t, ampControl, speedControl, rippleControl, energy, narrow, rough, chop, flowDir);
+				float h = waveHeight(p, t, ampControl, speedControl, rippleControl, energy, narrow, rough, chop);
+				vec3 n = waterNormal(p, t, ampControl, speedControl, rippleControl, energy, narrow, rough, chop);
 				vec3 viewDir = normalize(vec3(0.0, 0.78, 1.25));
 				vec3 sunDir = normalize(vec3(-0.42, 0.82, 0.35));
 				float fresnel = pow(1.0 - clamp(dot(n, viewDir), 0.0, 1.0), 3.0);
@@ -2378,8 +2357,10 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 	function dbToVisualResponse(db) {
 		return Math.min(1, Math.max(0, (db + 54) / 48));
 	}
-	function updateWaterAudioUniforms(flowMix, snap) {
+	function updateWaterAudioUniforms(dt, flowMix, snap) {
 		const source = window.__whiteNoiseBandDbLevels;
+		// Frame-rate-independent ease toward the live levels (snap bypasses it instantly).
+		const alpha = 1 - Math.exp(-(dt || 0.016) / WATER_LEVEL_MORPH_S);
 		let energy = 0;
 		for (let i = 0; i < BAND_COUNT; i++) {
 			const rawTarget = source && Number.isFinite(source[i]) ? source[i] : bandDbLevels[i];
@@ -2389,7 +2370,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 			if (snap) {
 				smoothedBandDbLevels[i] = gatedTarget;
 			} else {
-				smoothedBandDbLevels[i] += (gatedTarget - smoothedBandDbLevels[i]) * 0.08;
+				smoothedBandDbLevels[i] += (gatedTarget - smoothedBandDbLevels[i]) * alpha;
 			}
 			energy += dbToVisualResponse(smoothedBandDbLevels[i]);
 		}
@@ -2397,7 +2378,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 		if (snap) {
 			uniforms.uAudioEnergy.value = energyTarget;
 		} else {
-			uniforms.uAudioEnergy.value += (energyTarget - uniforms.uAudioEnergy.value) * 0.08;
+			uniforms.uAudioEnergy.value += (energyTarget - uniforms.uAudioEnergy.value) * alpha;
 		}
 	}
 	// liveSmooth = the slider-driven wave shape, damped on its own time constant and
@@ -2420,7 +2401,10 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 	// Manual slider changes ease into the new wave shape over this many seconds so the
 	// transition feels like a gradual morph rather than a disorienting snap. Preset/chip
 	// changes bypass this (snap = true) and jump straight to the new shape.
-	const WATER_MOTION_MORPH_S = 0.9;
+	const WATER_MOTION_MORPH_S = 1.2;
+	// Slider drags ease the wave heights/energy over this time constant so the shape
+	// morphs gradually instead of snapping. Preset/chip changes bypass it (snap = true).
+	const WATER_LEVEL_MORPH_S = 1.2;
 	function updateWaterMotionUniforms(dt, flowMix, snap, resetFlat) {
 		const live = window.__whiteNoiseWaterMotion || ZERO_WATER_MOTION;
 		if (resetFlat) {
@@ -2478,7 +2462,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 		// manual slider changes leave the flag clear and ease in gradually.
 		const snap = !!window.__whiteNoiseWaterMotionSnap;
 		if (snap) window.__whiteNoiseWaterMotionSnap = false;
-		updateWaterAudioUniforms(flowActivity, snap);
+		updateWaterAudioUniforms(dt, flowActivity, snap);
 		updateWaterMotionUniforms(dt, flowActivity, snap, startEdge);
 		renderer.render(scene, camera);
 		reveal();
@@ -2488,7 +2472,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 	if (reduceMotion) {
 		// Reduced motion: draw a single static frame, no animation loop.
 		uniforms.uFlowMix.value = 0;
-		updateWaterAudioUniforms(0, true);
+		updateWaterAudioUniforms(0.016, 0, true);
 		updateWaterMotionUniforms(0.016, 0, true);
 		renderer.render(scene, camera);
 		reveal();
