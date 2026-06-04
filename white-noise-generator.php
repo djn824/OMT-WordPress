@@ -331,8 +331,8 @@ get_header();
  * White noise UI + myNoise-style stem engine (from white_noise.html).
  * Loads stereo stems from CDN, lookahead-schedules A/B buffers, per-band cubic gain.
  */
-((q) => {
-	var b = () => {};
+(() => {
+	const b = {};
 
 	const setSecondaryControlsVisible = (visible) => {
 		if (!b.controlBar) return;
@@ -401,7 +401,6 @@ get_header();
 	let interval = [];
 	let nextA = [];
 	let nextB = [];
-	let lastPlayedA = [];
 	let lastSchedulerTime = 0;
 	let schedulerTimer = null;
 	/** Pending suspend after Stop fade — must be cleared on Play or overlapping Stops */
@@ -689,6 +688,34 @@ get_header();
 		}
 	}
 
+	/**
+	 * Show a not-allowed cursor on a group volume button while its click would be a no-op:
+	 * the raise button (#decrease, volume-up) when any band is already at max, and the lower
+	 * button (#increase, volume-down) when any band is already at min. Mirrors the guards in
+	 * the click handlers. Call after anything that changes slider values.
+	 */
+	function updateVolumeButtonCursors() {
+		if (!b.sliderBar || !b.sliderBar.length) return;
+		let anyAtMax = false;
+		let anyAtMin = false;
+		for (let i = 0; i < b.sliderBar.length; i++) {
+			const el = b.sliderBar[i];
+			const mn = Number(el.min) || 0;
+			const mx = Number(el.max) || 990;
+			const v = Number(el.value);
+			if (v >= mx) anyAtMax = true;
+			if (v <= mn) anyAtMin = true;
+		}
+		if (b.decreaseBtn) {
+			b.decreaseBtn.style.cursor = anyAtMax ? 'not-allowed' : '';
+			b.decreaseBtn.setAttribute('aria-disabled', anyAtMax ? 'true' : 'false');
+		}
+		if (b.increaseBtn) {
+			b.increaseBtn.style.cursor = anyAtMin ? 'not-allowed' : '';
+			b.increaseBtn.setAttribute('aria-disabled', anyAtMin ? 'true' : 'false');
+		}
+	}
+
 	function armSleepTimerIfPlaying() {
 		clearSleepTimer();
 		if (!isplaying || !engineReady) return;
@@ -855,7 +882,6 @@ get_header();
 		nextA[i] = 0;
 		nextB[i] = 0;
 		interval[i] = 0;
-		lastPlayedA[i] = 0;
 		currentLevel[i] = DEFAULT_START_LEVEL;
 	}
 
@@ -1042,6 +1068,7 @@ get_header();
 			currentLevel[i] = levels[i];
 		}
 		updateSlidersFromLevels(levels, !!isplaying);
+		updateVolumeButtonCursors();
 		refreshAnimationAfterControlChange();
 		clearPresetChipActive();
 		if (activeButton) {
@@ -1190,7 +1217,6 @@ get_header();
 		};
 
 		src.start(when, offset);
-		lastPlayedA[item] = when;
 		sourceA[item] = src;
 	}
 
@@ -1284,7 +1310,6 @@ get_header();
 
 			sourceA[i].start(startTime);
 			sourceB[i].start(startTime);
-			lastPlayedA[i] = startTime;
 			return;
 		}
 
@@ -1292,7 +1317,6 @@ get_header();
 		nextB[i] = startTime + (Math.round(sourceA[i].buffer.duration * 8) / 16) * stretch[i] / playbackFactor[i];
 
 		scheduleA(i, nextA[i]);
-		lastPlayedA[i] = nextA[i];
 		nextA[i] += interval[i];
 
 		scheduleB(i, nextB[i]);
@@ -1866,7 +1890,6 @@ get_header();
 		}
 	}
 
-	b.__name__ = !0;
 	b.main = () => {
 		window.addEventListener('DOMContentLoaded', function () {
 			b.check = window.document.getElementById('main-btn');
@@ -1904,8 +1927,10 @@ get_header();
 				i.oninput = () => {
 					clearPresetChipActive();
 					applyBandGainFromSlider(i);
+					updateVolumeButtonCursors();
 				};
 			}
+			updateVolumeButtonCursors();
 
 			if (b.presetPanel) {
 				const activatePresetTarget = (el) => {
@@ -1936,6 +1961,7 @@ get_header();
 						setSliderToDefaultStart(i);
 						applyBandGainFromSlider(i);
 					}
+					updateVolumeButtonCursors();
 					refreshAnimationAfterControlChange();
 					if (b.displayInfo && !animEnabled) {
 						b.displayInfo.textContent = 'All Bands';
@@ -1987,12 +2013,18 @@ get_header();
 			/* #increase = volume-down icon → quieter (thumb down) */
 			if (b.increaseBtn) {
 				b.increaseBtn.addEventListener('click', () => {
+					// Don't lower if any slider is already at its minimum.
+					for (let i of b.sliderBar) {
+						var mn = Number(i.min) || 0;
+						if (Number(i.value) <= mn) return;
+					}
 					clearPresetChipActive();
 					for (let i of b.sliderBar) {
 						var mn = Number(i.min) || 0;
 						i.value = String(Math.max(mn, Number(i.value) - SLIDER_STEP));
 						applyBandGainFromSlider(i);
 					}
+					updateVolumeButtonCursors();
 					refreshAnimationAfterControlChange();
 					if (b.displayInfo && !animEnabled) {
 						b.displayInfo.textContent = 'All Bands';
@@ -2003,12 +2035,18 @@ get_header();
 			/* #decrease = volume-up icon → louder (thumb up) */
 			if (b.decreaseBtn) {
 				b.decreaseBtn.addEventListener('click', () => {
+					// Don't raise if any slider is already at its maximum.
+					for (let i of b.sliderBar) {
+						var mx = Number(i.max) || 990;
+						if (Number(i.value) >= mx) return;
+					}
 					clearPresetChipActive();
 					for (let i of b.sliderBar) {
 						var mx = Number(i.max) || 990;
 						i.value = String(Math.min(mx, Number(i.value) + SLIDER_STEP));
 						applyBandGainFromSlider(i);
 					}
+					updateVolumeButtonCursors();
 					refreshAnimationAfterControlChange();
 					if (b.displayInfo && !animEnabled) {
 						b.displayInfo.textContent = 'All Bands';
@@ -2057,7 +2095,7 @@ get_header();
 	};
 
 	b.main();
-})('undefined' != typeof window ? window : 'undefined' != typeof global ? global : 'undefined' != typeof self ? self : this);
+})();
 </script>
 <script type="module">
 /**
@@ -2188,17 +2226,26 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 				return v;
 			}
 
-			float waveHeight(vec2 p, float t, float waveAmp, float waveSpeed, float rippleEnergy, float energy, float narrow, float rough, float chop) {
+			float waveHeight(vec2 p, float t, float waveAmp, float waveSpeed, float rippleEnergy, float energy, float narrow, float rough, float chop, float flowDir) {
 				float swellWide = 1.0 + (1.0 - narrow) * 0.85;
 				float swellFreq = (0.52 + narrow * 1.35) / swellWide;
 				float swellAmp = (0.06 + 0.92 * waveAmp) * swellWide;
 				float motion = 0.06 + 1.85 * waveSpeed;
 				float rippleScale = 1.6 + 5.2 * rippleEnergy + narrow * 2.4;
 				float rippleAmp = (0.04 + 0.64 * rippleEnergy) * (0.75 + rough * 0.55 + chop * 0.35);
+					// Tilt every wave train toward the current so the crests travel across the
+					// panel with the spectral balance, instead of the whole field sliding rigidly.
+					float ang = flowDir * 0.7;
+					float cs = cos(ang);
+					float sn = sin(ang);
+					mat2 flowRot = mat2(cs, -sn, sn, cs);
+					vec2 d0 = flowRot * vec2(0.62, 0.34);
+					vec2 d1 = flowRot * vec2(-0.25, 0.86);
+					vec2 d2 = flowRot * vec2(0.92, 0.12);
 				float swell =
-					swellAmp * sin(dot(p, vec2(0.62, 0.34)) * TAU * swellFreq - t * motion) +
-					(0.03 + 0.5 * waveAmp) * sin(dot(p, vec2(-0.25, 0.86)) * TAU * (1.02 + narrow * 0.55) + t * (0.06 + motion * 0.78)) +
-					(0.02 + 0.24 * energy) * sin(dot(p, vec2(0.92, 0.12)) * TAU * (1.85 + narrow * 1.1) - t * (0.1 + motion * 0.92));
+					swellAmp * sin(dot(p, d0) * TAU * swellFreq - t * motion) +
+					(0.03 + 0.5 * waveAmp) * sin(dot(p, d1) * TAU * (1.02 + narrow * 0.55) + t * (0.06 + motion * 0.78)) +
+					(0.02 + 0.24 * energy) * sin(dot(p, d2) * TAU * (1.85 + narrow * 1.1) - t * (0.1 + motion * 0.92));
 				vec2 rippleUv = p * rippleScale + vec2(
 					t * (0.03 + waveSpeed * 0.68 + chop * 0.22),
 					-t * (0.02 + rippleEnergy * 0.48 + rough * 0.18)
@@ -2210,11 +2257,11 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 				return swell + ripples * rippleAmp;
 			}
 
-			vec3 waterNormal(vec2 p, float t, float waveAmp, float waveSpeed, float rippleEnergy, float energy, float narrow, float rough, float chop) {
+			vec3 waterNormal(vec2 p, float t, float waveAmp, float waveSpeed, float rippleEnergy, float energy, float narrow, float rough, float chop, float flowDir) {
 				float e = 0.025;
-				float h = waveHeight(p, t, waveAmp, waveSpeed, rippleEnergy, energy, narrow, rough, chop);
-				float hx = waveHeight(p + vec2(e, 0.0), t, waveAmp, waveSpeed, rippleEnergy, energy, narrow, rough, chop);
-				float hy = waveHeight(p + vec2(0.0, e), t, waveAmp, waveSpeed, rippleEnergy, energy, narrow, rough, chop);
+				float h = waveHeight(p, t, waveAmp, waveSpeed, rippleEnergy, energy, narrow, rough, chop, flowDir);
+				float hx = waveHeight(p + vec2(e, 0.0), t, waveAmp, waveSpeed, rippleEnergy, energy, narrow, rough, chop, flowDir);
+				float hy = waveHeight(p + vec2(0.0, e), t, waveAmp, waveSpeed, rippleEnergy, energy, narrow, rough, chop, flowDir);
 				return normalize(vec3((h - hx) / e, 1.4, (h - hy) / e));
 			}
 
@@ -2235,22 +2282,26 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 
 				// Stable full-frame water coordinates. Avoid a horizon split so the
 				// lower panel never stretches into vertical stripe artifacts.
-				float focusX = clamp(uFocusX, 0.18, 0.82);
+				float focusX = mix(clamp(uFocusX, 0.18, 0.82), 0.5, 0.85);
 				float flowDir = clamp(uFlowDir, -1.0, 1.0);
 				float perspective = mix(2.08 + ampControl * 0.76, 0.92, smoothstep(0.0, 1.0, y));
 				vec2 p = vec2((x - focusX) * perspective * 2.15, (1.0 - y) * 2.35 + y * 0.42);
-				// Horizontal flow follows the spectral balance: bass-heavy (flowDir < 0)
-				// scrolls the field so the water visibly travels left, treble-heavy travels
-				// right. Sampling-offset sign is inverted because shifting the lookup point
-				// +x makes the pattern appear to move -x on screen.
+				// Diagonal current from the spectral balance. With the bottom pinch centred at
+				// bottom-mid, a leftward lean (flowDir < 0, bass) flows from the TOP-RIGHT down to
+				// bottom-mid, and a rightward lean (flowDir > 0, treble) flows from the TOP-LEFT down.
+				// (Sampling-offset sign is inverted: lookup +x moves the pattern -x on screen.)
 				// Driven purely by flowDir so left and right are symmetric — a constant
 				// horizontal bias here would cancel the rightward flow while doubling the
 				// leftward one. Balanced spectrum => no sideways drift, water falls straight.
-				float sideDrift = -flowDir * t * (0.04 + speedControl * 0.28);
+				// The meander adds a slow depth-dependent wobble so the flow
+					// curves gently across the panel rather than sliding as one flat sheet.
+					float lateral = flowDir * (0.06 + speedControl * 0.34);
+					float meander = flowDir * 0.05 * sin(t * 0.45 + (1.0 - y) * 2.6);
+					float sideDrift = -(lateral * t) - meander;
 				p += vec2(sideDrift, -t * (0.028 + speedControl * 0.28));
 
-				float h = waveHeight(p, t, ampControl, speedControl, rippleControl, energy, narrow, rough, chop);
-				vec3 n = waterNormal(p, t, ampControl, speedControl, rippleControl, energy, narrow, rough, chop);
+				float h = waveHeight(p, t, ampControl, speedControl, rippleControl, energy, narrow, rough, chop, flowDir);
+				vec3 n = waterNormal(p, t, ampControl, speedControl, rippleControl, energy, narrow, rough, chop, flowDir);
 				vec3 viewDir = normalize(vec3(0.0, 0.78, 1.25));
 				vec3 sunDir = normalize(vec3(-0.42, 0.82, 0.35));
 				float fresnel = pow(1.0 - clamp(dot(n, viewDir), 0.0, 1.0), 3.0);
