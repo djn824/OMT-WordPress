@@ -2244,17 +2244,18 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 				float swellAmp = (0.06 + 0.92 * waveAmp) * swellWide;
 				float rippleScale = 1.6 + 5.2 * rippleEnergy + narrow * 2.4;
 				float rippleAmp = (0.04 + 0.64 * rippleEnergy) * (0.75 + rough * 0.55 + chop * 0.35);
-				// Temporal phases are pre-integrated (uTime, uSpeedPhase) so a preset that changes
-				// the speed only alters motion from here on — it never rescales the accumulated
-				// phase, so the waves never jump on a switch. (motion = 0.06 + 1.85*speed, so its
-				// integral is 0.06*uTime + 1.85*uSpeedPhase.)
+				// Downward flow comes entirely from these pre-integrated time phases (uTime is the
+				// constant-rate part, uSpeedPhase the speed-driven part). Because they're integrals,
+				// a preset that changes the speed only alters the flow from here on — it never
+				// rescales the accumulated phase, so the waves never jump on a switch. The
+				// coefficients fold in the old whole-field scroll, so it flows like water again.
 				float swell =
-					swellAmp * sin(dot(p, vec2(0.0, 1.0)) * TAU * swellFreq - (0.06 * t + 1.85 * uSpeedPhase)) +
-					(0.03 + 0.5 * waveAmp) * sin(dot(p, vec2(-0.14, 0.99)) * TAU * (1.02 + narrow * 0.55) + (0.1068 * t + 1.443 * uSpeedPhase)) +
-					(0.02 + 0.24 * energy) * sin(dot(p, vec2(0.12, 0.99)) * TAU * (1.85 + narrow * 1.1) - (0.1552 * t + 1.702 * uSpeedPhase));
+					swellAmp * sin(dot(p, vec2(0.0, 1.0)) * TAU * swellFreq - (0.30 * t + 4.0 * uSpeedPhase)) +
+					(0.03 + 0.5 * waveAmp) * sin(dot(p, vec2(-0.14, 0.99)) * TAU * (1.02 + narrow * 0.55) + (0.48 * t + 4.71 * uSpeedPhase)) +
+					(0.02 + 0.24 * energy) * sin(dot(p, vec2(0.12, 0.99)) * TAU * (1.85 + narrow * 1.1) - (0.84 * t + 7.73 * uSpeedPhase));
 				vec2 rippleUv = p * rippleScale + vec2(
 					0.0,
-					-(0.05 * t + 0.55 * uSpeedPhase + 0.48 * uRipplePhase + 0.18 * uRoughPhase)
+					-(0.25 * t + 2.35 * uSpeedPhase + 0.48 * uRipplePhase + 0.18 * uRoughPhase)
 				);
 				float ripples = fbm(rippleUv) - 0.5;
 				if (rough > 0.35) {
@@ -2268,7 +2269,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 				float h = waveHeight(p, t, waveAmp, waveSpeed, rippleEnergy, energy, narrow, rough, chop);
 				float hx = waveHeight(p + vec2(e, 0.0), t, waveAmp, waveSpeed, rippleEnergy, energy, narrow, rough, chop);
 				float hy = waveHeight(p + vec2(0.0, e), t, waveAmp, waveSpeed, rippleEnergy, energy, narrow, rough, chop);
-				return normalize(vec3((h - hx) / e, 1.4, (h - hy) / e));
+				return normalize(vec3((h - hx) / e, 1.25, (h - hy) / e));
 			}
 
 			void main() {
@@ -2306,19 +2307,26 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 				vec3 n = waterNormal(p, t, ampControl, speedControl, rippleControl, energy, narrow, rough, chop);
 				vec3 viewDir = normalize(vec3(0.0, 0.78, 1.25));
 				vec3 sunDir = normalize(vec3(-0.42, 0.82, 0.35));
-				float fresnel = pow(1.0 - clamp(dot(n, viewDir), 0.0, 1.0), 3.0);
-				float spec = pow(max(dot(reflect(-sunDir, n), viewDir), 0.0), 90.0);
+				float ndv = clamp(dot(n, viewDir), 0.0, 1.0);
+				// Schlick Fresnel: water is ~2% reflective looking straight down and near-mirror at
+				// grazing angles, so it shows its colour up close and reflects the sky toward the top.
+				float fresnel = 0.02 + 0.98 * pow(1.0 - ndv, 5.0);
+				// Sun glint: a tight bright core plus a softer halo, the way real sun sits on water.
+				float rdv = max(dot(reflect(-sunDir, n), viewDir), 0.0);
+				float spec = pow(rdv, 200.0) + 0.35 * pow(rdv, 32.0);
 
 				vec3 sky = mix(vec3(0.88, 0.98, 1.0), uSky, smoothstep(0.18, 1.0, y));
 				vec3 water = mix(uDeep, uMid, depth);
 				water = mix(water, uShallow, smoothstep(0.08, 0.88, h * 0.42 + fbm(p * 0.7)));
-				vec3 col = mix(water, sky, fresnel * 0.66);
+				// Sub-surface scattering: light passing through raised crests gives a luminous teal.
+				water += uShallow * max(0.0, h) * (0.10 + energy * 0.18);
+				vec3 col = mix(water, sky, fresnel * 0.85);
 
 				// White breaking foam appears where the simulated surface folds sharply.
 				float steep = length(vec2(dFdx(h), dFdy(h))) * 7.5;
 				float foam = smoothstep(0.30, 0.82, steep + h * (0.09 + energy * 0.44));
 				foam *= smoothstep(0.04, 0.64, y);
-				foam *= 0.38 + 0.62 * fbm(p * (4.2 + rippleControl * 5.0 + rough * 3.5) + vec2(0.0, -(0.24 * t + 0.5 * uSpeedPhase + 0.2 * uChopPhase)));
+				foam *= 0.38 + 0.62 * fbm(p * (4.2 + rippleControl * 5.0 + rough * 3.5) + vec2(0.0, -(0.555 * t + 3.3 * uSpeedPhase + 0.2 * uChopPhase)));
 				foam *= flow;
 
 				col = mix(col, uFoam, clamp(foam, 0.0, 0.70));
@@ -2326,9 +2334,9 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 				// Caustic lattice and sun sparkle, strongest near the foreground.
 				float caustic =
 					sin((p.x * (2.4 + rippleControl * 3.2) + h * 1.7) * TAU) *
-					sin((p.y * 2.9 - h * 1.2 - (0.035 * t + 0.36 * uSpeedPhase)) * TAU);
+					sin((p.y * 2.9 - h * 1.2 - (0.165 * t + 1.52 * uSpeedPhase)) * TAU);
 				col += uShallow * smoothstep(0.56, 1.0, caustic) * depth * (0.025 + rippleControl * 0.19) * flow;
-				col += uSun * spec * (0.22 + energy * 1.05) * flow;
+				col += uSun * spec * (0.5 + energy * 1.3) * flow;
 
 				float glitter = smoothstep(0.992, 1.0, hash21(floor((p + n.xz * 0.3) * 42.0)) + spec * 0.28);
 				col = mix(col, uFoam, glitter * depth * (0.04 + rippleControl * 0.50) * flow);
