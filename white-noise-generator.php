@@ -2288,11 +2288,19 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 
 				// Stable full-frame water coordinates. Avoid a horizon split so the
 				// lower panel never stretches into vertical stripe artifacts.
-				float focusX = 0.5;
+				// Funnel/spill point follows the spectral balance: energy in the low (left) sliders
+				// pulls it left, energy in the high (right) sliders pulls it right. It's the
+				// convergence point of the perspective; eased in JS (uFocusX) so a preset switch
+				// glides the funnel to its new spot instead of snapping. p.x is bounded, so moving
+				// focusX only shifts the field a little — it never causes a time-proportional jump.
+				float focusX = clamp(uFocusX, 0.18, 0.82);
 				float perspective = mix(2.08 + ampControl * 0.76, 0.92, smoothstep(0.0, 1.0, y));
 				vec2 p = vec2((x - focusX) * perspective * 2.15, (1.0 - y) * 2.35 + y * 0.42);
-				// Water falls straight down toward the foreground — no horizontal or diagonal current.
-				p += vec2(0.0, -(0.045 * t + 0.40 * uSpeedPhase));
+				// The sample point is NOT scrolled. Each wave/ripple/foam layer carries its own
+				// downward motion through its pre-integrated, jump-free time phase (below). Baking
+				// the accumulated scroll into p and then multiplying by a per-preset frequency
+				// (swellFreq, rippleScale, …) made a preset switch jump by scroll × Δfrequency —
+				// i.e. proportional to how long it had flowed. Keeping p static removes that jump.
 
 				float h = waveHeight(p, t, ampControl, speedControl, rippleControl, energy, narrow, rough, chop);
 				vec3 n = waterNormal(p, t, ampControl, speedControl, rippleControl, energy, narrow, rough, chop);
