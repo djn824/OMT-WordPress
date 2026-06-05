@@ -169,7 +169,7 @@ get_header();
 	z-index: 0;
 	opacity: 0;
 	pointer-events: none;
-	filter: saturate(1.26) contrast(1.08) brightness(1.02);
+	filter: saturate(1.0) contrast(1.05) brightness(1.0);
 	transition: opacity 1.25s ease;
 }
 .noise-container .noise-bg-canvas.is-ready {
@@ -2156,9 +2156,9 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 		uFocusX: { value: ZERO_WATER_MOTION.focusX },
 		uFlowDir: { value: ZERO_WATER_MOTION.flowDir },
 		uFlowMix: { value: 0 },
-		uShallow: { value: new THREE.Color(0x78e4ee) },
-		uMid: { value: new THREE.Color(0x1aa4c8) },
-		uDeep: { value: new THREE.Color(0x07577c) },
+		uShallow: { value: new THREE.Color(0x9ad8ec) },
+		uMid: { value: new THREE.Color(0x2f86b3) },
+		uDeep: { value: new THREE.Color(0x1a4d6e) },
 		uSky: { value: new THREE.Color(0xe8fbff) },
 		uFoam: { value: new THREE.Color(0xf8ffff) },
 		uSun: { value: new THREE.Color(0xffffff) }
@@ -2317,33 +2317,31 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 
 				vec3 sky = mix(vec3(0.88, 0.98, 1.0), uSky, smoothstep(0.18, 1.0, y));
 				vec3 water = mix(uDeep, uMid, depth);
-				water = mix(water, uShallow, smoothstep(0.08, 0.88, h * 0.42 + fbm(p * 0.7)));
+				water = mix(water, uShallow, smoothstep(0.18, 0.92, h * 0.42 + fbm(p * 0.7)));
 				// Sub-surface scattering: light passing through raised crests gives a luminous teal.
-				water += uShallow * max(0.0, h) * (0.10 + energy * 0.18);
-				vec3 col = mix(water, sky, fresnel * 0.85);
+				water += uShallow * max(0.0, h) * (0.03 + energy * 0.05);
+				vec3 col = mix(water, sky, fresnel * 0.55);
 
 				// White breaking foam appears where the simulated surface folds sharply.
 				float steep = length(vec2(dFdx(h), dFdy(h))) * 7.5;
 				float foam = smoothstep(0.30, 0.82, steep + h * (0.09 + energy * 0.44));
-				foam *= smoothstep(0.04, 0.64, y);
+				foam *= smoothstep(0.04, 0.5, y) * (1.0 - 0.5 * smoothstep(0.72, 1.0, y));
 				foam *= 0.38 + 0.62 * fbm(p * (4.2 + rippleControl * 5.0 + rough * 3.5) + vec2(0.0, -(0.555 * t + 3.3 * uSpeedPhase + 0.2 * uChopPhase)));
 				foam *= flow;
 
-				col = mix(col, uFoam, clamp(foam, 0.0, 0.70));
+				col = mix(col, uFoam, clamp(foam, 0.0, 0.5));
 
 				// Caustic lattice and sun sparkle, strongest near the foreground.
 				float caustic =
 					sin((p.x * (2.4 + rippleControl * 3.2) + h * 1.7) * TAU) *
 					sin((p.y * 2.9 - h * 1.2 - (0.165 * t + 1.52 * uSpeedPhase)) * TAU);
 				col += uShallow * smoothstep(0.56, 1.0, caustic) * depth * (0.025 + rippleControl * 0.19) * flow;
-				col += uSun * spec * (0.5 + energy * 1.3) * flow;
+				col += uSun * spec * (0.35 + energy * 0.85) * flow;
 
 				float glitter = smoothstep(0.992, 1.0, hash21(floor((p + n.xz * 0.3) * 42.0)) + spec * 0.28);
 				col = mix(col, uFoam, glitter * depth * (0.04 + rippleControl * 0.50) * flow);
 
-				// Soft reflection keeps the water bright behind the controls.
-				float mist = smoothstep(0.34, 1.0, y);
-				col = mix(col, sky, mist * 0.30);
+				// (Top sky-haze removed — the top now reads as water like the rest of the frame.)
 				float vignette = smoothstep(1.05, 0.18, distance(vec2(x, y), vec2(focusX, 0.58)));
 				col *= 0.90 + 0.10 * vignette;
 
