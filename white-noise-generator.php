@@ -2238,22 +2238,50 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 				return v;
 			}
 
+			// ---- Ripple shape tuning (edit these three to taste) ----
+			// The old isotropic rippleScale shrinks ripples equally in X and Y, so turning it
+			// up keeps the same stretched shape — that is why scaling alone never killed the
+			// "long length" look. These add the missing controls:
+			//   RIPPLE_DETAIL  > 1.0  -> smaller ripple cells overall (higher spatial frequency).
+			//   RIPPLE_SQUASH  > 1.0  -> shortens ripples ALONG the downward flow, breaking up
+			//                            the long vertical streaks into compact little ripples.
+			//   RIPPLE_AMP_TRIM < 1.0 -> lowers ripple height so the tighter ripples stay soft.
+			const float RIPPLE_DETAIL   = 1.25;
+			const float RIPPLE_SQUASH   = 1.80;
+			const float RIPPLE_AMP_TRIM = 0.78;
+
+			// ---- Swell shape tuning ----
+			// The swell is the big slow rolling wave UNDER the ripples; it has its own low
+			// frequencies, so the ripple knobs above never shorten it. This is the leftover
+			// "long length" you still see. Raise SWELL_DETAIL to make every swell wave shorter
+			// (more, smaller rolls); lower SWELL_AMP_TRIM to flatten the swell so the surface
+			// reads as small ripples rather than long swells.
+			//   SWELL_DETAIL   > 1.0  -> shorter swell wavelength (smaller rolling waves).
+			//   SWELL_AMP_TRIM < 1.0  -> shallower swell (less of the long rolling motion).
+			const float SWELL_DETAIL   = 1.65;
+			const float SWELL_AMP_TRIM = 0.70;
+
 			float waveHeight(vec2 p, float t, float waveAmp, float waveSpeed, float rippleEnergy, float energy, float narrow, float rough, float chop) {
 				float swellWide = 1.0 + (1.0 - narrow) * 0.85;
 				float swellFreq = (0.52 + narrow * 1.35) / swellWide;
 				float swellAmp = (0.06 + 0.92 * waveAmp) * swellWide;
-				float rippleScale = 1.6 + 5.2 * rippleEnergy + narrow * 2.4;
-				float rippleAmp = (0.04 + 0.64 * rippleEnergy) * (0.75 + rough * 0.55 + chop * 0.35);
+				float rippleScale = (1.6 + 5.2 * rippleEnergy + narrow * 2.4) * RIPPLE_DETAIL;
+				float rippleAmp = (0.04 + 0.64 * rippleEnergy) * (0.75 + rough * 0.55 + chop * 0.35) * RIPPLE_AMP_TRIM;
 				// Downward flow comes entirely from these pre-integrated time phases (uTime is the
 				// constant-rate part, uSpeedPhase the speed-driven part). Because they're integrals,
 				// a preset that changes the speed only alters the flow from here on — it never
 				// rescales the accumulated phase, so the waves never jump on a switch. The
 				// coefficients fold in the old whole-field scroll, so it flows like water again.
-				float swell =
-					swellAmp * sin(dot(p, vec2(0.0, 1.0)) * TAU * swellFreq - (0.30 * t + 4.0 * uSpeedPhase)) +
-					(0.03 + 0.5 * waveAmp) * sin(dot(p, vec2(-0.14, 0.99)) * TAU * (1.02 + narrow * 0.55) + (0.48 * t + 4.71 * uSpeedPhase)) +
-					(0.02 + 0.24 * energy) * sin(dot(p, vec2(0.12, 0.99)) * TAU * (1.85 + narrow * 1.1) - (0.84 * t + 7.73 * uSpeedPhase));
-				vec2 rippleUv = p * rippleScale + vec2(
+				float swell = SWELL_AMP_TRIM * (
+					swellAmp * sin(dot(p, vec2(0.0, 1.0)) * TAU * swellFreq * SWELL_DETAIL - (0.30 * t + 4.0 * uSpeedPhase)) +
+					(0.03 + 0.5 * waveAmp) * sin(dot(p, vec2(-0.14, 0.99)) * TAU * (1.02 + narrow * 0.55) * SWELL_DETAIL + (0.48 * t + 4.71 * uSpeedPhase)) +
+					(0.02 + 0.24 * energy) * sin(dot(p, vec2(0.12, 0.99)) * TAU * (1.85 + narrow * 1.1) * SWELL_DETAIL - (0.84 * t + 7.73 * uSpeedPhase))
+				);
+				// vec2(1.0, RIPPLE_SQUASH) compresses ONLY the vertical (flow-direction)
+				// wavelength, so a ripple that used to smear into a long vertical streak now
+				// reads as a short, rounded ripple. The scroll term is added after the squash
+				// so it still drifts downward at the same speed.
+				vec2 rippleUv = p * rippleScale * vec2(1.0, RIPPLE_SQUASH) + vec2(
 					0.0,
 					-(0.25 * t + 2.35 * uSpeedPhase + 0.48 * uRipplePhase + 0.18 * uRoughPhase)
 				);
