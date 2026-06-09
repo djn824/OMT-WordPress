@@ -300,6 +300,8 @@
   border-radius: 10px;
   border: none;
   outline: none;
+  /* Dragging a (rotated) slider must not scroll the page on touch devices */
+  touch-action: none;
 }
 .slider input[type="range"]::-webkit-slider-thumb {
 -webkit-appearance: none !important;

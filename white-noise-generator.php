@@ -115,6 +115,15 @@ get_header();
 		align-items: center;
 	}
 }
+/* Narrow the preset panel on small desktop / large tablet widths */
+@media (min-width: 1025px) and (max-width: 1130px) {
+	.white-noise-presets {
+		flex: 0 0 255px;
+		width: 255px;
+		min-width: 255px;
+		max-width: 255px;
+	}
+}
 /* --- Three.js flowing-water background --- */
 .noise-container {
 	position: relative;
@@ -128,6 +137,30 @@ get_header();
 	box-shadow:
 		inset 0 0 100px rgba(255, 255, 255, 0.38),
 		inset 0 -70px 140px rgba(0, 94, 130, 0.24);
+}
+
+/* Mobile: shrink the buttons so the arc fits on a narrow screen. The panel
+   height itself is computed in JS (sizeNoiseContainer) from the live arc reach
+   so it tracks screen width, screen height, radius and yOffset together. */
+@media only screen and (max-width: 768px) {
+	.control-bar .general,
+	.control-bar button {
+		width: 60px;
+		height: 60px;
+	}
+	/* Shrink the main play/pause button proportionally */
+	.noise-container .main-btn {
+		width: 104px;
+		height: 104px;
+	}
+	.noise-container .main-btn > div {
+		width: 92px;
+		height: 92px;
+	}
+	.noise-container .main-btn > div > div {
+		width: 74px;
+		height: 74px;
+	}
 }
 .noise-container::before,
 .noise-container::after {
@@ -556,15 +589,34 @@ get_header();
 		b.controlBar.classList.toggle('is-controls-visible', !!visible);
 	};
 
+	// Arc geometry derived from BOTH viewport width and height so the fan stays
+	// proportional on any device: width caps how far the buttons can spread
+	// sideways, height caps how far they can drop — the smaller constraint wins.
+	// Desktop tops out at the original 140px; it never collapses below 84px.
+	const computeArcMetrics = () => {
+		const vw = window.innerWidth || document.documentElement.clientWidth;
+		const vh = window.innerHeight || document.documentElement.clientHeight;
+		const widthCap = (vw - 40) / 2 - 26;   // ±radius + half a button kept inside the viewport
+		const heightCap = vh * 0.26;           // fan drops ~radius*0.82 below centre
+		let radius = Math.max(84, Math.min(140, widthCap, heightCap));
+		if (vw < 600) radius = Math.max(74, radius - 20);   // tighter fan on mobile
+		const yOffset = Math.max(12, Math.min(25, radius * 0.18));
+		return { radius: radius, yOffset: yOffset };
+	};
+
 	const placeButton = () => {
 		setSecondaryControlsVisible(true);
 		let num = b.btnGroup.length;
 		let space = Math.PI / (num - 1);
 		let initialTime = 180;
 
+		const metrics = computeArcMetrics();
+		const radius = metrics.radius;
+		const yOffset = metrics.yOffset;
+
 		for (let i = 0; i < num; i++) {
-			let x = 140 * Math.cos(Math.PI + i * space),
-				y = 140 * Math.sin(Math.PI + i * space) + 25;
+			let x = radius * Math.cos(Math.PI + i * space),
+				y = radius * Math.sin(Math.PI + i * space) + yOffset;
 			b.btnGroup[i].style.transitionDuration = initialTime + i * 100 + 'ms';
 			b.btnGroup[i].style.transform = `translate3d(${-x}px, ${-y}px, 0)`;
 		}
@@ -578,6 +630,48 @@ get_header();
 			b.btnGroup[i].style.transitionDuration = 360 + 'ms';
 			b.btnGroup[i].style.transform = `translate3d(0px, -25px, 0)`;
 		}
+	};
+
+	// Size the panel so the lowest fanned-out button always fits, while never
+	// clipping the normal flow content (sliders, preset panel). Driven by the
+	// real control-bar position plus the current arc reach, so the height tracks
+	// screen width, screen height, radius and yOffset together.
+	const sizeNoiseContainer = () => {
+		const nc = document.querySelector('.noise-container');
+		if (!nc || !b.controlBar) return;
+
+		const metrics = computeArcMetrics();
+		// Measure the natural content height first (so tall content is never clipped).
+		nc.style.height = 'auto';
+		const contentHeight = nc.scrollHeight;
+
+		const ncTop = nc.getBoundingClientRect().top;
+		const cb = b.controlBar.getBoundingClientRect();
+		const centreY = (cb.top + cb.height / 2) - ncTop;     // control-bar centre from panel top
+		const halfButton = 26;                                 // half a button + a little ring
+		const arcNeeded = centreY + (metrics.radius - metrics.yOffset) + halfButton + 22;
+
+		// Desktop (≥900px): the preset panel sits beside the main panel, so the
+		// height only needs to clear the arc — keeps the panel compact. Below that
+		// the presets stack underneath, so grow to the full content to avoid clipping.
+		const vw = window.innerWidth || document.documentElement.clientWidth;
+		const target = vw >= 900 ? arcNeeded + 70 : Math.max(contentHeight, arcNeeded) + 20;
+
+		nc.style.height = Math.round(target) + 'px';
+	};
+
+	// Recompute arc + panel height together. Re-fan only if the controls are out.
+	const layoutArc = () => {
+		sizeNoiseContainer();
+		if (b.controlBar && b.controlBar.classList.contains('is-controls-visible')) {
+			placeButton();
+		}
+	};
+
+	let arcResizeRaf = null;
+	const onArcResize = () => {
+		if (arcResizeRaf) cancelAnimationFrame(arcResizeRaf);
+		arcResizeRaf = requestAnimationFrame(layoutArc);
 	};
 
 	/* --- Sound engine (ported from white_noise.html) --- */
@@ -2080,6 +2174,56 @@ get_header();
 
 	}
 
+	/**
+	 * The sliders are rotated -90deg, so a native touch-drag doesn't track the
+	 * finger (the browser maps the gesture to the input's un-rotated horizontal
+	 * axis). Drive the value manually from the finger's vertical position and
+	 * fire a normal `input` event so audio + water react live. Mouse keeps the
+	 * native behaviour; this only takes over for touch/pen.
+	 */
+	function setupSliderTouchDrag() {
+		if (!b.sliderBar || !b.sliderBar.length) return;
+
+		const setFromY = (el, clientY) => {
+			const r = el.getBoundingClientRect();
+			if (!r.height) return;
+			let frac = (r.bottom - clientY) / r.height;   // top = max, bottom = min
+			frac = Math.min(1, Math.max(0, frac));
+			const min = Number(el.min) || 0;
+			const max = Number(el.max) || 990;
+			const step = Number(el.step) || 1;
+			let v = Math.round((min + frac * (max - min)) / step) * step;
+			if (String(v) !== el.value) {
+				el.value = String(v);
+				el.dispatchEvent(new Event('input', { bubbles: true }));
+			}
+		};
+
+		for (const el of b.sliderBar) {
+			let dragging = false;
+			el.addEventListener('pointerdown', (e) => {
+				if (e.pointerType === 'mouse') return;     // let mouse use native handling
+				if (el.disabled) return;
+				dragging = true;
+				try { el.setPointerCapture(e.pointerId); } catch (_) {}
+				e.preventDefault();
+				setFromY(el, e.clientY);
+			});
+			el.addEventListener('pointermove', (e) => {
+				if (!dragging) return;
+				e.preventDefault();
+				setFromY(el, e.clientY);
+			});
+			const end = (e) => {
+				if (!dragging) return;
+				dragging = false;
+				try { el.releasePointerCapture(e.pointerId); } catch (_) {}
+			};
+			el.addEventListener('pointerup', end);
+			el.addEventListener('pointercancel', end);
+		}
+	}
+
 	function setupResponsivePresetPanel() {
 		const panel = b.presetPanel;
 		const layout = window.document.querySelector('.white-noise-layout');
@@ -2128,6 +2272,9 @@ get_header();
 			ensureTimerLabelUi();
 			setupResponsivePresetPanel();
 			replaceButton();
+			layoutArc();
+			window.addEventListener('resize', onArcResize);
+			window.addEventListener('orientationchange', onArcResize);
 
 			for (let i of b.sliderBar) {
 				// Ensure numeric value; default to -21 dBFS.
@@ -2151,6 +2298,7 @@ get_header();
 					updateVolumeButtonCursors();
 				};
 			}
+			setupSliderTouchDrag();
 			updateVolumeButtonCursors();
 
 			if (b.presetPanel) {

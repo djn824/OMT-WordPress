@@ -39,13 +39,25 @@ get_header(); ?>
 
 	/* Filter Buttons */
 	.btn-filter {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.4rem;
+		line-height: 1.2;
 		background-color: #f0f0f0;
 		color: #666;
 		border: none;
 		border-radius: 10px;
-		padding: 0.3rem 0.3rem;
+		padding: 0.35rem 0.6rem;
 		font-weight: 500;
 		transition: all 0.2s ease;
+	}
+
+	.btn-filter .tab-img {
+		flex: 0 0 22px;
+		width: 22px;
+		height: 22px;
+		object-fit: contain;
 	}
 
 	.btn-filter:hover {
@@ -298,10 +310,72 @@ get_header(); ?>
 		.category-header-title {
 			font-size: 1.1rem;
 		}
-		
+
 		.search-wrapper {
-        width: 100%;
-    }
+			width: 100%;
+		}
+
+		/* Stack search above the filter strip */
+		.toolbar {
+			flex-direction: column;
+			align-items: stretch;
+			gap: 0.75rem;
+		}
+
+		/* Stack the filter buttons full-width on small screens */
+		#categoryFilters {
+			flex-direction: column;
+			flex-wrap: nowrap;
+			align-items: stretch;
+			width: 100%;
+		}
+
+		#categoryFilters .btn-filter {
+			width: 100%;
+			display: flex;
+			align-items: center;
+			justify-content: flex-start;
+			text-align: left;
+			gap: 0.6rem;
+			line-height: 1.2;
+			margin-left: 0 !important;
+			margin-right: 0 !important;
+			padding: 0.6rem 0.85rem;
+		}
+
+		#categoryFilters .btn-filter .tab-img {
+			flex: 0 0 24px;
+			width: 24px;
+			height: 24px;
+			object-fit: contain;
+		}
+	}
+
+	/* Phones */
+	@media (max-width: 575.98px) {
+		.container-fluid {
+			padding-left: 0.75rem;
+			padding-right: 0.75rem;
+		}
+
+		.text-center.mb-5 {
+			margin-bottom: 1.5rem !important;
+		}
+
+		.tool-card {
+			padding: 0.85rem;
+			gap: 0.75rem;
+			min-height: 0;
+		}
+
+		.btn-filter {
+			font-size: 0.8rem;
+			padding: 0.35rem 0.5rem;
+		}
+
+		.category-header {
+			margin-top: 1.25rem;
+		}
 	}
 
 	/* No Results */
@@ -313,7 +387,7 @@ get_header(); ?>
 <div class="container-fluid">
 		
 	<div class="text-center mb-5">            	
-		<div class="d-flex flex-wrap align-items-center justify-content-start gap-3 mb-4">
+		<div class="toolbar d-flex flex-wrap align-items-center justify-content-start gap-3 mb-4">
 			<div class="search-wrapper">
 				<div class="input-group">
 					<span class="input-group-text bg-white border-end-0" style="padding-left: 0.75rem; padding-right: 0.75rem; padding-top: 0rem; padding-bottom: 0rem;">
