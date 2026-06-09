@@ -211,116 +211,333 @@ get_header();
 	}
 }
 </style>
-<div class="noise-container">
-	<div class="width-100 my-20 white-noise-layout">
-		<div class="white-noise white-noise-mainpanel">
-		<div class="display-info">
-			<span></span>
-		</div>
-		<div class="equalizer">
-			<div class="slider">
-				<input type="range" name="Sub-Bass" class="slider-bar" min="0" max="990" value="446" step="1">
-				<input type="range" name="Low Bass" class="slider-bar" min="0" max="990" value="446" step="1">
-				<input type="range" name="Bass" class="slider-bar" min="0" max="990" value="446" step="1">
-				<input type="range" name="High Bass" class="slider-bar" min="0" max="990" value="446" step="1">
-				<input type="range" name="Low Mids" class="slider-bar" min="0" max="990" value="446" step="1">
+<div class="container-fluid">
+	<div class="noise-container">
+		<div class="width-100 my-20 white-noise-layout">
+			<div class="white-noise white-noise-mainpanel">
+			<div class="display-info">
+				<span></span>
 			</div>
-			<div class="slider">
-				<input type="range" name="Mids" class="slider-bar" min="0" max="990" value="446" step="1">
-				<input type="range" name="High Mids" class="slider-bar" min="0" max="990" value="446" step="1">
-				<input type="range" name="Low Treble" class="slider-bar" min="0" max="990" value="446" step="1">
-				<input type="range" name="Treble" class="slider-bar" min="0" max="990" value="446" step="1">
-				<input type="range" name="High Treble" class="slider-bar" min="0" max="990" value="446" step="1">
-			</div>
-		</div>
-		<div class="control-bar">
-			<div id="main-btn" class="main-btn">
-				<div>
-					<div id="pause-btn" class="pause-btn">
+			<div class="equalizer">
+				<div class="slider">
+					<?php
+					// check if the repeater field has rows of data
+					if (have_rows('slider_labels')):
+
+						// split the bars into two rows at the midpoint
+						$slider_total = count(get_field('slider_labels'));
+						$slider_half = ceil($slider_total / 2);
+						$slider_index = 0;
+
+						// loop through the rows of data
+					while (have_rows('slider_labels')): the_row();
+						if ($slider_index === (int) $slider_half): ?>
 					</div>
-					<div id="play-btn" class="play-btn">
+					<div class="slider">
+					<?php endif; ?>
+						<input type="range" name="<?php the_sub_field('label'); ?>" class="slider-bar" min="0" max="990" value="446" step="1">
+					<?php $slider_index++;
+					endwhile;
+						else:
+						endif;
+					?>
+				</div>
+			</div>
+			<div class="control-bar">
+				<div id="main-btn" class="main-btn">
+					<div>
+						<div id="pause-btn" class="pause-btn">
+						</div>
+						<div id="play-btn" class="play-btn">
+						</div>
 					</div>
 				</div>
+				<div class="general">
+					<button id="animate" class="general-btn" type="button" aria-pressed="false">
+						<?php the_field('random_btn'); ?>
+					</button>
+				</div>
+				<div class="general">	
+					<button id="timer" class="general-btn" type="button" aria-pressed="false">
+						<?php the_field('timer_btn'); ?>
+					</button>
+				</div>
+				<div class="general">	
+					<button id="decrease" class="general-btn">
+						<i class="fa fa-volume-up fa-2x"></i>
+					</button>
+				</div>
+				<div class="general">	
+					<button id="increase" class="general-btn">
+						<i class="fa fa-volume-down fa-2x"></i>
+					</button>
+				</div>
+				<div class="general">	
+					<button id="reset" class="general-btn">
+						<i class="fa fa-reply fa-2x"></i>
+					</button>
+				</div>
 			</div>
-			<div class="general">
-				<button id="animate" class="general-btn" type="button" aria-pressed="false">
-					Random
-				</button>
 			</div>
-			<div class="general">	
-				<button id="timer" class="general-btn" type="button" aria-pressed="false">
-					Timer
-				</button>
-			</div>
-			<div class="general">	
-				<button id="decrease" class="general-btn">
-					<i class="fa fa-volume-up fa-2x"></i>
-				</button>
-			</div>
-			<div class="general">	
-				<button id="increase" class="general-btn">
-					<i class="fa fa-volume-down fa-2x"></i>
-				</button>
-			</div>
-			<div class="general">	
-				<button id="reset" class="general-btn">
-					<i class="fa fa-reply fa-2x"></i>
-				</button>
-			</div>
+			<?php
+			// Section titles come from the `group_labels` repeater (number => label).
+			$wn_group_labels = array();
+			if (have_rows('group_labels')):
+				while (have_rows('group_labels')): the_row();
+					$wn_group_labels[(string) get_sub_field('number')] = get_sub_field('label');
+				endwhile;
+			endif;
+
+			// Button labels come from the `sound_color_labels` repeater, grouped by
+			// group_number and kept in row order so they line up with the presets below.
+			$wn_sound_labels = array();
+			if (have_rows('sound_color_labels')):
+				while (have_rows('sound_color_labels')): the_row();
+					$wn_gn = (string) get_sub_field('group_number');
+					if (!isset($wn_sound_labels[$wn_gn])) {
+						$wn_sound_labels[$wn_gn] = array();
+					}
+					$wn_sound_labels[$wn_gn][] = get_sub_field('label');
+				endwhile;
+			endif;
+
+			// Preset groups. The data-preset / data-preset-group values must NOT change;
+			// only the visible title and button text are pulled from ACF (with the original
+			// text kept as a fallback when a field row is missing or empty).
+			$wn_preset_groups = array(
+				array(
+					'number' => '1',
+					'group'  => 'noise-color',
+					'aria'   => 'Noise colors',
+					'title'  => 'Noise Colors',
+					'items'  => array(
+						array('preset' => 'white',  'label' => 'White'),
+						array('preset' => 'pink',   'label' => 'Pink'),
+						array('preset' => 'brown',  'label' => 'Brown'),
+						array('preset' => 'grey',   'label' => 'Grey'),
+						array('preset' => 'blue',   'label' => 'Blue'),
+						array('preset' => 'violet', 'label' => 'Violet'),
+					),
+				),
+				array(
+					'number' => '2',
+					'group'  => 'focus',
+					'aria'   => 'Focus',
+					'title'  => 'Focus',
+					'items'  => array(
+						array('preset' => 'deep-focus',    'label' => 'Deep Focus'),
+						array('preset' => 'coding-focus',  'label' => 'Coding Focus'),
+						array('preset' => 'reading-focus', 'label' => 'Reading Focus'),
+						array('preset' => 'study-focus',   'label' => 'Study Sounds'),
+					),
+				),
+				array(
+					'number' => '3',
+					'group'  => 'privacy',
+					'aria'   => 'Privacy',
+					'title'  => 'Privacy',
+					'items'  => array(
+						array('preset' => 'voice-mask',   'label' => 'Voice Mask'),
+						array('preset' => 'cafe-blur',    'label' => 'Cafe Blur'),
+						array('preset' => 'quiet-bubble', 'label' => 'Quiet Bubble'),
+					),
+				),
+				array(
+					'number' => '4',
+					'group'  => 'sleep',
+					'aria'   => 'Sleep',
+					'title'  => 'Sleep',
+					'items'  => array(
+						array('preset' => 'night-drift', 'label' => 'Night Drift'),
+						array('preset' => 'deep-sleep',  'label' => 'Deep Sleep'),
+						array('preset' => 'calm-hush',   'label' => 'Calm Hush'),
+					),
+				),
+				array(
+					'number' => '5',
+					'group'  => 'frequency',
+					'aria'   => 'Frequency bands',
+					'title'  => 'Frequency',
+					'items'  => array(
+						array('preset' => 'f63',  'label' => '63Hz'),
+						array('preset' => 'f125', 'label' => '125Hz'),
+						array('preset' => 'f250', 'label' => '250Hz'),
+						array('preset' => 'f500', 'label' => '500Hz'),
+						array('preset' => 'f1k',  'label' => '1kHz'),
+						array('preset' => 'f2k',  'label' => '2kHz'),
+						array('preset' => 'f4k',  'label' => '4kHz'),
+						array('preset' => 'f8k',  'label' => '8kHz'),
+					),
+				),
+			);
+			?>
+			<aside class="white-noise-presets" id="white-noise-presets" aria-label="Sound presets">
+				<?php foreach ($wn_preset_groups as $wn_group):
+					$wn_num = $wn_group['number'];
+					$wn_title = isset($wn_group_labels[$wn_num]) && $wn_group_labels[$wn_num] !== ''
+						? $wn_group_labels[$wn_num]
+						: $wn_group['title'];
+					$wn_group_btn_labels = isset($wn_sound_labels[$wn_num]) ? $wn_sound_labels[$wn_num] : array();
+					?>
+					<section class="preset-section">
+						<h3 class="preset-section-title"><?php echo esc_html($wn_title); ?></h3>
+						<div class="preset-chip-row" role="group" aria-label="<?php echo esc_attr($wn_group['aria']); ?>">
+							<?php foreach ($wn_group['items'] as $wn_i => $wn_item):
+								$wn_label = isset($wn_group_btn_labels[$wn_i]) && $wn_group_btn_labels[$wn_i] !== ''
+									? $wn_group_btn_labels[$wn_i]
+									: $wn_item['label'];
+								?>
+								<span class="actionlink" role="button" tabindex="0" data-preset-group="<?php echo esc_attr($wn_group['group']); ?>" data-preset="<?php echo esc_attr($wn_item['preset']); ?>"><?php echo esc_html($wn_label); ?></span>
+							<?php endforeach; ?>
+						</div>
+					</section>
+				<?php endforeach; ?>
+			</aside>
 		</div>
-		</div>
-		<aside class="white-noise-presets" id="white-noise-presets" aria-label="Sound presets">
-			<section class="preset-section">
-				<h3 class="preset-section-title">Noise Colors</h3>
-				<div class="preset-chip-row" role="group" aria-label="Noise colors">
-					<span class="actionlink" role="button" tabindex="0" data-preset-group="noise-color" data-preset="white">White</span>
-					<span class="actionlink" role="button" tabindex="0" data-preset-group="noise-color" data-preset="pink">Pink</span>
-					<span class="actionlink" role="button" tabindex="0" data-preset-group="noise-color" data-preset="brown">Brown</span>
-					<span class="actionlink" role="button" tabindex="0" data-preset-group="noise-color" data-preset="grey">Grey</span>
-					<span class="actionlink" role="button" tabindex="0" data-preset-group="noise-color" data-preset="blue">Blue</span>
-					<span class="actionlink" role="button" tabindex="0" data-preset-group="noise-color" data-preset="violet">Violet</span>
-				</div>
-			</section>
-			<section class="preset-section">
-				<h3 class="preset-section-title">Focus</h3>
-				<div class="preset-chip-row" role="group" aria-label="Focus">
-					<span class="actionlink" role="button" tabindex="0" data-preset-group="focus" data-preset="deep-focus">Deep Focus</span>
-					<span class="actionlink" role="button" tabindex="0" data-preset-group="focus" data-preset="coding">Coding Focus</span>
-					<span class="actionlink" role="button" tabindex="0" data-preset-group="focus" data-preset="reading">Reading Focus</span>
-					<span class="actionlink" role="button" tabindex="0" data-preset-group="focus" data-preset="studying">Study Sounds</span>
-				</div>
-			</section>
-			<section class="preset-section">
-				<h3 class="preset-section-title">Privacy</h3>
-				<div class="preset-chip-row" role="group" aria-label="Privacy">
-					<span class="actionlink" role="button" tabindex="0" data-preset-group="privacy" data-preset="voice-mask">Voice Mask</span>
-					<span class="actionlink" role="button" tabindex="0" data-preset-group="privacy" data-preset="cafe-blur">Cafe Blur</span>
-					<span class="actionlink" role="button" tabindex="0" data-preset-group="privacy" data-preset="quiet-bubble">Quiet Bubble</span>
-				</div>
-			</section>
-			<section class="preset-section">
-				<h3 class="preset-section-title">Sleep</h3>
-				<div class="preset-chip-row" role="group" aria-label="Sleep">
-					<span class="actionlink" role="button" tabindex="0" data-preset-group="sleep" data-preset="night-drift">Night Drift</span>
-					<span class="actionlink" role="button" tabindex="0" data-preset-group="sleep" data-preset="deep-sleep">Deep Sleep</span>
-					<span class="actionlink" role="button" tabindex="0" data-preset-group="sleep" data-preset="calm-hush">Calm Hush</span>
-				</div>
-			</section>
-			<section class="preset-section">
-				<h3 class="preset-section-title">Frequency</h3>
-				<div class="preset-chip-row" role="group" aria-label="Frequency bands">
-					<span class="actionlink" role="button" tabindex="0" data-preset-group="frequency" data-preset="f63">63Hz</span>
-					<span class="actionlink" role="button" tabindex="0" data-preset-group="frequency" data-preset="f125">125Hz</span>
-					<span class="actionlink" role="button" tabindex="0" data-preset-group="frequency" data-preset="f250">250Hz</span>
-					<span class="actionlink" role="button" tabindex="0" data-preset-group="frequency" data-preset="f500">500Hz</span>
-					<span class="actionlink" role="button" tabindex="0" data-preset-group="frequency" data-preset="f1k">1kHz</span>
-					<span class="actionlink" role="button" tabindex="0" data-preset-group="frequency" data-preset="f2k">2kHz</span>
-					<span class="actionlink" role="button" tabindex="0" data-preset-group="frequency" data-preset="f4k">4kHz</span>
-					<span class="actionlink" role="button" tabindex="0" data-preset-group="frequency" data-preset="f8k">8kHz</span>
-				</div>
-			</section>
-		</aside>
 	</div>
+	
+	<br/><br/>
+	<div class="wid-sm-100 wid-xs-100">
+		<div class="ct-row mar-bot-15 dis-flex">
+			<img class="tve_image" alt="" style="width: 64px;" src="<?php the_field('icon'); ?>" width="64" height="64">
+			<div class="webcam-1-text_">
+				<div class="icon-text-1">
+					<h3 class="ct-bold-text"><?php the_field('get_easily_started_title'); ?></h3>
+				</div>
+			</div>
+		</div>
+		<div class="ct-row">
+			<div class="new-webcam-desc">
+				<ul>
+					<?php
+
+                        // check if the repeater field has rows of data
+                        if (have_rows('get_easily_started_steps')):
+
+                            // loop through the rows of data
+                        while (have_rows('get_easily_started_steps')): the_row(); ?>
+											<li>
+												<span><?php the_sub_field('numbers'); ?></span>
+												<div>
+													<strong><?php the_sub_field('title'); ?></strong>
+												</div>
+											</li>
+										<?php endwhile;
+                                            else:
+                                            endif;
+                                        ?>
+				</ul>
+			</div>
+		</div>
+	</div>
+
+	<div class="wid-sm-100 wid-xs-100">
+		<div class="ct-row mar-bot-15 dis-flex">
+			<img class="tve_image" alt="" style="width: 64px;" src="<?php the_field('red_icon'); ?>" width="64" height="64">
+			<div class="webcam-1-text_">
+				<div class="icon-text-1">
+					<h3 class="ct-bold-text" style="color: rgb(226, 92, 27)"><?php the_field('trouble-shooting_title'); ?></h3>
+				</div>
+			</div>
+		</div>
+
+		<div class="trouble-shooting-2 dis-flex">
+			<div class="width-33_3 wid-md-50 wid-xs-100">
+				<div class="trouble-shooting-text-1 pd-1">
+					<ul>
+						<?php
+
+                            // check if the repeater field has rows of data
+                            if (have_rows('leftside_guide_list')):
+
+                                // loop through the rows of data
+                            while (have_rows('leftside_guide_list')): the_row(); ?>
+												<li>
+													<span class="fw-bold color-link">
+														<?php the_sub_field('left_side_list_title'); ?>
+													</span>
+												</li>
+
+											<?php endwhile;
+                                                else:
+                                                endif;
+                                            ?>
+					</ul>
+				</div>
+
+				<div align="center">
+					<style>
+						.OMT_MOINSBD_Middle { width: 300px; height: 250px; }
+						@media(min-width: 500px) { .OMT_MOINSBD_Middle { width: 300px; height: 250px; } }
+						@media(min-width: 800px) { .OMT_MOINSBD_Middle { width: 300px; height: 250px; } }
+					</style>
+				</div>
+
+			</div>
+			<?php
+                $right_side_guide_list = get_field('rightside_guide_list');
+            if ($right_side_guide_list) {?>
+				<div class="width-33_3 wid-md-50  wid-xs-100">
+					<div class="trouble-shooting-text-1 pd-1">
+						<ul>
+							<li>
+								<span class="fw-bold">
+									<?php echo $right_side_guide_list ?>
+								</span>
+							</li>
+						</ul>
+					</div>
+				</div>
+				<?php
+                }?>
+			<div class="width-33_3 md-hidden">
+			</div>
+		</div>
+	</div>
+
+	<div class="other-section">
+			<div class="read-more-section">
+				<div class="ct-row dis-flex">
+					<div class="width-50 wid-xs-100">
+						<div class="read-more-text-secction">
+							<div class="read-more-title clearfix" >
+								<h2><strong><?php the_field('more_about_title'); ?></strong></h2>
+							</div>
+							<?php
+
+                                // check if the repeater field has rows of data
+                                if (have_rows('test_content')):
+
+                                    // loop through the rows of data
+                                while (have_rows('test_content')): the_row(); ?>
+													<div class="read-more-1">
+
+
+														<div class="read-more-subtitle clearfix">
+															<h3 class="mar-bot-20"><?php the_sub_field('heading'); ?></h3>
+														</div>
+
+														<div class="read-more-text">
+															<p><?php the_sub_field('descp'); ?>
+														</p>
+													</div>
+												</div>
+											<?php endwhile;
+                                                else:
+                                                endif;
+                                            ?>
+					</div>
+				</div>
+
+				<div class="width-50">
+					<div class="img-section pad-left-15">
+						<img class="lazyload" src="<?php the_field('rightside_lazy_gif'); ?>" data-src="<?php the_field('rightside_image'); ?>"/>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
 </div>
 </div>
 </article>
@@ -741,7 +958,7 @@ get_header();
 			}
 			hideTimerLabelUi();
 			if (b.displayInfo) {
-				b.displayInfo.textContent = 'Timer finished — stopped';
+				b.displayInfo.textContent = '<?php the_field('time_finished_label'); ?>';
 			}
 			sleepTimerTimeout = null;
 		}, sleepTimerMinutes * 60 * 1000);
@@ -888,18 +1105,23 @@ get_header();
 	let sourceFileA = [];
 	let sourceFileB = [];
 
-	const BAND_LABELS = [
-		'Sub-Bass',
-		'Low Bass',
-		'Bass',
-		'High Bass',
-		'Low Mids',
-		'Mids',
-		'High Mids',
-		'Low Treble',
-		'Treble',
-		'High Treble'
-	];
+	const BAND_LABELS = <?php
+		// Band labels come from the `slider_labels` repeater so they match the slider
+		// `name` attributes rendered above. Falls back to the original list if empty.
+		$wn_band_labels = array();
+		if (have_rows('slider_labels')):
+			while (have_rows('slider_labels')): the_row();
+				$wn_band_labels[] = get_sub_field('label');
+			endwhile;
+		endif;
+		if (empty($wn_band_labels)) {
+			$wn_band_labels = array(
+				'Sub-Bass', 'Low Bass', 'Bass', 'High Bass', 'Low Mids',
+				'Mids', 'High Mids', 'Low Treble', 'Treble', 'High Treble',
+			);
+		}
+		echo wp_json_encode($wn_band_labels);
+	?>;
 
 	/**
 	 * white_noise.html setPreset(): when bCALIBRATE==0, levels are passed through normalizeLevels()
@@ -975,10 +1197,10 @@ get_header();
 		white: [-39, -35, -31, -28, -26, -22, -19, -17, -14, -13],
 		brown: [-13, -15, -17, -20, -23, -26, -29, -32, -35, -39],
 		grey: [-7, -21, -25, -31, -31, -31, -34, -37, -31, -21],
-		studying: [0, 0, 0, 0, -13, -60, -49, -58, -129, -52],
+		'study-focus': [0, 0, 0, 0, -13, -60, -49, -58, -129, -52],
 		'deep-focus': [-21, -8, 0, -7, -17, -29, -47, -90, -129, -129],
-		reading: [-25, -9, 0, -9, -38, -56, -58, -58, -63, -63],
-		coding: [-41, -11, -5, -4, -5, -7, -12, -17, -17, -17],
+		'reading-focus': [-25, -9, 0, -9, -38, -56, -58, -58, -63, -63],
+		'coding-focus': [-41, -11, -5, -4, -5, -7, -12, -17, -17, -17],
 		'voice-mask': [-10, -10, -11, -13, -16, -20, -26, -36, -51, -129],
 		'cafe-blur': [-11, -11, -11, -12, -16, -20, -22, -23, -24, -24],
 		'quiet-bubble': [-129, -129, -41, -37, -129, -41, -32, -19, -19, -19],
@@ -1550,7 +1772,7 @@ get_header();
 
 		stemsReady = true;
 		if (b.displayInfo) {
-			b.displayInfo.textContent = 'Audio loaded';
+			b.displayInfo.textContent = '<?php the_field("audio_load_label") ?>';
 		}
 		console.log('White noise stems loaded (mynoise.world).');
 	}
@@ -1667,7 +1889,7 @@ get_header();
 		engineReady = true;
 		setPlayButtonEnabled(true);
 		if (b.displayInfo) {
-			b.displayInfo.textContent = 'Ready — press Play';
+			b.displayInfo.textContent = '<?php the_field("press_label") ?>';
 		}
 
 		// Background load of mynoise stems (may take time depending on network).
@@ -1690,7 +1912,7 @@ get_header();
 		currentLevel[idx] = level;
 		publishWaterBandLevels();
 		var db = Math.round(levelToDb(level));
-		var info = sliderEl.name + ': ' + db.toLocaleString() + ' dBFS';
+		var info = sliderEl.name + ': ' + db.toLocaleString() + ' <?php the_field('decibel_unit'); ?>';
 		// When animation is enabled, keep the display locked to "Animation: On"
 		if (b.displayInfo && !animEnabled) {
 			b.displayInfo.innerHTML = info;
@@ -1917,7 +2139,7 @@ get_header();
 			// Instant synth is available immediately; stems will load in background.
 			setPlayButtonEnabled(true);
 			if (b.displayInfo) {
-				b.displayInfo.textContent = 'Ready — press Play';
+				b.displayInfo.textContent = '<?php the_field("press_label") ?>';
 			}
 
 			initAudioContext();
@@ -1975,12 +2197,12 @@ get_header();
 						animEnabled = false;
 						syncAnimationToPlaybackState();
 						b.animateBtn.setAttribute('aria-pressed', 'false');
-						if (b.displayInfo) b.displayInfo.textContent = 'Animation: Off';
+						if (b.displayInfo) b.displayInfo.textContent = '<?php the_field('animation_off_label'); ?>';
 					} else {
 						animEnabled = true;
 						syncAnimationToPlaybackState();
 						b.animateBtn.setAttribute('aria-pressed', 'true');
-						if (b.displayInfo) b.displayInfo.textContent = 'Animation: On';
+						if (b.displayInfo) b.displayInfo.textContent = '<?php the_field('animation_on_label'); ?>';
 					}
 				});
 			}
@@ -2026,7 +2248,7 @@ get_header();
 					updateVolumeButtonCursors();
 					refreshAnimationAfterControlChange();
 					if (b.displayInfo && !animEnabled) {
-						b.displayInfo.textContent = 'All Bands';
+						b.displayInfo.textContent = '<?php the_field("all_bands_label") ?>';
 					}
 				});
 			}
@@ -2048,7 +2270,7 @@ get_header();
 					updateVolumeButtonCursors();
 					refreshAnimationAfterControlChange();
 					if (b.displayInfo && !animEnabled) {
-						b.displayInfo.textContent = 'All Bands';
+						b.displayInfo.textContent = '<?php the_field("all_bands_label") ?>';
 					}
 				});
 			}
@@ -2071,7 +2293,7 @@ get_header();
 					} else {
 						if (!engineReady) {
 							if (b.displayInfo) {
-								b.displayInfo.textContent = 'Loading audio…';
+								b.displayInfo.textContent = '<?php the_field("audio_loading_label") ?>';
 							}
 							return;
 						}
