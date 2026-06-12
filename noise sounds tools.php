@@ -181,6 +181,28 @@ get_header(); ?>
 		}
 	}
 
+	/* Loading spinner shown on the icon while a sound buffers after clicking */
+	.tool-icon.loading {
+		/* pause the pulse ring while loading so only the spinner shows */
+		animation: none !important;
+	}
+	.tool-icon.loading i {
+		display: none;
+	}
+	.tool-icon.loading::after {
+		content: "";
+		width: 22px;
+		height: 22px;
+		border: 2.5px solid currentColor;
+		border-top-color: transparent;
+		border-radius: 50%;
+		animation: iconSpin 0.7s linear infinite;
+	}
+
+	@keyframes iconSpin {
+		to { transform: rotate(360deg); }
+	}
+
 	/* Tool Content */
 	.tool-content {
 		flex: 1;
@@ -434,7 +456,7 @@ get_header(); ?>
 						<img class="img-fluid" src="<?=get_stylesheet_directory_uri();?>/assets/images/search-tools.svg" alt="">
 					</span>
 					<input type="text" class="form-control border-start-0 ps-0"
-						   id="searchInput" placeholder="Search sounds...">
+						   id="searchInput" placeholder="<?php the_field('search_sounds'); ?>">
 				</div>
 			</div>
 
@@ -450,8 +472,8 @@ get_header(); ?>
         <!-- No Results Message -->
         <div class="text-center py-5 d-none" id="noResults">
             <i class="bi bi-search display-1 text-muted mb-3"></i>
-            <h3 class="text-muted">No sounds found</h3>
-            <p class="text-muted">Try a different search term.</p>
+            <h3 class="text-muted"><?php the_field('no_result_search_title'); ?></h3>
+            <p class="text-muted"><?php the_field('no_results_search_message'); ?></p>
         </div>
 	</div>
 </div>
@@ -465,8 +487,9 @@ get_header(); ?>
 		// Base URL for every sound file; entries below store base + filename.
 		const base = '<?php echo get_stylesheet_directory_uri();?>/assets/audio/noise-sounds/';
 
-		// Sound library — each entry: { title, desc, icon, file, category }
-		const sounds = [
+		// Fallback sound library, used when the "sounds_library" field is empty.
+		// Each entry: { title, desc, icon, file, category }
+		const DEFAULT_SOUNDS = [
 			// ---- RAIN & STORMS ----
 			{ title: "Rain",              desc: "Steady rainfall to help you relax and focus",   icon: "bi-cloud-rain",           file: base + "Rain.ogg",                 category: "rain" },
 			{ title: "Thunder",           desc: "Distant rolling thunder for a stormy mood",      icon: "bi-cloud-lightning-rain", file: base + "Thunder.ogg",              category: "rain" },
@@ -497,7 +520,6 @@ get_header(); ?>
 			{ title: "White noise",       desc: "Even white noise to mask distractions",          icon: "bi-volume-up",            file: base + "White-Noise.ogg",         category: "noise" },
 			{ title: "Brown noise",       desc: "Deep brown noise for intense focus",             icon: "bi-volume-down",          file: base + "Brown-Noise.ogg",         category: "noise" },
 			{ title: "Pink noise",        desc: "Balanced pink noise to aid sleep",               icon: "bi-volume-up",            file: base + "Pink-Noise.ogg",          category: "noise" },
-			{ title: "Fan",               desc: "Steady fan hum for a soothing backdrop",         icon: "bi-fan",                  file: base + "Fan-on-High.ogg",         category: "noise" },
 			{ title: "Fan on high",       desc: "A strong fan running on high speed",             icon: "bi-fan",                  file: base + "Fan-on-High.ogg",         category: "noise" },
 			{ title: "Fan on low",        desc: "A gentle fan running on low speed",              icon: "bi-fan",                  file: base + "Fan-on-Low.ogg",          category: "noise" },
 			{ title: "Air conditioning",  desc: "Steady hum of an air conditioner",               icon: "bi-snow",                 file: base + "Air-Conditioning.ogg",    category: "noise" },
@@ -516,14 +538,39 @@ get_header(); ?>
 			{ title: "Beeping alarm",     desc: "A simple repeating alarm beep",                  icon: "bi-alarm",                file: base + "Beeping-Alarm.mp3",       category: "focus" }
 		];
 
-		// Category metadata
-		const categoryMeta = {
-			rain:   { label: "Rain & Storms",    icon: "bi-cloud-rain" },
-			focus:  { label: "Focus & Ambience", icon: "bi-headphones" },
-			water:  { label: "Water",            icon: "bi-water" },
-			nature: { label: "Nature",           icon: "bi-tree" },
-			noise:  { label: "White Noise",      icon: "bi-volume-up" }
-		};
+		// Sounds come from the ACF "sounds_library" field:
+		// [{ title, description, icon, file_name, category_key }]. Falls back to DEFAULT_SOUNDS.
+		let soundsLibrary = <?php echo json_encode(get_field('sounds_library')); ?>;
+		const sounds = (Array.isArray(soundsLibrary) && soundsLibrary.length)
+			? soundsLibrary.map(s => ({
+				title:    s.title,
+				desc:     s.description,
+				icon:     s.icon,
+				file:     base + s.file_name,
+				category: s.category_key
+			}))
+			: DEFAULT_SOUNDS;
+
+		// Category labels come from the ACF "category_labels" field: [{ key, label, icon }].
+		// Include an entry with key "all" for the "All Sounds" filter button.
+		// The array order defines the order of the filter buttons and category sections.
+		let categoryLabels = <?php echo json_encode(get_field('category_labels')); ?>;
+		if (!Array.isArray(categoryLabels) || categoryLabels.length === 0) {
+			categoryLabels = [
+				{ key: "all",    label: "All Sounds",       icon: "bi-grid" },
+				{ key: "rain",   label: "Rain & Storms",    icon: "bi-cloud-rain" },
+				{ key: "focus",  label: "Focus & Ambience", icon: "bi-headphones" },
+				{ key: "water",  label: "Water",            icon: "bi-water" },
+				{ key: "nature", label: "Nature",           icon: "bi-tree" },
+				{ key: "noise",  label: "White Noise",      icon: "bi-volume-up" }
+			];
+		}
+
+		// Lookup ({ key: { label, icon } }) for every label, including "all".
+		const categoryMeta = {};
+		categoryLabels.forEach(c => { categoryMeta[c.key] = { label: c.label, icon: c.icon }; });
+		// Order of the real category sections — excludes the "all" filter.
+		const categoryOrder = categoryLabels.map(c => c.key).filter(k => k !== 'all');
 
 		// Audio objects keyed by index, created lazily.
 		const players = {};
@@ -551,15 +598,28 @@ get_header(); ?>
 				return players[index];
 			}
 
+			function setIconLoading(card, isLoading) {
+				const icon = card && card.querySelector('.tool-icon');
+				if (icon) icon.classList.toggle('loading', isLoading);
+			}
+
 			function setVolume(index, file, value, card) {
 				const audio = getPlayer(index, file);
 				const vol = value / 100;
 				audio.volume = vol;
 				if (vol > 0) {
-					if (audio.paused) audio.play().catch(() => {});
+					if (audio.paused) {
+						audio.currentTime = 0;   // replay from the beginning
+						// Show a spinner on the icon until the sound actually starts.
+						setIconLoading(card, true);
+						const stopLoading = () => setIconLoading(card, false);
+						audio.addEventListener('playing', stopLoading, { once: true });
+						audio.play().then(stopLoading).catch(stopLoading);
+					}
 					card.classList.add('active');
 				} else {
 					audio.pause();
+					setIconLoading(card, false);
 					card.classList.remove('active');
 				}
 			}
@@ -591,7 +651,7 @@ get_header(); ?>
 						<div class="category-header-content">
 							<i class="bi ${meta.icon} category-header-icon"></i>
 							<h3 class="category-header-title">${meta.label}</h3>
-							<span class="category-header-badge">${count} sounds</span>
+							<span class="category-header-badge">${count} <?php the_field('sound_unit') ?></span>
 						</div>
 					</div>
 				`;
@@ -607,12 +667,13 @@ get_header(); ?>
 				`;
 			}
 
-			// Render the filter strip from categoryMeta (plus a leading "All" button)
+			// Render the filter strip entirely from categoryMeta, including the
+			// "all" entry. The button whose key matches the initial activeCategory
+			// ("all") starts active.
 			function renderFilters() {
-				const allMeta = { label: "All Sounds", icon: "bi-grid" };
-				let html = createFilterButton('all', allMeta, true);
+				let html = '';
 				Object.keys(categoryMeta).forEach(category => {
-					html += createFilterButton(category, categoryMeta[category], false);
+					html += createFilterButton(category, categoryMeta[category], category === activeCategory);
 				});
 				a.categoryFilters.innerHTML = html;
 			}
@@ -643,8 +704,7 @@ get_header(); ?>
 						groupedSounds[item.sound.category].push(item);
 					});
 
-					// Render with category headers
-					const categoryOrder = ['rain', 'focus', 'water', 'nature', 'noise'];
+					// Render with category headers (order comes from categoryOrder)
 					let html = '';
 
 					categoryOrder.forEach(category => {
