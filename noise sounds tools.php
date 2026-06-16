@@ -935,16 +935,27 @@ get_header(); ?>
 
 				<!-- Timer -->
 				<section class="panel-section">
-					<div class="panel-section-title">Timer</div>
-					<div class="timer-display" id="timerDisplay">Off</div>
+					<div class="panel-section-title"><?php the_field('timer'); ?></div>
+					<div class="timer-display" id="timerDisplay"><?php the_field('timer_off'); ?></div>
 					<div class="timer-presets preset-chip-row" id="timerPresets" role="group" aria-label="Timer presets">
-						<span class="actionlink" role="button" tabindex="0" data-min="15" aria-pressed="false">15m</span>
-						<span class="actionlink" role="button" tabindex="0" data-min="30" aria-pressed="false">30m</span>
-						<span class="actionlink" role="button" tabindex="0" data-min="45" aria-pressed="false">45m</span>
-						<span class="actionlink" role="button" tabindex="0" data-min="60" aria-pressed="false">60m</span>
+						<?php
+						// Timer presets come from the ACF "timer_labels" repeater:
+						// [{ label, value }]. Falls back to 15/30/45/60 minutes.
+						$timer_labels = get_field('timer_labels');
+						if ( empty( $timer_labels ) ) {
+							$timer_labels = array(
+								array( 'label' => '15m', 'value' => 15 ),
+								array( 'label' => '30m', 'value' => 30 ),
+								array( 'label' => '45m', 'value' => 45 ),
+								array( 'label' => '60m', 'value' => 60 ),
+							);
+						}
+						foreach ( $timer_labels as $preset ) : ?>
+							<span class="actionlink" role="button" tabindex="0" data-min="<?php echo esc_attr( $preset['value'] ); ?>" aria-pressed="false"><?php echo esc_html( $preset['label'] ); ?></span>
+						<?php endforeach; ?>
 					</div>
 					<div class="timer-custom">
-						<input type="number" id="timerCustom" min="1" max="600" placeholder="Min">
+						<input type="number" id="timerCustom" min="1" max="600" placeholder="<?php the_field('timer_input_placeholder'); ?>">
 						<button type="button" class="panel-btn panel-icon-btn" id="timerStart" aria-label="Start timer" title="Start timer">
 							<i class="bi bi-play-fill"></i>
 						</button>
@@ -956,34 +967,177 @@ get_header(); ?>
 
 				<!-- My Mixes (saved to localStorage) -->
 				<section class="panel-section">
-					<div class="panel-section-title">My Mixes</div>
+					<div class="panel-section-title"><?php the_field('mixes'); ?></div>
 					<div class="mix-save">
-						<input type="text" id="mixName" placeholder="Name this mix" maxlength="40">
-						<button type="button" class="panel-btn" id="mixSave">Save</button>
+						<input type="text" id="mixName" placeholder="<?php the_field('mixes_input_placeholder'); ?>" maxlength="40">
+						<button type="button" class="panel-btn" id="mixSave"><?php the_field('save_button'); ?></button>
 					</div>
 					<ul class="mix-list" id="mixList"></ul>
-					<p class="mix-empty" id="mixEmpty">No saved mixes yet.</p>
+					<p class="mix-empty" id="mixEmpty"><?php the_field('no_saved_mixes'); ?></p>
 				</section>
 
 				<!-- Share -->
 				<section class="panel-section">
-					<div class="panel-section-title">Share</div>
-					<p class="panel-hint">Create a link to your current mix and send it to anyone.</p>
+					<div class="panel-section-title"><?php the_field('share'); ?></div>
+					<p class="panel-hint"><?php the_field('share_description'); ?></p>
 					<button type="button" class="panel-btn panel-btn-block" id="shareBtn">
-						<i class="bi bi-link-45deg"></i> Copy share link
+						<i class="bi bi-link-45deg"></i> <?php the_field('copy_button'); ?>
 					</button>
 					<div class="share-feedback" id="shareFeedback"></div>
 				</section>
 
 				<!-- Stop all -->
 				<button type="button" class="panel-btn panel-btn-block panel-btn-ghost" id="stopAll">
-					<i class="bi bi-stop-circle"></i> Stop all sounds
+					<i class="bi bi-stop-circle"></i> <?php the_field('stop_button'); ?>
 				</button>
 
 			</aside>
 		</div>
 
+	</div>	
+	
+	<br/><br/>
+	<div class="wid-sm-100 wid-xs-100">
+		<div class="ct-row mar-bot-15 dis-flex">
+			<img class="tve_image" alt="" style="width: 64px;" src="<?php the_field('icon'); ?>" width="64" height="64">
+			<div class="webcam-1-text_">
+				<div class="icon-text-1">
+					<h3 class="ct-bold-text"><?php the_field('get_easily_started_title'); ?></h3>
+				</div>
+			</div>
+		</div>
+		<div class="ct-row">
+			<div class="new-webcam-desc">
+				<ul>
+					<?php
+
+                        // check if the repeater field has rows of data
+                        if (have_rows('get_easily_started_steps')):
+
+                            // loop through the rows of data
+                        while (have_rows('get_easily_started_steps')): the_row(); ?>
+											<li>
+												<span><?php the_sub_field('numbers'); ?></span>
+												<div>
+													<strong><?php the_sub_field('title'); ?></strong>
+												</div>
+											</li>
+										<?php endwhile;
+                                            else:
+                                            endif;
+                                        ?>
+				</ul>
+			</div>
+		</div>
 	</div>
+
+	<div class="wid-sm-100 wid-xs-100">
+		<div class="ct-row mar-bot-15 dis-flex">
+			<img class="tve_image" alt="" style="width: 64px;" src="<?php the_field('red_icon'); ?>" width="64" height="64">
+			<div class="webcam-1-text_">
+				<div class="icon-text-1">
+					<h3 class="ct-bold-text" style="color: rgb(226, 92, 27)"><?php the_field('trouble-shooting_title'); ?></h3>
+				</div>
+			</div>
+		</div>
+
+		<div class="trouble-shooting-2 dis-flex">
+			<div class="width-33_3 wid-md-50 wid-xs-100">
+				<div class="trouble-shooting-text-1 pd-1">
+					<ul>
+						<?php
+
+                            // check if the repeater field has rows of data
+                            if (have_rows('leftside_guide_list')):
+
+                                // loop through the rows of data
+                            while (have_rows('leftside_guide_list')): the_row(); ?>
+												<li>
+													<span class="fw-bold color-link">
+														<?php the_sub_field('left_side_list_title'); ?>
+													</span>
+												</li>
+
+											<?php endwhile;
+                                                else:
+                                                endif;
+                                            ?>
+					</ul>
+				</div>
+
+				<div align="center">
+					<style>
+						.OMT_MOINSBD_Middle { width: 300px; height: 250px; }
+						@media(min-width: 500px) { .OMT_MOINSBD_Middle { width: 300px; height: 250px; } }
+						@media(min-width: 800px) { .OMT_MOINSBD_Middle { width: 300px; height: 250px; } }
+					</style>
+				</div>
+
+			</div>
+			<?php
+                $right_side_guide_list = get_field('rightside_guide_list');
+            if ($right_side_guide_list) {?>
+				<div class="width-33_3 wid-md-50  wid-xs-100">
+					<div class="trouble-shooting-text-1 pd-1">
+						<ul>
+							<li>
+								<span class="fw-bold">
+									<?php echo $right_side_guide_list ?>
+								</span>
+							</li>
+						</ul>
+					</div>
+				</div>
+				<?php
+                }?>
+			<div class="width-33_3 md-hidden">
+			</div>
+		</div>
+	</div>
+
+	<div class="other-section">
+			<div class="read-more-section">
+				<div class="ct-row dis-flex">
+					<div class="width-50 wid-xs-100">
+						<div class="read-more-text-secction">
+							<div class="read-more-title clearfix" >
+								<h2><strong><?php the_field('more_about_title'); ?></strong></h2>
+							</div>
+							<?php
+
+                                // check if the repeater field has rows of data
+                                if (have_rows('test_content')):
+
+                                    // loop through the rows of data
+                                while (have_rows('test_content')): the_row(); ?>
+													<div class="read-more-1">
+
+
+														<div class="read-more-subtitle clearfix">
+															<h3 class="mar-bot-20"><?php the_sub_field('heading'); ?></h3>
+														</div>
+
+														<div class="read-more-text">
+															<p><?php the_sub_field('descp'); ?>
+														</p>
+													</div>
+												</div>
+											<?php endwhile;
+                                                else:
+                                                endif;
+                                            ?>
+					</div>
+				</div>
+
+				<div class="width-50">
+					<div class="img-section pad-left-15">
+						<img class="lazyload" src="<?php the_field('rightside_lazy_gif'); ?>" data-src="<?php the_field('rightside_image'); ?>"/>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
 </div>
 </div>
 </article>
@@ -1017,7 +1171,7 @@ get_header(); ?>
 			{ title: "Waterfall",         desc: "A powerful waterfall cascading down",            icon: "bi-water",                file: base + "Waterfall.mp3",           category: "water" },
 			{ title: "Water rippling",    desc: "Soft ripples across calm water",                 icon: "bi-droplet",              file: base + "Water-Rippling.mp3",      category: "water" },
 			{ title: "Underwater bubbles", desc: "Gentle bubbles drifting underwater",            icon: "bi-droplet-half",         file: base + "Underwater-Bubbles.mp3",  category: "water" },
-			{ title: "Bottle bubbles",    desc: "Soft bubbles from a submerged bottle",           icon: "bi-droplet-half",         file: base + "Bottle-Bubbles.mp3",      category: "water" },
+			{ title: "Bottle bubbles",    desc: "Soft bubbles from a submerged bottle",           icon: "bi-droplet-fill",         file: base + "Bottle-Bubbles.mp3",      category: "water" },
 
 			// ---- NATURE & WILDLIFE ----
 			{ title: "Wind",              desc: "Soft wind blowing through open space",           icon: "bi-wind",                 file: base + "Wind.mp3",                category: "nature" },
@@ -1354,7 +1508,7 @@ get_header(); ?>
 
 			function refreshTimerDisplay() {
 				if (!timerEnd) {
-					timerDisplayEl.textContent = 'Off';
+					timerDisplayEl.textContent = '<?php the_field('timer_off'); ?>';
 					timerDisplayEl.classList.remove('active');
 					return;
 				}
@@ -1609,12 +1763,12 @@ get_header(); ?>
 			shareBtnEl.addEventListener('click', () => {
 				const mix = getCurrentMix();
 				if (!Object.keys(mix).length) {
-					showShareFeedback('Play a sound before sharing.', true);
+					showShareFeedback('<?php the_field('copy_warning'); ?>', true);
 					return;
 				}
 				copyText(buildShareUrl())
-					.then(() => showShareFeedback('Link copied to clipboard!', false))
-					.catch(() => showShareFeedback('Could not copy link.', true));
+					.then(() => showShareFeedback('<?php the_field('copy_success'); ?>', false))
+					.catch(() => showShareFeedback('<?php the_field('copy_error'); ?>', true));
 			});
 
 			// On load, apply a mix passed in the URL (?mix=...).
@@ -1672,7 +1826,7 @@ get_header(); ?>
 					promptEl = document.createElement('button');
 					promptEl.type = 'button';
 					promptEl.className = 'shared-mix-prompt';
-					promptEl.innerHTML = '<i class="bi bi-play-circle-fill"></i> Tap to play shared mix';
+					promptEl.innerHTML = '<i class="bi bi-play-circle-fill"></i> <?php the_field('play_shared_link'); ?>';
 					promptEl.addEventListener('click', onFirstGesture);
 					document.body.appendChild(promptEl);
 				}, 350);
