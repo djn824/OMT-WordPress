@@ -1005,50 +1005,51 @@ get_header(); ?>
 		// Each entry: { title, desc, icon, file, category }
 		const DEFAULT_SOUNDS = [
 			// ---- RAIN & STORMS ----
-			{ title: "Rain",              desc: "Steady rainfall to help you relax and focus",   icon: "bi-cloud-rain",           file: base + "Rain.ogg",                 category: "rain" },
-			{ title: "Thunder",           desc: "Distant rolling thunder for a stormy mood",      icon: "bi-cloud-lightning-rain", file: base + "Thunder.ogg",              category: "rain" },
-			{ title: "Rain on tin roof",  desc: "Rain pattering on a metal roof",                 icon: "bi-cloud-rain-heavy",     file: base + "Rain-on-TinRoof.ogg",      category: "rain" },
-			{ title: "Rain on trees",     desc: "Raindrops falling through the leaves",           icon: "bi-cloud-drizzle",        file: base + "Rain-on-Trees.ogg",        category: "rain" },
-			{ title: "Rain on cabin",     desc: "Rain falling on a cozy wooden cabin",            icon: "bi-house",                file: base + "Rain-on-Cabin.ogg",        category: "rain" },
+			{ title: "Rain",              desc: "Steady rainfall to help you relax and focus",   icon: "bi-cloud-rain",           file: base + "Rain.mp3",                 category: "rain" },
+			{ title: "Thunder",           desc: "Distant rolling thunder for a stormy mood",      icon: "bi-cloud-lightning-rain", file: base + "Thunder.mp3",              category: "rain" },
+			{ title: "Rain on tin roof",  desc: "Rain pattering on a metal roof",                 icon: "bi-cloud-rain-heavy",     file: base + "Rain-on-TinRoof.mp3",      category: "rain" },
+			{ title: "Rain on trees",     desc: "Raindrops falling through the leaves",           icon: "bi-cloud-drizzle",        file: base + "Rain-on-Trees.mp3",        category: "rain" },
+			{ title: "Rain on cabin",     desc: "Rain falling on a cozy wooden cabin",            icon: "bi-house",                file: base + "Rain-on-Cabin.mp3",        category: "rain" },
 
 			// ---- WATER ----
-			{ title: "Waves",             desc: "Gentle ocean waves rolling onto the shore",      icon: "bi-water",                file: base + "Waves.ogg",               category: "water" },
-			{ title: "Stream",            desc: "A babbling stream flowing over rocks",           icon: "bi-tsunami",              file: base + "Stream.ogg",              category: "water" },
-			{ title: "Waterfall",         desc: "A powerful waterfall cascading down",            icon: "bi-water",                file: base + "Waterfall.ogg",           category: "water" },
+			{ title: "Waves",             desc: "Gentle ocean waves rolling onto the shore",      icon: "bi-water",                file: base + "Waves.mp3",               category: "water" },
+			{ title: "Stream",            desc: "A babbling stream flowing over rocks",           icon: "bi-tsunami",              file: base + "Stream.mp3",              category: "water" },
+			{ title: "Waterfall",         desc: "A powerful waterfall cascading down",            icon: "bi-water",                file: base + "Waterfall.mp3",           category: "water" },
 			{ title: "Water rippling",    desc: "Soft ripples across calm water",                 icon: "bi-droplet",              file: base + "Water-Rippling.mp3",      category: "water" },
 			{ title: "Underwater bubbles", desc: "Gentle bubbles drifting underwater",            icon: "bi-droplet-half",         file: base + "Underwater-Bubbles.mp3",  category: "water" },
+			{ title: "Bottle bubbles",    desc: "Soft bubbles from a submerged bottle",           icon: "bi-droplet-half",         file: base + "Bottle-Bubbles.mp3",      category: "water" },
 
 			// ---- NATURE & WILDLIFE ----
-			{ title: "Wind",              desc: "Soft wind blowing through open space",           icon: "bi-wind",                 file: base + "Wind.ogg",                category: "nature" },
-			{ title: "Fire",              desc: "Warm crackling campfire sounds",                 icon: "bi-fire",                 file: base + "Fire.ogg",                category: "nature" },
+			{ title: "Wind",              desc: "Soft wind blowing through open space",           icon: "bi-wind",                 file: base + "Wind.mp3",                category: "nature" },
+			{ title: "Fire",              desc: "Warm crackling campfire sounds",                 icon: "bi-fire",                 file: base + "Fire.mp3",                category: "nature" },
 			{ title: "Fire crackling",    desc: "Crackling flames of an open fire",               icon: "bi-fire",                 file: base + "Fire-Crackling.mp3",      category: "nature" },
 			{ title: "Bamboo rustling",   desc: "Bamboo leaves rustling in the breeze",           icon: "bi-tree",                 file: base + "Bamboo-Rustling.mp3",     category: "nature" },
-			{ title: "Birds",             desc: "Cheerful birds singing in the morning",          icon: "bi-feather",              file: base + "Birds.ogg",               category: "nature" },
-			{ title: "Crickets",          desc: "Calming crickets chirping through the night",    icon: "bi-bug",                  file: base + "Crickets.ogg",            category: "nature" },
-			{ title: "Chirping birds",    desc: "Birds chirping in a peaceful forest",            icon: "bi-feather",              file: base + "Chirping-Bird-Sounds.mp3", category: "nature" },
-			{ title: "Cicadas",           desc: "Buzzing cicadas on a warm summer day",           icon: "bi-bug-fill",             file: base + "Cicadas.ogg",             category: "nature" },
-			{ title: "Frogs",             desc: "Frogs croaking by a quiet pond",                 icon: "bi-bug-fill",             file: base + "Frogs.ogg",               category: "nature" },
+			{ title: "Birds",             desc: "Cheerful birds singing in the morning",          icon: "bi-feather",              file: base + "Birds.mp3",               category: "nature" },
+			{ title: "Crickets",          desc: "Calming crickets chirping through the night",    icon: "bi-bug",                  file: base + "Crickets.mp3",            category: "nature" },
+			{ title: "Chirping birds",    desc: "Birds chirping in a peaceful forest",            icon: "bi-feather",              file: base + "Chirping-Birds.mp3",      category: "nature" },
+			{ title: "Cicadas",           desc: "Buzzing cicadas on a warm summer day",           icon: "bi-bug-fill",             file: base + "Cicadas.mp3",             category: "nature" },
+			{ title: "Frogs",             desc: "Frogs croaking by a quiet pond",                 icon: "bi-bug-fill",             file: base + "Frogs.mp3",               category: "nature" },
 			{ title: "Insect chirping",   desc: "Insects chirping through the evening",           icon: "bi-bug",                  file: base + "Insect-Chirping.mp3",     category: "nature" },
+			{ title: "Night crickets & frogs", desc: "Crickets and frogs on a calm night",       icon: "bi-moon-stars",           file: base + "Night-Crickets-Frogs.mp3", category: "nature" },
 
 			// ---- WHITE NOISE & FANS ----
 			{ title: "White noise",       desc: "Even white noise to mask distractions",          icon: "bi-volume-up",            file: base + "White-Noise.ogg",         category: "noise" },
 			{ title: "Brown noise",       desc: "Deep brown noise for intense focus",             icon: "bi-volume-down",          file: base + "Brown-Noise.ogg",         category: "noise" },
 			{ title: "Pink noise",        desc: "Balanced pink noise to aid sleep",               icon: "bi-volume-up",            file: base + "Pink-Noise.ogg",          category: "noise" },
-			{ title: "Fan on high",       desc: "A strong fan running on high speed",             icon: "bi-fan",                  file: base + "Fan-on-High.ogg",         category: "noise" },
-			{ title: "Fan on low",        desc: "A gentle fan running on low speed",              icon: "bi-fan",                  file: base + "Fan-on-Low.ogg",          category: "noise" },
-			{ title: "Air conditioning",  desc: "Steady hum of an air conditioner",               icon: "bi-snow",                 file: base + "Air-Conditioning.ogg",    category: "noise" },
+			{ title: "Fan on high",       desc: "A strong fan running on high speed",             icon: "bi-fan",                  file: base + "Fan-on-High.mp3",         category: "noise" },
+			{ title: "Fan on low",        desc: "A gentle fan running on low speed",              icon: "bi-fan",                  file: base + "Fan-on-Low.mp3",          category: "noise" },
+			{ title: "Air conditioning",  desc: "Steady hum of an air conditioner",               icon: "bi-snow",                 file: base + "Air-Conditioning.mp3",    category: "noise" },
 
 			// ---- FOCUS & AMBIENCE ----
-			{ title: "Coffee shop",       desc: "Cozy background chatter of a busy cafe",         icon: "bi-cup-hot",              file: base + "Coffee-Shop.ogg",         category: "focus" },
-			{ title: "City",              desc: "Busy city ambience and distant traffic",         icon: "bi-buildings",            file: base + "City.ogg",                category: "focus" },
-			{ title: "Record player",     desc: "Warm vinyl crackle of a record player",          icon: "bi-vinyl",                file: base + "Record-Player.ogg",       category: "focus" },
+			{ title: "Coffee shop",       desc: "Cozy background chatter of a busy cafe",         icon: "bi-cup-hot",              file: base + "Coffee-Shop.mp3",         category: "focus" },
+			{ title: "City",              desc: "Busy city ambience and distant traffic",         icon: "bi-buildings",            file: base + "City.mp3",                category: "focus" },
+			{ title: "Record player",     desc: "Warm vinyl crackle of a record player",          icon: "bi-vinyl",                file: base + "Record-Player.mp3",       category: "focus" },
 			{ title: "Typing",            desc: "Rhythmic keyboard typing to keep you in flow",   icon: "bi-keyboard",             file: base + "Typing-Sound.mp3",        category: "focus" },
 			{ title: "Writing",           desc: "A pen scratching across paper",                  icon: "bi-pencil",               file: base + "Writing-Sound.mp3",       category: "focus" },
 			{ title: "Soft piano",        desc: "Gentle piano melodies to help you unwind",       icon: "bi-music-note-beamed",    file: base + "Soft-Piano.mp3",          category: "focus" },
-			{ title: "Singing Bowl",      desc: "Resonant singing bowl tones for meditation",     icon: "bi-soundwave",            file: base + "Singing-Bowl.ogg",        category: "focus" },
-			{ title: "Singing bowl",      desc: "Soothing singing bowl resonance",                icon: "bi-soundwave",            file: base + "Singing-Bowl-Sound.mp3",  category: "focus" },
-			{ title: "Metal chimes",      desc: "Soft metal wind chimes ringing gently",          icon: "bi-bell",                 file: base + "Metal-Chimes.ogg",        category: "focus" },
-			{ title: "Wooden fish",       desc: "Steady wooden fish taps for deep focus",         icon: "bi-record-circle",        file: base + "Wooden-Fish-Sound.mp3",   category: "focus" },
+			{ title: "Singing bowl",      desc: "Resonant singing bowl tones for meditation",     icon: "bi-soundwave",            file: base + "Singing-Bowl.mp3",        category: "focus" },
+			{ title: "Metal chimes",      desc: "Soft metal wind chimes ringing gently",          icon: "bi-bell",                 file: base + "Metal-Chimes.mp3",        category: "focus" },
+			{ title: "Wooden fish",       desc: "Steady wooden fish taps for deep focus",         icon: "bi-record-circle",        file: base + "Wooden-Fish.mp3",         category: "focus" },
 			{ title: "Beeping alarm",     desc: "A simple repeating alarm beep",                  icon: "bi-alarm",                file: base + "Beeping-Alarm.mp3",       category: "focus" }
 		];
 

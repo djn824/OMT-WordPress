@@ -276,10 +276,16 @@
 }
 
 .noise-container .equalizer {
+	/* Bar length. The group is rotated -90deg, so this becomes the bars' visible
+	   height — pin the equalizer to it so the box matches the bars (the un-rotated
+	   column is taller in flow; the extra is absorbed by centering + overflow). */
+	--bar-len: 145px;
 	display:flex;
     justify-content: center;
 	align-items: center;
 	column-gap: 60px;
+	height: var(--bar-len);
+	overflow: visible;
 }
 
 .noise-container .equalizer .slider {
@@ -294,7 +300,7 @@
 -webkit-appearance:none !important;
 	appearance: none;
   height: 10px;
-  width: 135px;
+  width: var(--bar-len);
   background: rgba(255,255,255,.5);
   box-shadow: 0 0 20px #626060aa;
   border-radius: 10px;
@@ -341,11 +347,21 @@
 		height: 550px;
 		justify-content: flex-start !important;
 	}
+	/* One horizontal row of all bands. The group is rotated -90deg, so row-gap
+	   is the visible gap between bars; scale the bar length, knob and that gap
+	   to the screen width so every band fits on a single row on any phone.
+	   --bar-len also sets the equalizer height (see base rule). */
 	.noise-container .equalizer {
-		flex-direction: column;
+		--bar-len: clamp(135px, 28vw, 130px);
 	}
 	.noise-container .equalizer .slider {
-		height: 150px;
-		justify-content: center;
+		row-gap: clamp(10px, 4vw, 22px);
+	}
+	.slider input[type="range"] {
+		height: 8px;
+	}
+	.slider input[type="range"]::-webkit-slider-thumb {
+		width: 25px;
+		height: 25px;
 	}
 }

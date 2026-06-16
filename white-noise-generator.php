@@ -105,6 +105,7 @@ get_header();
 	}
 	.white-noise-presets {
 		flex: 1 1 auto;
+		min-width: 0;
 		max-width: none;
 		width: 100%;
 		margin: 1rem auto 0;
@@ -257,20 +258,10 @@ get_header();
 					// check if the repeater field has rows of data
 					if (have_rows('slider_labels')):
 
-						// split the bars into two rows at the midpoint
-						$slider_total = count(get_field('slider_labels'));
-						$slider_half = ceil($slider_total / 2);
-						$slider_index = 0;
-
-						// loop through the rows of data
-					while (have_rows('slider_labels')): the_row();
-						if ($slider_index === (int) $slider_half): ?>
-					</div>
-					<div class="slider">
-					<?php endif; ?>
+						// loop through the rows of data — all bands in one row
+					while (have_rows('slider_labels')): the_row(); ?>
 						<input type="range" name="<?php the_sub_field('label'); ?>" class="slider-bar" min="0" max="990" value="446" step="1">
-					<?php $slider_index++;
-					endwhile;
+					<?php endwhile;
 						else:
 						endif;
 					?>
