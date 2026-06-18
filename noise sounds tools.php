@@ -559,6 +559,37 @@ get_header(); ?>
 	.settings-panel .panel-btn-ghost:hover { background: #e2e2e2 !important; color: #333 !important; }
 	.panel-btn-block { width: 100%; }
 
+	/* Stop-all: taller than the other panel buttons. Inactive (dimmed) until a
+	   sound is playing; turns red + pulses while playing. */
+	.settings-panel #stopAll {
+		background: #e2e2e2 !important;
+		color: #000 !important;
+		padding-top: 0.85rem;
+		padding-bottom: 0.85rem;
+		font-size: 0.95rem;
+		opacity: 0.55;
+		cursor: not-allowed;
+		transition: background 0.2s ease, opacity 0.2s ease, color 0.2s ease;
+	}
+	.settings-panel #stopAll i { color: #000; font-size: 1.15rem; }
+
+	.settings-panel #stopAll.is-playing {
+		background: #e25c1b !important;
+		color: #fff !important;
+		opacity: 1;
+		cursor: pointer;
+	}
+	.settings-panel #stopAll.is-playing i { color: #fff; }
+	.settings-panel #stopAll.is-playing:hover { background: #c64e15 !important; }
+
+	/* Box-shadow pulse that scales outward while at least one sound is playing. */
+	.settings-panel #stopAll.is-playing { animation: stopAllPulse 1.4s ease-out infinite; }
+	@keyframes stopAllPulse {
+		0%   { box-shadow: 0 0 0 0 rgba(226, 92, 27, 0.55); }
+		70%  { box-shadow: 0 0 0 10px rgba(226, 92, 27, 0); }
+		100% { box-shadow: 0 0 0 0 rgba(226, 92, 27, 0); }
+	}
+
 	/* Square icon-only buttons (timer start/stop toggle + reset). */
 	.settings-panel .panel-icon-btn {
 		flex: 0 0 auto;
@@ -740,6 +771,10 @@ get_header(); ?>
 
 	.mix-icon-btn[data-action="load"]:hover { background: #436f8e; color: #fff; }
 	.mix-icon-btn[data-action="del"]:hover { background: #e25c1b; color: #fff; }
+	.mix-icon-btn[data-action="stop"] { background: #436f8e; color: #fff; }
+	.mix-icon-btn[data-action="stop"]:hover { background: #e25c1b; }
+
+	.mix-item.is-playing { background: #eef3f7; }
 
 	.mix-empty {
 		font-size: 0.825rem;
@@ -965,6 +1000,13 @@ get_header(); ?>
 					</div>
 				</section>
 
+				<!-- Stop all -->
+				<section class="panel-section">
+					<button type="button" class="panel-btn panel-btn-block panel-btn-ghost" id="stopAll">
+						<i class="bi bi-stop-circle"></i> <?php the_field('stop_button'); ?>
+					</button>
+				</section>
+
 				<!-- My Mixes (saved to localStorage) -->
 				<section class="panel-section">
 					<div class="panel-section-title"><?php the_field('mixes'); ?></div>
@@ -985,11 +1027,6 @@ get_header(); ?>
 					</button>
 					<div class="share-feedback" id="shareFeedback"></div>
 				</section>
-
-				<!-- Stop all -->
-				<button type="button" class="panel-btn panel-btn-block panel-btn-ghost" id="stopAll">
-					<i class="bi bi-stop-circle"></i> <?php the_field('stop_button'); ?>
-				</button>
 
 			</aside>
 		</div>
@@ -1183,7 +1220,6 @@ get_header(); ?>
 			{ title: "Chirping birds",    desc: "Birds chirping in a peaceful forest",            icon: "bi-feather",              file: base + "Chirping-Birds.mp3",      category: "nature" },
 			{ title: "Cicadas",           desc: "Buzzing cicadas on a warm summer day",           icon: "bi-bug-fill",             file: base + "Cicadas.mp3",             category: "nature" },
 			{ title: "Frogs",             desc: "Frogs croaking by a quiet pond",                 icon: "bi-bug-fill",             file: base + "Frogs.mp3",               category: "nature" },
-			{ title: "Insect chirping",   desc: "Insects chirping through the evening",           icon: "bi-bug",                  file: base + "Insect-Chirping.mp3",     category: "nature" },
 			{ title: "Night crickets & frogs", desc: "Crickets and frogs on a calm night",       icon: "bi-moon-stars",           file: base + "Night-Crickets-Frogs.mp3", category: "nature" },
 
 			// ---- WHITE NOISE & FANS ----
@@ -1204,7 +1240,6 @@ get_header(); ?>
 			{ title: "Singing bowl",      desc: "Resonant singing bowl tones for meditation",     icon: "bi-soundwave",            file: base + "Singing-Bowl.mp3",        category: "focus" },
 			{ title: "Metal chimes",      desc: "Soft metal wind chimes ringing gently",          icon: "bi-bell",                 file: base + "Metal-Chimes.mp3",        category: "focus" },
 			{ title: "Wooden fish",       desc: "Steady wooden fish taps for deep focus",         icon: "bi-record-circle",        file: base + "Wooden-Fish.mp3",         category: "focus" },
-			{ title: "Beeping alarm",     desc: "A simple repeating alarm beep",                  icon: "bi-alarm",                file: base + "Beeping-Alarm.mp3",       category: "focus" }
 		];
 
 		// Sounds come from the ACF "sounds_library" field:
@@ -1327,6 +1362,15 @@ get_header(); ?>
 						card.classList.remove('active');
 					}
 				}
+
+				updateStopAllState();
+			}
+
+			// Animate the stop-all button while any sound is playing.
+			function updateStopAllState() {
+				if (!stopAllEl) return;
+				const anyPlaying = sounds.some((s, i) => players[i] && players[i].volume > 0);
+				stopAllEl.classList.toggle('is-playing', anyPlaying);
 			}
 
 			// Create Sound Card HTML
@@ -1664,6 +1708,9 @@ get_header(); ?>
 			   ===================================================================== */
 			const MIX_STORE = 'noiseSoundsMixes';
 
+			// Index of the mix currently playing (-1 = none). Only one at a time.
+			let activeMixIndex = -1;
+
 			function loadMixes() {
 				try { return JSON.parse(localStorage.getItem(MIX_STORE)) || []; }
 				catch (e) { return []; }
@@ -1677,15 +1724,21 @@ get_header(); ?>
 			function renderMixes() {
 				const list = loadMixes();
 				mixEmptyEl.style.display = list.length ? 'none' : 'block';
-				mixListEl.innerHTML = list.map((mix, i) => `
-					<li class="mix-item">
+				mixListEl.innerHTML = list.map((mix, i) => {
+					const playing = i === activeMixIndex;
+					const action = playing ? 'stop' : 'load';
+					const icon = playing ? 'bi-stop-fill' : 'bi-play-fill';
+					const label = playing ? 'Stop' : 'Load';
+					return `
+					<li class="mix-item${playing ? ' is-playing' : ''}">
 						<span class="mix-item-name" title="${escapeHtml(mix.name)}">${escapeHtml(mix.name)}</span>
 						<span class="mix-item-actions">
-							<button class="mix-icon-btn" data-action="load" data-i="${i}" title="Load mix" aria-label="Load ${escapeHtml(mix.name)}"><i class="bi bi-play-fill"></i></button>
+							<button class="mix-icon-btn" data-action="${action}" data-i="${i}" title="${label} mix" aria-label="${label} ${escapeHtml(mix.name)}"><i class="bi ${icon}"></i></button>
 							<button class="mix-icon-btn" data-action="del" data-i="${i}" title="Delete mix" aria-label="Delete ${escapeHtml(mix.name)}"><i class="bi bi-trash"></i></button>
 						</span>
 					</li>
-				`).join('');
+				`;
+				}).join('');
 			}
 
 			mixSaveEl.addEventListener('click', () => {
@@ -1716,11 +1769,22 @@ get_header(); ?>
 				const i = Number(btn.dataset.i);
 				if (btn.dataset.action === 'load') {
 					if (list[i]) {
+						// Only one mix plays at a time: applyMix replaces all volumes.
 						applyMix(list[i].sounds);
+						activeMixIndex = i;
 						renderSounds();
+						renderMixes();
 					}
+				} else if (btn.dataset.action === 'stop') {
+					applyMix({});
+					activeMixIndex = -1;
+					renderSounds();
+					renderMixes();
 				} else if (btn.dataset.action === 'del') {
 					list.splice(i, 1);
+					// Keep the active index aligned after the list shifts.
+					if (i === activeMixIndex) activeMixIndex = -1;
+					else if (i < activeMixIndex) activeMixIndex--;
 					persistMixes(list);
 					renderMixes();
 				}
@@ -1838,6 +1902,9 @@ get_header(); ?>
 			stopAllEl.addEventListener('click', () => {
 				applyMix({});
 				stopTimer();
+				// Clear any playing mix so its button reverts to the play icon.
+				activeMixIndex = -1;
+				renderMixes();
 			});
 
 			/* =====================================================================
