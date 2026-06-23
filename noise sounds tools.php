@@ -582,14 +582,6 @@ get_header(); ?>
 	.settings-panel #stopAll.is-playing i { color: #fff; }
 	.settings-panel #stopAll.is-playing:hover { background: #c64e15 !important; }
 
-	/* Box-shadow pulse that scales outward while at least one sound is playing. */
-	.settings-panel #stopAll.is-playing { animation: stopAllPulse 1.4s ease-out infinite; }
-	@keyframes stopAllPulse {
-		0%   { box-shadow: 0 0 0 0 rgba(226, 92, 27, 0.55); }
-		70%  { box-shadow: 0 0 0 10px rgba(226, 92, 27, 0); }
-		100% { box-shadow: 0 0 0 0 rgba(226, 92, 27, 0); }
-	}
-
 	/* Square icon-only buttons (timer start/stop toggle + reset). */
 	.settings-panel .panel-icon-btn {
 		flex: 0 0 auto;
