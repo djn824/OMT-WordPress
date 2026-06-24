@@ -122,14 +122,24 @@ get_header(); ?>
 	   down to icons, sliders and pulse animation, so the rules below stay
 	   category-agnostic. */
 	.tool-card.category-rain,
+	.sound-orb.category-rain,
+	.stage-volume.category-rain,
 	.category-header.category-rain   { --cat: #436f8e; --cat-rgb: 67, 111, 142; --cat-bg: #e8f0f5; --cat-border: #a3c1d4; }
 	.tool-card.category-water,
+	.sound-orb.category-water,
+	.stage-volume.category-water,
 	.category-header.category-water  { --cat: #1b9aaa; --cat-rgb: 27, 154, 170; --cat-bg: #e4f4f6; --cat-border: #a6dce2; }
 	.tool-card.category-nature,
+	.sound-orb.category-nature,
+	.stage-volume.category-nature,
 	.category-header.category-nature { --cat: #4f8a3f; --cat-rgb: 79, 138, 63;  --cat-bg: #edf5e9; --cat-border: #b9d4ac; }
 	.tool-card.category-noise,
+	.sound-orb.category-noise,
+	.stage-volume.category-noise,
 	.category-header.category-noise  { --cat: #7c4daf; --cat-rgb: 124, 77, 175; --cat-bg: #f3eef9; --cat-border: #c4a8db; }
 	.tool-card.category-focus,
+	.sound-orb.category-focus,
+	.stage-volume.category-focus,
 	.category-header.category-focus  { --cat: #e25c1b; --cat-rgb: 226, 92, 27;  --cat-bg: #fef3ee; --cat-border: #f5b08a; }
 
 	/* Category-specific card styles (driven by the tokens above) */
@@ -296,6 +306,353 @@ get_header(); ?>
 		}
 	}
 
+	/* =====================================================================
+	   Soundscape circular layout (left side)
+	   Layer 1: intro  ·  Layer 2: category tabs  ·  Layer 3: sound circle
+	   ===================================================================== */
+
+	/* Layer 1 — intro / description (left-aligned, full width) */
+	.soundscape-intro {
+		font-size: 1.35rem;
+		font-weight: 700;
+		line-height: 1.3;
+		color: #436f8e;
+		text-align: left;
+		margin: 0 0 1.25rem;
+		width: 100%;
+		max-width: none;
+	}
+
+	/* Layer 2 — category tabs row (reuses .btn-filter chips, left-aligned) */
+	.category-tabs {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: flex-start;
+		gap: 0.5rem;
+		margin-bottom: 1.5rem;
+	}
+
+	/* Layer 3 — the circular stage. Square box; orbs are positioned around
+	   the centre with JS-computed percentage coordinates so it scales fluidly. */
+	.circle-stage {
+		/* Radius of the ring the list orbs sit on: 160px on desktop, scaling down
+		   on narrow viewports so the orbs never overflow the stage. */
+		--ring-r: min(160px, 36vw);
+		position: relative;
+		width: 100%;
+		max-width: 460px;
+		margin: 0 auto;
+		aspect-ratio: 1 / 1;
+	}
+
+	/* Clear (×) button — top-right of the circle, stops all playing sounds */
+	.stage-clear {
+		position: absolute;
+		top: 0;
+		right: 0;
+		z-index: 2;
+		width: 38px;
+		height: 38px;
+		border: none;
+		border-radius: 50%;
+		background: #f0f0f0;
+		color: #436f8e;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 1rem;
+		line-height: 1;
+		cursor: pointer;
+		transition: background 0.2s ease, color 0.2s ease, transform 0.1s ease;
+	}
+	.stage-clear:hover { background: #436f8e; color: #fff; }
+	.stage-clear:active { transform: scale(0.92); }
+
+	/* Centre area: holds either the prompt (nothing playing) or the
+	   "now playing" carousel of overlapping sound circles + paging arrows. */
+	.circle-center {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.3rem;
+		max-width: 80%;
+		z-index: 1;
+	}
+
+	/* Empty state → show the prompt, hide the carousel + arrows. */
+	.circle-center.is-empty .stack-arrow,
+	.circle-center.is-empty .playing-stack { display: none; }
+	.circle-center:not(.is-empty) #centerText { display: none; }
+
+	#centerText {
+		font-size: 1.4rem;
+		font-weight: 700;
+		line-height: 1.25;
+		color: #436f8e;
+		text-align: center;
+	}
+
+	/* Paging arrows (shown only when more than 3 sounds are playing) */
+	.stack-arrow {
+		flex: 0 0 auto;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0;
+		border: none;
+		background: none;
+		color: #9aa7b0;
+		font-size: 1.15rem;
+		line-height: 1;
+		cursor: pointer;
+		transition: color 0.2s ease;
+	}
+	.stack-arrow:hover:not(:disabled) { color: #436f8e; }
+	.stack-arrow:disabled { opacity: 0.3; cursor: default; }
+
+	/* Carousel: up to 3 circles stacked as an overlapping deck — the selected
+	   sound sits full at the front (right), the others peek out behind it to the
+	   left. Extras (4th+) are paged in with the arrows. --vis (from JS) is how
+	   many circles are stacked (1–3); --peek is how far each one peeks out. */
+	.playing-stack {
+		--orb: 95px;
+		--peek: 50px;
+		--vis: 1;
+		position: relative;
+		flex: 0 0 auto;
+		height: var(--orb);
+		width: calc(var(--orb) + var(--peek) * (var(--vis) - 1));
+	}
+
+	/* A playing sound circle. --pos is its depth in the deck (0 = backmost/left,
+	   highest = front/right), so it both positions and layers the card. */
+	.playing-orb {
+		position: absolute;
+		top: 0;
+		left: calc(var(--pos) * var(--peek));
+		width: var(--orb);
+		height: var(--orb);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border: 2px solid #fff;
+		border-radius: 50%;
+		background: #b6cdde;
+		color: #fff;
+		font-size: calc(var(--orb) * 0.42);
+		cursor: pointer;
+		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+		transition: left 0.25s ease, background 0.2s ease;
+		z-index: calc(var(--pos) + 1);
+	}
+
+	/* Selected sound — brought to the front, filled brand blue. */
+	.playing-orb.selected {
+		background: #436f8e;
+		z-index: 50;
+		box-shadow: 0 2px 8px rgba(67, 111, 142, 0.45);
+	}
+
+	/* Sound orb — a round icon button positioned on the ring */
+	.sound-orb {
+		position: absolute;
+		transform: translate(-50%, -50%);
+		width: clamp(48px, 13.5%, 74px);
+		aspect-ratio: 1 / 1;
+		padding: 0;
+		border: 2.5px solid var(--cat, #436f8e);
+		border-radius: 50%;
+		background: #fff;
+		color: var(--cat, #436f8e);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+		animation: orbIn 0.35s ease-out backwards;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.sound-orb .orb-icon {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: clamp(1.1rem, 5.5%, 1.7rem);
+		line-height: 1;
+	}
+
+	/* Accessible label, hidden visually (orbs are icon-only like the mockup) */
+	.sound-orb .orb-label {
+		position: absolute;
+		width: 1px; height: 1px;
+		padding: 0; margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
+	}
+
+	.sound-orb:hover {
+		transform: translate(-50%, -50%) scale(1.08);
+		box-shadow: 0 6px 18px rgba(var(--cat-rgb), 0.25);
+	}
+
+	/* Playing */
+	.sound-orb.active {
+		background: var(--cat, #436f8e);
+		color: #fff;
+	}
+
+	/* Selected (the orb the bottom slider controls) */
+	.sound-orb.selected {
+		box-shadow: 0 0 0 4px rgba(var(--cat-rgb), 0.25);
+	}
+
+	.sound-orb.active.selected {
+		box-shadow: 0 0 0 4px rgba(var(--cat-rgb), 0.35), 0 6px 18px rgba(var(--cat-rgb), 0.3);
+	}
+
+	/* Pulse ring while a sound plays */
+	.sound-orb.active {
+		animation: soundPulse 1.6s ease-out infinite;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.sound-orb.active { animation: none; }
+	}
+
+	/* Loading spinner on an orb while its audio buffers */
+	.sound-orb.loading { animation: none !important; }
+	.sound-orb.loading .orb-icon i { display: none; }
+	.sound-orb.loading .orb-icon::after {
+		content: "";
+		width: 55%;
+		aspect-ratio: 1 / 1;
+		border: 2.5px solid currentColor;
+		border-top-color: transparent;
+		border-radius: 50%;
+		animation: iconSpin 0.7s linear infinite;
+	}
+
+	@keyframes orbIn {
+		from { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+		to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+	}
+
+	/* Bottom volume bar — controls the selected sound.
+	   Stacked: the −/+ buttons sit above the slider (− top-left, + top-right),
+	   with the slider spanning the full width below them. */
+	.stage-volume {
+		display: flex;
+		flex-direction: column;
+		gap: 0.55rem;
+		width: 100%;
+		max-width: 300px;
+		margin: 0 auto;
+	}
+
+	.stage-volume-top {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.stage-volume.is-empty {
+		opacity: 0.5;
+	}
+
+	/* Stepper buttons: no background — just the +/- glyph in brand blue. */
+	.vol-btn {
+		flex: 0 0 auto;
+		width: 40px;
+		height: 29px;
+		padding: 0;
+		border: none;
+		background: none;
+		color: #436f8e;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 29px;
+		font-weight: 700;
+		line-height: 1;
+		cursor: pointer;
+		transition: transform 0.1s ease, opacity 0.2s ease;
+	}
+
+	.vol-btn:active { transform: scale(0.92); }
+	.vol-btn:hover { opacity: 0.7; }
+
+	/* No focus ring/border when the button is clicked (selected). */
+	.vol-btn:focus,
+	.vol-btn:focus-visible { outline: none; box-shadow: none; }
+
+	.stage-volume.is-empty .vol-btn { cursor: not-allowed; }
+
+	/* Track: two-tone — the dark-blue fill (left of the thumb) is painted as a
+	   gradient from JS; this light-blue is the unfilled remainder / fallback. */
+	/* Input is as tall as the thumb so the 12px track can sit centred inside it
+	   and the thumb has room to overhang; the track itself is drawn by the
+	   ::track pseudo-elements below. */
+	.stage-slider {
+		-webkit-appearance: none;
+		appearance: none;
+		width: 100%;
+		min-width: 0;
+		height: 39px;
+		border: none;
+		background: transparent;
+		outline: none;
+		cursor: pointer;
+	}
+
+	.stage-slider:disabled { cursor: not-allowed; }
+
+	/* WebKit/Blink: track carries the two-tone fill (via --fill), thumb centred */
+	.stage-slider::-webkit-slider-runnable-track {
+		height: 12px;
+		border-radius: 3px;
+		background: linear-gradient(to right, #436f8e var(--fill, 0%), #a3c1d4 var(--fill, 0%));
+	}
+	.stage-slider::-webkit-slider-thumb {
+		-webkit-appearance: none;
+		appearance: none;
+		width: 39px;
+		height: 39px;
+		border-radius: 50%;
+		background: #fff;
+		border: 3px solid #436f8e;
+		cursor: pointer;
+		box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+		/* Centre the 39px thumb on the 12px track: (12 - 39) / 2. */
+		margin-top: -13.5px;
+	}
+
+	/* Firefox: track + native progress fill + thumb (centred automatically) */
+	.stage-slider::-moz-range-track {
+		height: 12px;
+		border-radius: 3px;
+		background: #a3c1d4;
+	}
+	.stage-slider::-moz-range-progress {
+		height: 12px;
+		border-radius: 3px;
+		background: #436f8e;
+	}
+	.stage-slider::-moz-range-thumb {
+		width: 39px;
+		height: 39px;
+		border-radius: 50%;
+		background: #fff;
+		border: 3px solid #436f8e;
+		cursor: pointer;
+		box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+	}
+
 	/* Category Headers */
 	.category-header {
 		margin-top: 2rem;
@@ -411,25 +768,11 @@ get_header(); ?>
 			gap: 1rem;
 		}
 
-		/* Stack the filter buttons full-width on small screens */
+		/* Category tabs stay as left-aligned, wrapping chips on small screens */
 		#categoryFilters {
-			flex-direction: column;
-			flex-wrap: nowrap;
-			align-items: stretch;
-			width: 100%;
-		}
-
-		#categoryFilters .btn-filter {
-			width: 100%;
-			display: flex;
-			align-items: center;
+			flex-wrap: wrap;
 			justify-content: flex-start;
-			text-align: left;
-			gap: 0.6rem;
-			line-height: 1.2;
-			margin-left: 0 !important;
-			margin-right: 0 !important;
-			padding: 0.6rem 0.85rem;
+			width: 100%;
 		}
 	}
 
@@ -457,6 +800,11 @@ get_header(); ?>
 
 		.category-header {
 			margin-top: 1.25rem;
+		}
+
+		/* Shrink the centre carousel circles so the deck fits on small phones */
+		.playing-stack {
+			--orb: 64px;
 		}
 	}
 
@@ -919,35 +1267,69 @@ get_header(); ?>
 <div class="container-fluid">
 	<div class="noise-layout">
 
-		<!-- ============ LEFT SIDE: Sounds list (original UI) ============ -->
+		<!-- ============ LEFT SIDE: Soundscape (intro · categories · circle) ============ -->
+		<?php
+			// Intro heading + centre prompt. Both are ACF-overridable with a fallback
+			// so the tool still reads correctly before the fields are filled in.
+			$soundscape_intro = get_field('soundscape_intro');
+			if ( ! $soundscape_intro ) { $soundscape_intro = 'Create your perfect relaxing soundscape with this simple tool'; }
+			$choose_prompt = get_field('choose_sound_prompt');
+			if ( ! $choose_prompt ) { $choose_prompt = 'Choose a sound to begin'; }
+		?>
 		<div class="noise-left">
-			<div class="text-center mb-5">
-				<div class="toolbar d-flex flex-wrap align-items-center justify-content-start gap-3 mb-4">
-					<div class="search-wrapper">
-						<div class="input-group">
-							<span class="input-group-text bg-white border-end-0" style="padding-left: 0.75rem; padding-right: 0.75rem; padding-top: 0rem; padding-bottom: 0rem;">
-								<img class="img-fluid" src="<?=get_stylesheet_directory_uri();?>/assets/images/search-tools.svg" alt="">
-							</span>
-							<input type="text" class="form-control border-start-0 ps-0"
-								   id="searchInput" placeholder="<?php the_field('search_sounds'); ?>">
-						</div>
+
+			<!-- Layer 1: description -->
+			<h2 class="soundscape-intro"><?php echo esc_html( $soundscape_intro ); ?></h2>
+
+			<!-- Search (kept from the original tool) -->
+			<div class="search-wrapper mb-4">
+				<div class="input-group">
+					<span class="input-group-text bg-white border-end-0" style="padding-left: 0.75rem; padding-right: 0.75rem; padding-top: 0rem; padding-bottom: 0rem;">
+						<img class="img-fluid" src="<?=get_stylesheet_directory_uri();?>/assets/images/search-tools.svg" alt="">
+					</span>
+					<input type="text" class="form-control border-start-0 ps-0"
+						   id="searchInput" placeholder="<?php the_field('search_sounds'); ?>">
+				</div>
+			</div>
+
+			<!-- Layer 2: category tabs (generated from categoryMeta in JS) -->
+			<div class="category-tabs" id="categoryFilters"></div>
+
+			<!-- Layer 3: circular sound stage -->
+			<div class="circle-stage" id="soundStage">
+				<!-- Clear: stops every playing sound -->
+				<button type="button" class="stage-clear" id="stageClear" aria-label="Clear sounds" title="Clear sounds">
+					<i class="bi bi-x-lg"></i>
+				</button>
+				<div class="circle-center is-empty" id="circleCenter">
+					<button type="button" class="stack-arrow stack-prev" id="stackPrev" aria-label="Previous sounds">
+						<i class="bi bi-caret-left-fill"></i>
+					</button>
+					<div class="playing-stack" id="playingStack">
+						<!-- Currently-playing sounds (carousel) inserted here -->
 					</div>
-
-					<!-- Filter buttons are generated from categoryMeta in JS -->
-					<div class="d-flex flex-wrap justify-content-start" id="categoryFilters"></div>
+					<button type="button" class="stack-arrow stack-next" id="stackNext" aria-label="More sounds">
+						<i class="bi bi-caret-right-fill"></i>
+					</button>
+					<span id="centerText"><?php echo esc_html( $choose_prompt ); ?></span>
 				</div>
+				<!-- Sound orbs are inserted here -->
+			</div>
 
-				<!-- Sounds Grid -->
-				<div class="row g-4" id="soundsGrid">
-					<!-- Sounds will be dynamically inserted here -->
+			<!-- Volume bar for the selected sound -->
+			<div class="stage-volume is-empty" id="stageVolume">
+				<div class="stage-volume-top">
+					<button type="button" class="vol-btn vol-down" id="volDown" aria-label="Lower volume">&minus;</button>
+					<button type="button" class="vol-btn vol-up" id="volUp" aria-label="Raise volume">&plus;</button>
 				</div>
+				<input type="range" class="stage-slider" id="stageSlider" min="0" max="100" value="0" aria-label="Selected sound volume">
+			</div>
 
-				<!-- No Results Message -->
-				<div class="text-center py-5 d-none" id="noResults">
-					<i class="bi bi-search display-1 text-muted mb-3"></i>
-					<h3 class="text-muted"><?php the_field('no_result_search_title'); ?></h3>
-					<p class="text-muted"><?php the_field('no_results_search_message'); ?></p>
-				</div>
+			<!-- No Results Message -->
+			<div class="text-center py-5 d-none" id="noResults">
+				<i class="bi bi-search display-1 text-muted mb-3"></i>
+				<h3 class="text-muted"><?php the_field('no_result_search_title'); ?></h3>
+				<p class="text-muted"><?php the_field('no_results_search_message'); ?></p>
 			</div>
 		</div>
 
@@ -1281,9 +1663,24 @@ get_header(); ?>
 		a.main = function() {
 			// DOM Elements
 			a.searchInput = window.document.getElementById('searchInput');
-			a.soundsGrid = window.document.getElementById('soundsGrid');
+			a.soundStage = window.document.getElementById('soundStage');
 			a.categoryFilters = window.document.getElementById('categoryFilters');
 			a.noResults = window.document.getElementById('noResults');
+
+			// Circular-stage controls
+			const stageSliderEl = document.getElementById('stageSlider');
+			const stageVolumeEl = document.getElementById('stageVolume');
+			const volDownEl     = document.getElementById('volDown');
+			const volUpEl       = document.getElementById('volUp');
+			const stageClearEl  = document.getElementById('stageClear');
+			const centerTextEl  = document.getElementById('centerText');
+			const CHOOSE_PROMPT = centerTextEl ? centerTextEl.textContent : '';
+
+			// Centre "now playing" carousel
+			const circleCenterEl = document.getElementById('circleCenter');
+			const playingStackEl = document.getElementById('playingStack');
+			const stackPrevEl    = document.getElementById('stackPrev');
+			const stackNextEl    = document.getElementById('stackNext');
 
 			// Settings-panel elements
 			const timerDisplayEl = document.getElementById('timerDisplay');
@@ -1300,8 +1697,20 @@ get_header(); ?>
 			const stopAllEl      = document.getElementById('stopAll');
 
 			// State
-			let activeCategory = 'all';
+			// Default to the first real category so the circle shows one group at a
+			// time (like the mockup), with the "All" tab still available.
+			let activeCategory = categoryOrder[0] || 'all';
 			let searchQuery = '';
+			// Index of the sound the bottom volume bar controls (-1 = none).
+			let selectedIndex = -1;
+			// Remembers each sound's last non-zero volume so re-tapping restarts it
+			// at the level it was last played, not a fixed default.
+			const lastVolume = {};
+			// Centre carousel: how many playing sounds are scrolled off the left, and
+			// a signature of the playing set so we only rebuild when it changes.
+			let stackOffset = 0;
+			let lastStackSig = '';
+			const STACK_WINDOW = 3;
 
 			function getPlayer(index, file) {
 				if (!players[index]) {
@@ -1313,14 +1722,19 @@ get_header(); ?>
 				return players[index];
 			}
 
-			function setIconLoading(card, isLoading) {
-				const icon = card && card.querySelector('.tool-icon');
-				if (icon) icon.classList.toggle('loading', isLoading);
+			// Find the orb element for a sound index in the current stage (may be null
+			// when the sound's category isn't the one on screen).
+			function orbFor(index) {
+				return a.soundStage.querySelector('.sound-orb[data-index="' + index + '"]');
 			}
 
-			// Set a sound's volume by index (0-100). The card is optional: when a
-			// sound is filtered out of the grid (e.g. while applying a saved mix or
-			// a shared link) there is no card, but the audio still plays.
+			function setOrbLoading(orb, isLoading) {
+				if (orb) orb.classList.toggle('loading', isLoading);
+			}
+
+			// Set a sound's volume by index (0-100). The orb is optional: when a
+			// sound isn't in the on-screen category (e.g. while applying a saved mix
+			// or a shared link) there is no orb, but the audio still plays.
 			function setVolume(index, value) {
 				index = Number(index);
 				const sound = sounds[index];
@@ -1328,34 +1742,183 @@ get_header(); ?>
 				const audio = getPlayer(index, sound.file);
 				const vol = Math.max(0, Math.min(100, value)) / 100;
 				audio.volume = vol;
+				if (vol > 0) lastVolume[index] = Math.round(vol * 100);
 
-				const card = a.soundsGrid.querySelector('.tool-card[data-index="' + index + '"]');
-				const slider = card ? card.querySelector('.sound-slider') : null;
-				if (slider) slider.value = Math.round(vol * 100);
+				const orb = orbFor(index);
 
 				if (vol > 0) {
 					if (audio.paused) {
 						audio.currentTime = 0;   // replay from the beginning
-						if (card) {
-							// Show a spinner on the icon until the sound actually starts.
-							setIconLoading(card, true);
-							const stopLoading = () => setIconLoading(card, false);
+						if (orb) {
+							// Show a spinner on the orb until the sound actually starts.
+							setOrbLoading(orb, true);
+							const stopLoading = () => setOrbLoading(orb, false);
 							audio.addEventListener('playing', stopLoading, { once: true });
 							audio.play().then(stopLoading).catch(stopLoading);
 						} else {
 							audio.play().catch(() => {});
 						}
 					}
-					if (card) card.classList.add('active');
+					if (orb) orb.classList.add('active');
 				} else {
 					audio.pause();
-					if (card) {
-						setIconLoading(card, false);
-						card.classList.remove('active');
+					if (orb) {
+						setOrbLoading(orb, false);
+						orb.classList.remove('active');
 					}
 				}
 
+				// Keep the bottom volume bar in sync when it controls this sound.
+				if (index === selectedIndex) updateStageVolume();
+
 				updateStopAllState();
+				renderPlayingStack(true);
+			}
+
+			// Point the volume bar's accent colour at a category.
+			function setStageCategory(category) {
+				categoryOrder.forEach(c => stageVolumeEl.classList.remove('category-' + c));
+				if (category) stageVolumeEl.classList.add('category-' + category);
+			}
+
+			// Paint the WebKit/Blink track's two-tone fill via the --fill custom
+			// property (read by ::-webkit-slider-runnable-track). Firefox uses
+			// ::-moz-range-progress instead, so this is a no-op there.
+			function paintStageSlider(val) {
+				const pct = Math.max(0, Math.min(100, val));
+				stageSliderEl.style.setProperty('--fill', pct + '%');
+			}
+
+			// Enable/disable the whole volume bar (no sound selected = disabled).
+			function setStageEnabled(enabled) {
+				stageSliderEl.disabled = !enabled;
+				volDownEl.disabled = !enabled;
+				volUpEl.disabled = !enabled;
+			}
+
+			// Reflect the selected sound in the bottom volume bar.
+			function updateStageVolume() {
+				if (selectedIndex < 0 || !sounds[selectedIndex]) {
+					stageVolumeEl.classList.add('is-empty');
+					setStageEnabled(false);
+					setStageCategory(null);
+					stageSliderEl.value = 0;
+					paintStageSlider(0);
+					return;
+				}
+				const sound = sounds[selectedIndex];
+				const vol = players[selectedIndex] ? Math.round(players[selectedIndex].volume * 100) : 0;
+				stageVolumeEl.classList.remove('is-empty');
+				setStageEnabled(true);
+				setStageCategory(sound.category);
+				stageSliderEl.value = vol;
+				paintStageSlider(vol);
+			}
+
+			/* =====================================================================
+			   Centre "now playing" carousel — the playing sounds shown as an
+			   overlapping stack of circles, the selected one on top. When more than
+			   STACK_WINDOW are playing, paging arrows let you scroll through them.
+			   ===================================================================== */
+			function getPlayingIndices() {
+				const out = [];
+				for (let i = 0; i < sounds.length; i++) {
+					if (players[i] && players[i].volume > 0) out.push(i);
+				}
+				return out;
+			}
+
+			// Keep the paging offset within range; returns the max offset.
+			function clampStackOffset(n) {
+				const maxOffset = Math.max(0, n - STACK_WINDOW);
+				if (stackOffset > maxOffset) stackOffset = maxOffset;
+				if (stackOffset < 0) stackOffset = 0;
+				return maxOffset;
+			}
+
+			// Scroll the window so the selected sound stays visible.
+			function snapToSelected(playing) {
+				const pos = playing.indexOf(selectedIndex);
+				if (pos < 0) return;
+				if (pos < stackOffset) stackOffset = pos;
+				else if (pos > stackOffset + STACK_WINDOW - 1) stackOffset = pos - STACK_WINDOW + 1;
+			}
+
+			// Refresh the paging arrows (shown only when more than STACK_WINDOW play).
+			function applyArrows(n) {
+				const maxOffset = clampStackOffset(n);
+				const showArrows = n > STACK_WINDOW;
+				stackPrevEl.style.display = showArrows ? '' : 'none';
+				stackNextEl.style.display = showArrows ? '' : 'none';
+				stackPrevEl.disabled = stackOffset <= 0;
+				stackNextEl.disabled = stackOffset >= maxOffset;
+			}
+
+			// Build / refresh the centre deck. `snap` keeps the selected sound in the
+			// visible window (used on play/select); paging passes snap=false so the
+			// user can scroll past the selected one.
+			function renderPlayingStack(snap) {
+				const playing = getPlayingIndices();
+
+				if (playing.length === 0) {
+					lastStackSig = '';
+					stackOffset = 0;
+					playingStackEl.innerHTML = '';
+					circleCenterEl.classList.add('is-empty');
+					return;
+				}
+				circleCenterEl.classList.remove('is-empty');
+
+				clampStackOffset(playing.length);
+				if (snap) snapToSelected(playing);
+				clampStackOffset(playing.length);
+
+				const vis = Math.min(playing.length, STACK_WINDOW);
+				const windowArr = playing.slice(stackOffset, stackOffset + vis);
+
+				applyArrows(playing.length);
+
+				// Rebuild only when the visible window or the selection changes.
+				const sig = windowArr.join(',') + '|' + selectedIndex;
+				if (sig === lastStackSig) return;
+				lastStackSig = sig;
+
+				// Keep each card in its playing-order position (no reordering). The
+				// selected card simply rises to the top via its z-index (CSS), so
+				// clicking an icon never moves the circles around.
+				playingStackEl.style.setProperty('--vis', vis);
+				playingStackEl.innerHTML = windowArr.map((idx, depth) => {
+					const sound = sounds[idx];
+					const sel = idx === selectedIndex ? ' selected' : '';
+					return '<button type="button" class="playing-orb' + sel + '" data-index="' + idx +
+						'" style="--pos:' + depth + '" title="' + escapeHtml(sound.title) +
+						'" aria-label="' + escapeHtml(sound.title) + '"><i class="bi ' + sound.icon + '"></i></button>';
+				}).join('');
+			}
+
+			// Make a sound the one the volume bar controls.
+			function selectSound(index) {
+				selectedIndex = index;
+				a.soundStage.querySelectorAll('.sound-orb.selected').forEach(o => o.classList.remove('selected'));
+				const orb = orbFor(index);
+				if (orb) orb.classList.add('selected');
+				updateStageVolume();
+				renderPlayingStack(true);
+			}
+
+			// Tap an orb: start a stopped sound, retarget the bar to an already
+			// playing one, or stop the currently selected+playing one.
+			function activateOrb(index) {
+				const playing = players[index] && players[index].volume > 0;
+				if (playing && selectedIndex !== index) {
+					selectSound(index);                       // just retarget the volume bar
+				} else if (playing) {
+					setVolume(index, 0);                      // selected + playing -> stop
+					selectSound(index);                       // stay selected (bar at 0)
+				} else {
+					selectSound(index);                       // stopped -> start it
+					setVolume(index, lastVolume[index] || 50);
+				}
 			}
 
 			// Animate the stop-all button while any sound is playing.
@@ -1365,37 +1928,59 @@ get_header(); ?>
 				stopAllEl.classList.toggle('is-playing', anyPlaying);
 			}
 
-			// Create Sound Card HTML
-			function createSoundCard(sound, index) {
-				return `
-					<div class="col-12 col-sm-6 col-lg-4 col-xl-3 mb-1">
-						<div class="tool-card category-${sound.category}" data-index="${index}">
-							<div class="tool-icon category-${sound.category}" role="button" aria-label="Toggle ${sound.title}">
-								<i class="bi ${sound.icon}"></i>
-							</div>
-							<div class="tool-content">
-								<h4 class="tool-name justify-content-start">${sound.title}</h4>
-								<p class="tool-description">${sound.desc}</p>
-								<input type="range" class="sound-slider" min="0" max="100" value="0"
-									   data-index="${index}" data-file="${sound.file}" aria-label="${sound.title} volume">
-							</div>
-						</div>
-					</div>
-				`;
+			// Place `count` items evenly on a ring at fraction `frac` of the ring
+			// radius (1 = the full --ring-r), starting at `startDeg` (-90 = top).
+			// Returns trig multipliers {mx, my}; the actual radius (in px) is applied
+			// in CSS via the --ring-r variable so the ring stays responsive.
+			function placeRing(count, frac, startDeg) {
+				const out = [];
+				const step = 360 / count;
+				for (let i = 0; i < count; i++) {
+					const ang = (startDeg + i * step) * Math.PI / 180;
+					out.push({ mx: frac * Math.cos(ang), my: frac * Math.sin(ang) });
+				}
+				return out;
 			}
 
-			// Create Category Header HTML
-			function createCategoryHeader(category, count) {
-				const meta = categoryMeta[category];
-				return `
-					<div class="col-12 category-header category-${category}">
-						<div class="category-header-content">
-							<i class="bi ${meta.icon} category-header-icon"></i>
-							<h3 class="category-header-title">${meta.label}</h3>
-							<span class="category-header-badge">${count} <?php the_field('sound_unit') ?></span>
-						</div>
-					</div>
-				`;
+			// Distribute n orbs across one or more concentric rings. Small groups use
+			// a single ring (centre stays free for the prompt); larger groups (e.g.
+			// the "All" tab) fill an outer then inner ring, and only use the small
+			// inner ring when they truly overflow.
+			function ringLayout(n) {
+				if (n <= 0) return [];
+				if (n <= 12) return placeRing(n, 1, -90);
+
+				const rings = [ { frac: 1, cap: 19 }, { frac: 0.62, cap: 13 }, { frac: 0.3, cap: 6 } ];
+				let positions = [];
+				let remaining = n;
+				rings.forEach((ring, ri) => {
+					if (remaining <= 0) return;
+					const count = Math.min(ring.cap, remaining);
+					// Offset each inner ring slightly so orbs don't line up radially.
+					positions = positions.concat(placeRing(count, ring.frac, -90 + ri * 14));
+					remaining -= count;
+				});
+				return positions;
+			}
+
+			// Build one sound orb element.
+			function createOrb(sound, index, pos, order) {
+				const orb = document.createElement('button');
+				orb.type = 'button';
+				orb.className = 'sound-orb category-' + sound.category;
+				orb.dataset.index = index;
+				// Position from the centre using the px ring radius (--ring-r).
+				orb.style.left = 'calc(50% + ' + pos.mx.toFixed(4) + ' * var(--ring-r))';
+				orb.style.top  = 'calc(50% + ' + pos.my.toFixed(4) + ' * var(--ring-r))';
+				orb.style.animationDelay = (order * 0.03) + 's';
+				orb.title = sound.title;
+				orb.setAttribute('aria-label', sound.title);
+				orb.innerHTML =
+					'<span class="orb-icon"><i class="bi ' + sound.icon + '"></i></span>' +
+					'<span class="orb-label">' + escapeHtml(sound.title) + '</span>';
+				if (players[index] && players[index].volume > 0) orb.classList.add('active');
+				if (index === selectedIndex) orb.classList.add('selected');
+				return orb;
 			}
 
 			// Create Filter Button HTML
@@ -1419,70 +2004,93 @@ get_header(); ?>
 				a.categoryFilters.innerHTML = html;
 			}
 
-			// Filter and Render Sounds
-			function renderSounds() {
-				const filteredSounds = sounds
+			// Filter sounds for the current view: a search query searches across every
+			// category; otherwise the active category (or all) is shown.
+			function getFilteredSounds() {
+				const q = searchQuery.trim().toLowerCase();
+				return sounds
 					.map((sound, index) => ({ sound, index }))
 					.filter(({ sound }) => {
-						const matchesCategory = activeCategory === 'all' || sound.category === activeCategory;
-						const matchesSearch = sound.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-											  sound.desc.toLowerCase().includes(searchQuery.toLowerCase());
-						return matchesCategory && matchesSearch;
-					});
-
-				if (filteredSounds.length === 0) {
-					a.soundsGrid.innerHTML = '';
-					a.noResults.classList.remove('d-none');
-				} else {
-					a.noResults.classList.add('d-none');
-
-					// Group sounds by category
-					const groupedSounds = {};
-					filteredSounds.forEach(item => {
-						if (!groupedSounds[item.sound.category]) {
-							groupedSounds[item.sound.category] = [];
+						if (q) {
+							return sound.title.toLowerCase().includes(q) ||
+								   sound.desc.toLowerCase().includes(q);
 						}
-						groupedSounds[item.sound.category].push(item);
+						return activeCategory === 'all' || sound.category === activeCategory;
 					});
-
-					// Render with category headers (order comes from categoryOrder)
-					let html = '';
-
-					categoryOrder.forEach(category => {
-						if (groupedSounds[category] && groupedSounds[category].length > 0) {
-							html += createCategoryHeader(category, groupedSounds[category].length);
-							html += groupedSounds[category].map(item => createSoundCard(item.sound, item.index)).join('');
-						}
-					});
-
-					a.soundsGrid.innerHTML = html;
-
-					// Reflect currently-playing sounds in the freshly rendered cards.
-					a.soundsGrid.querySelectorAll('.sound-slider').forEach(slider => {
-						const idx = Number(slider.dataset.index);
-						if (players[idx] && players[idx].volume > 0) {
-							slider.value = Math.round(players[idx].volume * 100);
-							slider.closest('.tool-card').classList.add('active');
-						}
-					});
-				}
 			}
 
-			// Slider drag → volume
-			a.soundsGrid.addEventListener('input', (e) => {
-				const slider = e.target.closest('.sound-slider');
-				if (!slider) return;
-				setVolume(slider.dataset.index, Number(slider.value));
+			// Render the sound orbs around the circular stage.
+			function renderSounds() {
+				// Remove the previous orbs (the centre label is a permanent child).
+				a.soundStage.querySelectorAll('.sound-orb').forEach(o => o.remove());
+
+				const filtered = getFilteredSounds();
+
+				if (filtered.length === 0) {
+					a.noResults.classList.remove('d-none');
+					updateStageVolume();
+					renderPlayingStack(true);
+					return;
+				}
+				a.noResults.classList.add('d-none');
+
+				const positions = ringLayout(filtered.length);
+				const frag = document.createDocumentFragment();
+				filtered.forEach((item, i) => {
+					frag.appendChild(createOrb(item.sound, item.index, positions[i], i));
+				});
+				a.soundStage.appendChild(frag);
+
+				updateStageVolume();
+				renderPlayingStack(true);
+			}
+
+			// Tap an orb → select / toggle the sound.
+			a.soundStage.addEventListener('click', (e) => {
+				const orb = e.target.closest('.sound-orb');
+				if (!orb) return;
+				activateOrb(Number(orb.dataset.index));
 			});
 
-			// Click the icon → toggle on (50%) / off
-			a.soundsGrid.addEventListener('click', (e) => {
-				const icon = e.target.closest('.tool-icon');
-				if (!icon) return;
-				const card = icon.closest('.tool-card');
-				const index = Number(card.querySelector('.sound-slider').dataset.index);
-				const playing = players[index] && players[index].volume > 0;
-				setVolume(index, playing ? 0 : 50);
+			// Bottom volume bar → selected sound's volume.
+			stageSliderEl.addEventListener('input', (e) => {
+				if (selectedIndex < 0) return;
+				setVolume(selectedIndex, Number(e.target.value));
+			});
+
+			function stepVolume(delta) {
+				if (selectedIndex < 0) return;
+				const cur = players[selectedIndex] ? Math.round(players[selectedIndex].volume * 100) : 0;
+				setVolume(selectedIndex, Math.max(0, Math.min(100, cur + delta)));
+			}
+			volDownEl.addEventListener('click', () => stepVolume(-10));
+			volUpEl.addEventListener('click', () => stepVolume(10));
+
+			// Clear (×) → stop every playing sound and reset the selection.
+			stageClearEl.addEventListener('click', () => {
+				applyMix({});            // silence + pause every sound
+				selectedIndex = -1;
+				activeMixIndex = -1;     // drop any loaded-mix highlight
+				renderSounds();          // refresh orb states + centre prompt
+				renderMixes();
+			});
+
+			// Tap a circle in the centre carousel → make it the selected sound.
+			playingStackEl.addEventListener('click', (e) => {
+				const orb = e.target.closest('.playing-orb');
+				if (!orb) return;
+				selectSound(Number(orb.dataset.index));
+			});
+
+			// Paging arrows scroll the visible window of playing sounds (no snap,
+			// so you can scroll past the selected one).
+			stackPrevEl.addEventListener('click', () => {
+				stackOffset--;
+				renderPlayingStack(false);
+			});
+			stackNextEl.addEventListener('click', () => {
+				stackOffset++;
+				renderPlayingStack(false);
 			});
 
 			// Event Listeners
@@ -1498,6 +2106,12 @@ get_header(); ?>
 				// Update active state
 				document.querySelectorAll('.btn-filter').forEach(btn => btn.classList.remove('active'));
 				button.classList.add('active');
+
+				// Choosing a category clears any active search so the group shows.
+				if (searchQuery) {
+					searchQuery = '';
+					a.searchInput.value = '';
+				}
 
 				// Update category and render
 				activeCategory = button.dataset.category;
