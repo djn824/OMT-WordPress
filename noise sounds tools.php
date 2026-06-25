@@ -58,39 +58,40 @@ get_header(); ?>
 	}
 
 	/* Filter Buttons */
+	/* Category filters — each filter is just its SVG image; the "all" entry,
+	   which has no SVG, falls back to a text chip. */
 	.btn-filter {
+		border: none;
+		background: none;
+		padding: 0;
+		cursor: pointer;
+		transition: opacity 0.2s ease, transform 0.2s ease;
+	}
+
+	/* Inlined category pill SVG renders as a block (no inline baseline gap). */
+	svg.btn-filter { display: block; }
+
+	/* "All Sounds" text chip keeps a pill look. */
+	span.btn-filter {
 		display: inline-flex;
 		align-items: center;
-		justify-content: center;
-		gap: 0.4rem;
 		line-height: 1.2;
 		background-color: #f0f0f0;
 		color: #666;
-		border: none;
 		border-radius: 10px;
 		padding: 0.35rem 0.6rem;
 		font-weight: 500;
-		transition: all 0.2s ease;
 	}
 
-	.btn-filter .tab-icon {
-		font-size: 1.1rem;
-		line-height: 1;
-	}
-
-	.btn-filter:hover {
+	span.btn-filter:hover {
 		background-color: #e0e0e0;
 		color: #333;
 	}
 
-	.btn-filter.active {
+	span.btn-filter.active {
 		background-color: #436f8e;
-		color: white;
+		color: #fff;
 		box-shadow: 0 4px 12px rgba(67, 111, 142, 0.3);
-	}
-
-	.btn-filter.active .tab-icon {
-		color: #e25c1b;
 	}
 
 	/* Sound Cards */
@@ -345,28 +346,20 @@ get_header(); ?>
 		aspect-ratio: 1 / 1;
 	}
 
-	/* Clear (×) button — top-right of the circle, stops all playing sounds */
+	/* Clear (stop) control — the SVG image, top-right of the circle. */
 	.stage-clear {
 		position: absolute;
 		top: 0;
 		right: 0;
 		z-index: 2;
-		width: 38px;
-		height: 38px;
-		border: none;
-		border-radius: 50%;
-		background: #f0f0f0;
-		color: #436f8e;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 1rem;
-		line-height: 1;
+		display: block;
 		cursor: pointer;
-		transition: background 0.2s ease, color 0.2s ease, transform 0.1s ease;
+		transition: transform 0.1s ease;
 	}
-	.stage-clear:hover { background: #436f8e; color: #fff; }
 	.stage-clear:active { transform: scale(0.92); }
+
+	/* The +/- stepper controls are SVG images at their original size. */
+	.vol-btn img { display: block; }
 
 	/* Centre area: holds either the prompt (nothing playing) or the
 	   "now playing" carousel of overlapping sound circles + paging arrows. */
@@ -396,23 +389,16 @@ get_header(); ?>
 		text-align: center;
 	}
 
-	/* Paging arrows (shown only when more than 3 sounds are playing) */
+	/* Paging arrows (shown only when more than 3 sounds are playing) — each is
+	   the SVG image itself. */
 	.stack-arrow {
 		flex: 0 0 auto;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		padding: 0;
-		border: none;
-		background: none;
-		color: #9aa7b0;
-		font-size: 1.15rem;
-		line-height: 1;
+		display: block;
 		cursor: pointer;
-		transition: color 0.2s ease;
+		transition: opacity 0.2s ease;
 	}
-	.stack-arrow:hover:not(:disabled) { color: #436f8e; }
-	.stack-arrow:disabled { opacity: 0.3; cursor: default; }
+	.stack-arrow:hover:not(.is-disabled) { opacity: 0.7; }
+	.stack-arrow.is-disabled { opacity: 0.3; cursor: default; }
 
 	/* Carousel: up to 3 circles stacked as an overlapping deck — the selected
 	   sound sits full at the front (right), the others peek out behind it to the
@@ -436,111 +422,64 @@ get_header(); ?>
 		left: calc(var(--pos) * var(--peek));
 		width: var(--orb);
 		height: var(--orb);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		border: 2px solid #fff;
-		border-radius: 50%;
-		background: #b6cdde;
-		color: #fff;
-		font-size: calc(var(--orb) * 0.42);
+		object-fit: contain;
 		cursor: pointer;
-		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-		transition: left 0.25s ease, background 0.2s ease;
+		transition: left 0.25s ease;
 		z-index: calc(var(--pos) + 1);
+		/* Two-tone brand blue on white (border stays brand blue, see monoSvg). */
+		--c-bg: #fff;
+		--c-fg: #436f8e;
+		--c-border: #436f8e;
 	}
 
-	/* Selected sound — brought to the front, filled brand blue. */
+	/* Selected sound — brought to the front of the deck, colours reversed. The
+	   reversed blue fill drops to 90% opacity; the white icon and the blue
+	   border stay fully opaque. */
 	.playing-orb.selected {
-		background: #436f8e;
 		z-index: 50;
-		box-shadow: 0 2px 8px rgba(67, 111, 142, 0.45);
+		--c-bg: rgba(67, 111, 142, 0.9);
+		--c-fg: #fff;
 	}
 
-	/* Sound orb — a round icon button positioned on the ring */
+	/* Sound orb — the SVG positioned on the ring; its two colours reverse on
+	   selection (see the --c-bg / --c-fg rules below). */
 	.sound-orb {
 		position: absolute;
 		transform: translate(-50%, -50%);
-		width: clamp(48px, 13.5%, 74px);
+		/* Fixed size — does not scale with the screen. */
+		width: 62px;
 		aspect-ratio: 1 / 1;
 		padding: 0;
-		border: 2.5px solid var(--cat, #436f8e);
-		border-radius: 50%;
-		background: #fff;
-		color: var(--cat, #436f8e);
-		display: flex;
-		align-items: center;
-		justify-content: center;
+		display: block;
+		object-fit: contain;
 		cursor: pointer;
-		transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
-		animation: orbIn 0.35s ease-out backwards;
 		-webkit-tap-highlight-color: transparent;
 	}
 
-	.sound-orb .orb-icon {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: clamp(1.1rem, 5.5%, 1.7rem);
-		line-height: 1;
+	/* Inlined SVGs (sound orbs + category pills) drive their two colours from
+	   --c-bg (background) and --c-fg (foreground). On selection the two trade
+	   places: the background fills with the accent and the foreground takes the
+	   icon's own background tone (--bg-base, white by default). The sound circle
+	   border is baked to the accent in the SVG itself, so it never reverses. */
+	.sound-orb,
+	svg.btn-filter {
+		--c-bg: var(--bg-base, #fff);
+		--c-fg: var(--accent, #436f8e);
 	}
 
-	/* Accessible label, hidden visually (orbs are icon-only like the mockup) */
-	.sound-orb .orb-label {
-		position: absolute;
-		width: 1px; height: 1px;
-		padding: 0; margin: -1px;
-		overflow: hidden;
-		clip: rect(0, 0, 0, 0);
-		white-space: nowrap;
-		border: 0;
+	.sound-orb.active,
+	svg.btn-filter.active {
+		--c-bg: var(--accent, #436f8e);
+		--c-fg: var(--bg-base, #fff);
 	}
 
-	.sound-orb:hover {
-		transform: translate(-50%, -50%) scale(1.08);
-		box-shadow: 0 6px 18px rgba(var(--cat-rgb), 0.25);
-	}
-
-	/* Playing */
-	.sound-orb.active {
-		background: var(--cat, #436f8e);
-		color: #fff;
-	}
-
-	/* Selected (the orb the bottom slider controls) */
-	.sound-orb.selected {
-		box-shadow: 0 0 0 4px rgba(var(--cat-rgb), 0.25);
-	}
-
-	.sound-orb.active.selected {
-		box-shadow: 0 0 0 4px rgba(var(--cat-rgb), 0.35), 0 6px 18px rgba(var(--cat-rgb), 0.3);
-	}
-
-	/* Pulse ring while a sound plays */
-	.sound-orb.active {
-		animation: soundPulse 1.6s ease-out infinite;
-	}
-
-	@media (prefers-reduced-motion: reduce) {
-		.sound-orb.active { animation: none; }
-	}
-
-	/* Loading spinner on an orb while its audio buffers */
-	.sound-orb.loading { animation: none !important; }
-	.sound-orb.loading .orb-icon i { display: none; }
-	.sound-orb.loading .orb-icon::after {
-		content: "";
-		width: 55%;
-		aspect-ratio: 1 / 1;
-		border: 2.5px solid currentColor;
-		border-top-color: transparent;
-		border-radius: 50%;
-		animation: iconSpin 0.7s linear infinite;
-	}
+	/* Dim the orb while its audio buffers (image elements can't host the
+	   pseudo-element spinner used elsewhere). */
+	.sound-orb.loading { animation: none !important; opacity: 0.45; }
 
 	@keyframes orbIn {
-		from { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
-		to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+		from { opacity: 0; }
+		to   { opacity: 1; }
 	}
 
 	/* Bottom volume bar — controls the selected sound.
@@ -565,20 +504,15 @@ get_header(); ?>
 		opacity: 0.5;
 	}
 
-	/* Stepper buttons: no background — just the +/- glyph in brand blue. */
+	/* Stepper buttons: no background — just the +/- SVG at its original size. */
 	.vol-btn {
 		flex: 0 0 auto;
-		width: 40px;
-		height: 29px;
 		padding: 0;
 		border: none;
 		background: none;
-		color: #436f8e;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		font-size: 29px;
-		font-weight: 700;
 		line-height: 1;
 		cursor: pointer;
 		transition: transform 0.1s ease, opacity 0.2s ease;
@@ -793,18 +727,15 @@ get_header(); ?>
 			min-height: 0;
 		}
 
-		.btn-filter {
+		/* Only the "All" text chip tweaks on phones; the image filters keep
+		   their fixed size. */
+		span.btn-filter {
 			font-size: 0.8rem;
 			padding: 0.35rem 0.5rem;
 		}
 
 		.category-header {
 			margin-top: 1.25rem;
-		}
-
-		/* Shrink the centre carousel circles so the deck fits on small phones */
-		.playing-stack {
-			--orb: 64px;
 		}
 	}
 
@@ -1298,19 +1229,13 @@ get_header(); ?>
 			<!-- Layer 3: circular sound stage -->
 			<div class="circle-stage" id="soundStage">
 				<!-- Clear: stops every playing sound -->
-				<button type="button" class="stage-clear" id="stageClear" aria-label="Clear sounds" title="Clear sounds">
-					<i class="bi bi-x-lg"></i>
-				</button>
+				<img class="stage-clear" id="stageClear" role="button" tabindex="0" aria-label="Clear sounds" title="Clear sounds" src="<?php echo get_stylesheet_directory_uri(); ?>/assets/images/sound-noise-svg/Stop-Icon.svg" alt="Clear sounds">
 				<div class="circle-center is-empty" id="circleCenter">
-					<button type="button" class="stack-arrow stack-prev" id="stackPrev" aria-label="Previous sounds">
-						<i class="bi bi-caret-left-fill"></i>
-					</button>
+					<img class="stack-arrow stack-prev" id="stackPrev" role="button" tabindex="0" aria-label="Previous sounds" src="<?php echo get_stylesheet_directory_uri(); ?>/assets/images/sound-noise-svg/Left-Arrow.svg" alt="Previous sounds">
 					<div class="playing-stack" id="playingStack">
 						<!-- Currently-playing sounds (carousel) inserted here -->
 					</div>
-					<button type="button" class="stack-arrow stack-next" id="stackNext" aria-label="More sounds">
-						<i class="bi bi-caret-right-fill"></i>
-					</button>
+					<img class="stack-arrow stack-next" id="stackNext" role="button" tabindex="0" aria-label="More sounds" src="<?php echo get_stylesheet_directory_uri(); ?>/assets/images/sound-noise-svg/Right-Arrow.svg" alt="More sounds">
 					<span id="centerText"><?php echo esc_html( $choose_prompt ); ?></span>
 				</div>
 				<!-- Sound orbs are inserted here -->
@@ -1319,8 +1244,12 @@ get_header(); ?>
 			<!-- Volume bar for the selected sound -->
 			<div class="stage-volume is-empty" id="stageVolume">
 				<div class="stage-volume-top">
-					<button type="button" class="vol-btn vol-down" id="volDown" aria-label="Lower volume">&minus;</button>
-					<button type="button" class="vol-btn vol-up" id="volUp" aria-label="Raise volume">&plus;</button>
+					<button type="button" class="vol-btn vol-down" id="volDown" aria-label="Lower volume">
+						<img src="<?php echo get_stylesheet_directory_uri(); ?>/assets/images/sound-noise-svg/Minus.svg" alt="Lower volume">
+					</button>
+					<button type="button" class="vol-btn vol-up" id="volUp" aria-label="Raise volume">
+						<img src="<?php echo get_stylesheet_directory_uri(); ?>/assets/images/sound-noise-svg/Plus.svg" alt="Raise volume">
+					</button>
 				</div>
 				<input type="range" class="stage-slider" id="stageSlider" min="0" max="100" value="0" aria-label="Selected sound volume">
 			</div>
@@ -1566,54 +1495,58 @@ get_header(); ?>
 		// Base URL for every sound file; entries below store base + filename.
 		const base = '<?php echo get_stylesheet_directory_uri();?>/assets/audio/noise-sounds/';
 
+		// Base URL for the SVG icons. Each sound/category `icon` holds an SVG
+		// filename (e.g. "Rain.svg") that is appended to this path.
+		const iconBase = '<?php echo get_stylesheet_directory_uri();?>/assets/images/sound-noise-svg/';
+
 		// Fallback sound library, used when the "sounds_library" field is empty.
 		// Each entry: { title, desc, icon, file, category }
 		const DEFAULT_SOUNDS = [
 			// ---- RAIN & STORMS ----
-			{ title: "Rain",              desc: "Steady rainfall to help you relax and focus",   icon: "bi-cloud-rain",           file: base + "Rain.mp3",                 category: "rain" },
-			{ title: "Thunder",           desc: "Distant rolling thunder for a stormy mood",      icon: "bi-cloud-lightning-rain", file: base + "Thunder.mp3",              category: "rain" },
-			{ title: "Rain on tin roof",  desc: "Rain pattering on a metal roof",                 icon: "bi-cloud-rain-heavy",     file: base + "Rain-on-TinRoof.mp3",      category: "rain" },
-			{ title: "Rain on trees",     desc: "Raindrops falling through the leaves",           icon: "bi-cloud-drizzle",        file: base + "Rain-on-Trees.mp3",        category: "rain" },
-			{ title: "Rain on cabin",     desc: "Rain falling on a cozy wooden cabin",            icon: "bi-house",                file: base + "Rain-on-Cabin.mp3",        category: "rain" },
+			{ title: "Rain",              desc: "Steady rainfall to help you relax and focus",   icon: "Rain.svg",                file: base + "Rain.mp3",                 category: "rain" },
+			{ title: "Thunder",           desc: "Distant rolling thunder for a stormy mood",      icon: "Thunder.svg",             file: base + "Thunder.mp3",              category: "rain" },
+			{ title: "Rain on tin roof",  desc: "Rain pattering on a metal roof",                 icon: "Rain-On-Tin-Roof.svg",    file: base + "Rain-on-TinRoof.mp3",      category: "rain" },
+			{ title: "Rain on trees",     desc: "Raindrops falling through the leaves",           icon: "Rain-On-Trees.svg",       file: base + "Rain-on-Trees.mp3",        category: "rain" },
+			{ title: "Rain on cabin",     desc: "Rain falling on a cozy wooden cabin",            icon: "Rain-On-Cabin.svg",       file: base + "Rain-on-Cabin.mp3",        category: "rain" },
 
 			// ---- WATER ----
-			{ title: "Waves",             desc: "Gentle ocean waves rolling onto the shore",      icon: "bi-water",                file: base + "Waves.mp3",               category: "water" },
-			{ title: "Stream",            desc: "A babbling stream flowing over rocks",           icon: "bi-tsunami",              file: base + "Stream.mp3",              category: "water" },
-			{ title: "Waterfall",         desc: "A powerful waterfall cascading down",            icon: "bi-water",                file: base + "Waterfall.mp3",           category: "water" },
-			{ title: "Water rippling",    desc: "Soft ripples across calm water",                 icon: "bi-droplet",              file: base + "Water-Rippling.mp3",      category: "water" },
-			{ title: "Underwater bubbles", desc: "Gentle bubbles drifting underwater",            icon: "bi-droplet-half",         file: base + "Underwater-Bubbles.mp3",  category: "water" },
-			{ title: "Bottle bubbles",    desc: "Soft bubbles from a submerged bottle",           icon: "bi-droplet-fill",         file: base + "Bottle-Bubbles.mp3",      category: "water" },
+			{ title: "Waves",             desc: "Gentle ocean waves rolling onto the shore",      icon: "Waves.svg",               file: base + "Waves.mp3",               category: "water" },
+			{ title: "Stream",            desc: "A babbling stream flowing over rocks",           icon: "Stream.svg",              file: base + "Stream.mp3",              category: "water" },
+			{ title: "Waterfall",         desc: "A powerful waterfall cascading down",            icon: "Waterfall.svg",           file: base + "Waterfall.mp3",           category: "water" },
+			{ title: "Water rippling",    desc: "Soft ripples across calm water",                 icon: "Water-Rippling.svg",      file: base + "Water-Rippling.mp3",      category: "water" },
+			{ title: "Underwater bubbles", desc: "Gentle bubbles drifting underwater",            icon: "Underwater-Bubbles.svg",  file: base + "Underwater-Bubbles.mp3",  category: "water" },
+			{ title: "Bottle bubbles",    desc: "Soft bubbles from a submerged bottle",           icon: "Bottle-Bubbles.svg",      file: base + "Bottle-Bubbles.mp3",      category: "water" },
 
 			// ---- NATURE & WILDLIFE ----
-			{ title: "Wind",              desc: "Soft wind blowing through open space",           icon: "bi-wind",                 file: base + "Wind.mp3",                category: "nature" },
-			{ title: "Fire",              desc: "Warm crackling campfire sounds",                 icon: "bi-fire",                 file: base + "Fire.mp3",                category: "nature" },
-			{ title: "Fire crackling",    desc: "Crackling flames of an open fire",               icon: "bi-fire",                 file: base + "Fire-Crackling.mp3",      category: "nature" },
-			{ title: "Bamboo rustling",   desc: "Bamboo leaves rustling in the breeze",           icon: "bi-tree",                 file: base + "Bamboo-Rustling.mp3",     category: "nature" },
-			{ title: "Birds",             desc: "Cheerful birds singing in the morning",          icon: "bi-feather",              file: base + "Birds.mp3",               category: "nature" },
-			{ title: "Crickets",          desc: "Calming crickets chirping through the night",    icon: "bi-bug",                  file: base + "Crickets.mp3",            category: "nature" },
-			{ title: "Chirping birds",    desc: "Birds chirping in a peaceful forest",            icon: "bi-feather",              file: base + "Chirping-Birds.mp3",      category: "nature" },
-			{ title: "Cicadas",           desc: "Buzzing cicadas on a warm summer day",           icon: "bi-bug-fill",             file: base + "Cicadas.mp3",             category: "nature" },
-			{ title: "Frogs",             desc: "Frogs croaking by a quiet pond",                 icon: "bi-bug-fill",             file: base + "Frogs.mp3",               category: "nature" },
-			{ title: "Night crickets & frogs", desc: "Crickets and frogs on a calm night",       icon: "bi-moon-stars",           file: base + "Night-Crickets-Frogs.mp3", category: "nature" },
+			{ title: "Wind",              desc: "Soft wind blowing through open space",           icon: "Wind.svg",                file: base + "Wind.mp3",                category: "nature" },
+			{ title: "Fire",              desc: "Warm crackling campfire sounds",                 icon: "Fire.svg",                file: base + "Fire.mp3",                category: "nature" },
+			{ title: "Fire crackling",    desc: "Crackling flames of an open fire",               icon: "Fire-Crackling.svg",      file: base + "Fire-Crackling.mp3",      category: "nature" },
+			{ title: "Bamboo rustling",   desc: "Bamboo leaves rustling in the breeze",           icon: "Bamboo.svg",              file: base + "Bamboo-Rustling.mp3",     category: "nature" },
+			{ title: "Birds",             desc: "Cheerful birds singing in the morning",          icon: "Birds.svg",               file: base + "Birds.mp3",               category: "nature" },
+			{ title: "Crickets",          desc: "Calming crickets chirping through the night",    icon: "Crickets.svg",            file: base + "Crickets.mp3",            category: "nature" },
+			{ title: "Chirping birds",    desc: "Birds chirping in a peaceful forest",            icon: "Chirping-Birds.svg",      file: base + "Chirping-Birds.mp3",      category: "nature" },
+			{ title: "Cicadas",           desc: "Buzzing cicadas on a warm summer day",           icon: "Cicadas.svg",             file: base + "Cicadas.mp3",             category: "nature" },
+			{ title: "Frogs",             desc: "Frogs croaking by a quiet pond",                 icon: "Frogs.svg",               file: base + "Frogs.mp3",               category: "nature" },
+			{ title: "Night crickets & frogs", desc: "Crickets and frogs on a calm night",       icon: "Frog-Cricket-Night.svg",  file: base + "Night-Crickets-Frogs.mp3", category: "nature" },
 
 			// ---- WHITE NOISE & FANS ----
-			{ title: "White noise",       desc: "Even white noise to mask distractions",          icon: "bi-volume-up",            file: base + "White-Noise.ogg",         category: "noise" },
-			{ title: "Brown noise",       desc: "Deep brown noise for intense focus",             icon: "bi-volume-down",          file: base + "Brown-Noise.ogg",         category: "noise" },
-			{ title: "Pink noise",        desc: "Balanced pink noise to aid sleep",               icon: "bi-volume-up",            file: base + "Pink-Noise.ogg",          category: "noise" },
-			{ title: "Fan on high",       desc: "A strong fan running on high speed",             icon: "bi-fan",                  file: base + "Fan-on-High.mp3",         category: "noise" },
-			{ title: "Fan on low",        desc: "A gentle fan running on low speed",              icon: "bi-fan",                  file: base + "Fan-on-Low.mp3",          category: "noise" },
-			{ title: "Air conditioning",  desc: "Steady hum of an air conditioner",               icon: "bi-snow",                 file: base + "Air-Conditioning.mp3",    category: "noise" },
+			{ title: "White noise",       desc: "Even white noise to mask distractions",          icon: "White-Noise.svg",         file: base + "White-Noise.ogg",         category: "noise" },
+			{ title: "Brown noise",       desc: "Deep brown noise for intense focus",             icon: "Brown-Noise.svg",         file: base + "Brown-Noise.ogg",         category: "noise" },
+			{ title: "Pink noise",        desc: "Balanced pink noise to aid sleep",               icon: "Pink-Noise.svg",          file: base + "Pink-Noise.ogg",          category: "noise" },
+			{ title: "Fan on high",       desc: "A strong fan running on high speed",             icon: "Fan-High.svg",            file: base + "Fan-on-High.mp3",         category: "noise" },
+			{ title: "Fan on low",        desc: "A gentle fan running on low speed",              icon: "Fan-Low.svg",             file: base + "Fan-on-Low.mp3",          category: "noise" },
+			{ title: "Air conditioning",  desc: "Steady hum of an air conditioner",               icon: "Air-Conditioning.svg",    file: base + "Air-Conditioning.mp3",    category: "noise" },
 
 			// ---- FOCUS & AMBIENCE ----
-			{ title: "Coffee shop",       desc: "Cozy background chatter of a busy cafe",         icon: "bi-cup-hot",              file: base + "Coffee-Shop.mp3",         category: "focus" },
-			{ title: "City",              desc: "Busy city ambience and distant traffic",         icon: "bi-buildings",            file: base + "City.mp3",                category: "focus" },
-			{ title: "Record player",     desc: "Warm vinyl crackle of a record player",          icon: "bi-vinyl",                file: base + "Record-Player.mp3",       category: "focus" },
-			{ title: "Typing",            desc: "Rhythmic keyboard typing to keep you in flow",   icon: "bi-keyboard",             file: base + "Typing-Sound.mp3",        category: "focus" },
-			{ title: "Writing",           desc: "A pen scratching across paper",                  icon: "bi-pencil",               file: base + "Writing-Sound.mp3",       category: "focus" },
-			{ title: "Soft piano",        desc: "Gentle piano melodies to help you unwind",       icon: "bi-music-note-beamed",    file: base + "Soft-Piano.mp3",          category: "focus" },
-			{ title: "Singing bowl",      desc: "Resonant singing bowl tones for meditation",     icon: "bi-soundwave",            file: base + "Singing-Bowl.mp3",        category: "focus" },
-			{ title: "Metal chimes",      desc: "Soft metal wind chimes ringing gently",          icon: "bi-bell",                 file: base + "Metal-Chimes.mp3",        category: "focus" },
-			{ title: "Wooden fish",       desc: "Steady wooden fish taps for deep focus",         icon: "bi-record-circle",        file: base + "Wooden-Fish.mp3",         category: "focus" },
+			{ title: "Coffee shop",       desc: "Cozy background chatter of a busy cafe",         icon: "Coffee-Shop.svg",         file: base + "Coffee-Shop.mp3",         category: "focus" },
+			{ title: "City",              desc: "Busy city ambience and distant traffic",         icon: "City.svg",                file: base + "City.mp3",                category: "focus" },
+			{ title: "Record player",     desc: "Warm vinyl crackle of a record player",          icon: "Record.svg",              file: base + "Record-Player.mp3",       category: "focus" },
+			{ title: "Typing",            desc: "Rhythmic keyboard typing to keep you in flow",   icon: "Typing.svg",              file: base + "Typing-Sound.mp3",        category: "focus" },
+			{ title: "Writing",           desc: "A pen scratching across paper",                  icon: "Writing.svg",             file: base + "Writing-Sound.mp3",       category: "focus" },
+			{ title: "Soft piano",        desc: "Gentle piano melodies to help you unwind",       icon: "Soft-Piano.svg",          file: base + "Soft-Piano.mp3",          category: "focus" },
+			{ title: "Singing bowl",      desc: "Resonant singing bowl tones for meditation",     icon: "Singing-Bowl.svg",        file: base + "Singing-Bowl.mp3",        category: "focus" },
+			{ title: "Metal chimes",      desc: "Soft metal wind chimes ringing gently",          icon: "Metal-Chimes.svg",        file: base + "Metal-Chimes.mp3",        category: "focus" },
+			{ title: "Wooden fish",       desc: "Steady wooden fish taps for deep focus",         icon: "Wooden-Fish.svg",         file: base + "Wooden-Fish.mp3",         category: "focus" },
 		];
 
 		// Sounds come from the ACF "sounds_library" field:
@@ -1640,12 +1573,12 @@ get_header(); ?>
 		let categoryLabels = <?php echo json_encode(get_field('category_labels')); ?>;
 		if (!Array.isArray(categoryLabels) || categoryLabels.length === 0) {
 			categoryLabels = [
-				{ key: "all",    label: "All Sounds",       icon: "bi-grid" },
-				{ key: "rain",   label: "Rain & Storms",    icon: "bi-cloud-rain" },
-				{ key: "focus",  label: "Focus & Ambience", icon: "bi-headphones" },
-				{ key: "water",  label: "Water",            icon: "bi-water" },
-				{ key: "nature", label: "Nature",           icon: "bi-tree" },
-				{ key: "noise",  label: "White Noise",      icon: "bi-volume-up" }
+				{ key: "all",    label: "All Sounds",       icon: "" },
+				{ key: "rain",   label: "Rain & Storms",    icon: "Weather-Category.svg" },
+				{ key: "focus",  label: "Focus & Ambience", icon: "Focus-Category.svg" },
+				{ key: "water",  label: "Water",            icon: "Water-Category.svg" },
+				{ key: "nature", label: "Nature",           icon: "Nature-Category.svg" },
+				{ key: "noise",  label: "White Noise",      icon: "White-Noise-Category.svg" }
 			];
 		}
 
@@ -1657,6 +1590,118 @@ get_header(); ?>
 
 		// Audio objects keyed by index, created lazily.
 		const players = {};
+
+		// Sound icons are inlined so their two main colours can be swapped on
+		// selection. svgCache maps icon filename -> { html, accent }. The swap is
+		// kept minimal so each icon still looks like its original artwork: only
+		// the white circle and the accent trade places; the circle border and any
+		// other shading are left exactly as authored.
+		const svgCache = {};
+
+		// Accent = the circle outline colour (stroke-width="3"), else the first
+		// stroke, else the first fill, else a brand blue.
+		function detectAccent(svgText) {
+			const onCircle = svgText.match(/stroke="(#[0-9a-fA-F]{3,8})"\s+stroke-width="3"/);
+			if (onCircle) return onCircle[1];
+			const anyStroke = svgText.match(/stroke="(#[0-9a-fA-F]{3,8})"/);
+			if (anyStroke) return anyStroke[1];
+			const anyFill = svgText.match(/fill="(#[0-9a-fA-F]{3,8})"/);
+			return anyFill ? anyFill[1] : '#436f8e';
+		}
+
+		// Swap white <-> accent via --c-bg / --c-fg; keep the circle border (the
+		// stroke-width="3" outline) fixed at the accent so it never reverses.
+		function themeSvg(svgText, accent) {
+			const esc = accent.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+			return svgText
+				.replace(new RegExp('stroke="' + esc + '"(\\s+stroke-width="3")'), 'stroke="__BORDER__"$1')
+				.split('fill="white"').join('fill="var(--c-bg)"')
+				.split('fill="' + accent + '"').join('fill="var(--c-fg)"')
+				.split('stroke="' + accent + '"').join('stroke="var(--c-fg)"')
+				.split('stroke="__BORDER__"').join('stroke="' + accent + '"');
+		}
+
+		// Centre-carousel version: a two-tone icon in brand blue (#436f8e) on
+		// white, driven by --c-bg (white) / --c-fg (#436f8e) so the selected one
+		// can reverse them. The circle outline (stroke-width="3") is baked to the
+		// brand blue so the border never reverses.
+		function monoSvg(svgText) {
+			return svgText
+				// Shield only the circle outline — the first stroke-width="3"
+				// stroke (the background ring); icon strokes also use width 3 and
+				// must still swap, so this is intentionally not global.
+				.replace(/stroke="[^"]*"(\s+stroke-width="3")/, 'stroke="__B__"$1')
+				// White → background; every other colour → foreground.
+				.split('fill="white"').join('fill="var(--c-bg)"')
+				.replace(/fill="(#[0-9a-fA-F]{3,8}|black)"/g, 'fill="var(--c-fg)"')
+				.replace(/stroke="(#[0-9a-fA-F]{3,8}|black)"/g, 'stroke="var(--c-fg)"')
+				// Border keeps its own (never-reversed) brand-blue variable.
+				.split('stroke="__B__"').join('stroke="var(--c-border)"');
+		}
+
+		// Fetch + theme every unique sound icon once. Resolves when all are cached.
+		function loadSvgIcons(sounds) {
+			const icons = [...new Set(sounds.map(s => s.icon))];
+			return Promise.all(icons.map(icon =>
+				fetch(iconBase + icon)
+					.then(r => r.ok ? r.text() : null)
+					.then(text => {
+						if (!text) return;
+						const accent = detectAccent(text);
+						svgCache[icon] = { html: themeSvg(text, accent), accent, mono: monoSvg(text) };
+					})
+					.catch(() => {})
+			));
+		}
+
+		// Category pills are a different shape: a solid background rect + the
+		// label/icon in an accent colour (no border). Same swap idea — background
+		// and accent trade places on the active filter. catSvgCache maps the
+		// category icon filename -> { html, accent, bg }.
+		const catSvgCache = {};
+
+		// Background = the fill of the first <rect> (the pill).
+		function detectCategoryBg(svgText) {
+			const m = svgText.match(/<rect[^>]*\bfill="(#[0-9a-fA-F]{3,8}|white)"/i);
+			return m ? m[1] : '#F0F0F0';
+		}
+
+		// Accent = the most-used coloured fill that isn't a light background tone.
+		function detectCategoryAccent(svgText) {
+			const bgish = ['#f0f0f0', '#ededed', '#e9e3e3', '#cbcaca', '#ffffff', '#fff', 'white'];
+			const counts = {};
+			(svgText.match(/fill="(#[0-9a-fA-F]{3,8})"/g) || []).forEach(s => {
+				const c = s.slice(6, -1);
+				if (bgish.indexOf(c.toLowerCase()) === -1) counts[c] = (counts[c] || 0) + 1;
+			});
+			let best = '#436f8e', n = 0;
+			Object.keys(counts).forEach(c => { if (counts[c] > n) { best = c; n = counts[c]; } });
+			return best;
+		}
+
+		// Map the pill background -> --c-bg and the accent label/icon -> --c-fg.
+		function themeCategorySvg(svgText, bg, accent) {
+			return svgText
+				.split('fill="' + bg + '"').join('fill="var(--c-bg)"')
+				.split('fill="' + accent + '"').join('fill="var(--c-fg)"')
+				.split('stroke="' + accent + '"').join('stroke="var(--c-fg)"');
+		}
+
+		// Fetch + theme every category icon once. Resolves when all are cached.
+		function loadCategoryIcons(metas) {
+			const icons = [...new Set(Object.keys(metas).map(k => metas[k].icon).filter(Boolean))];
+			return Promise.all(icons.map(icon =>
+				fetch(iconBase + icon)
+					.then(r => r.ok ? r.text() : null)
+					.then(text => {
+						if (!text) return;
+						const bg = detectCategoryBg(text);
+						const accent = detectCategoryAccent(text);
+						catSvgCache[icon] = { html: themeCategorySvg(text, bg, accent), accent, bg };
+					})
+					.catch(() => {})
+			));
+		}
 
 		var a = function(){};
 
@@ -1850,8 +1895,8 @@ get_header(); ?>
 				const showArrows = n > STACK_WINDOW;
 				stackPrevEl.style.display = showArrows ? '' : 'none';
 				stackNextEl.style.display = showArrows ? '' : 'none';
-				stackPrevEl.disabled = stackOffset <= 0;
-				stackNextEl.disabled = stackOffset >= maxOffset;
+				stackPrevEl.classList.toggle('is-disabled', stackOffset <= 0);
+				stackNextEl.classList.toggle('is-disabled', stackOffset >= maxOffset);
 			}
 
 			// Build / refresh the centre deck. `snap` keeps the selected sound in the
@@ -1890,9 +1935,19 @@ get_header(); ?>
 				playingStackEl.innerHTML = windowArr.map((idx, depth) => {
 					const sound = sounds[idx];
 					const sel = idx === selectedIndex ? ' selected' : '';
-					return '<button type="button" class="playing-orb' + sel + '" data-index="' + idx +
-						'" style="--pos:' + depth + '" title="' + escapeHtml(sound.title) +
-						'" aria-label="' + escapeHtml(sound.title) + '"><i class="bi ' + sound.icon + '"></i></button>';
+					const cached = svgCache[sound.icon];
+					if (cached && cached.mono) {
+						// Inline the recoloured (mono) SVG so every non-white shape
+						// shows in brand blue. Attributes go on the <svg> root.
+						const attrs = 'class="playing-orb' + sel + '" data-index="' + idx +
+							'" style="--pos:' + depth + '" role="img" title="' + escapeHtml(sound.title) +
+							'" aria-label="' + escapeHtml(sound.title) + '"';
+						return cached.mono.replace('<svg ', '<svg ' + attrs + ' ');
+					}
+					return '<img class="playing-orb' + sel + '" data-index="' + idx +
+						'" style="--pos:' + depth + '" src="' + iconBase + sound.icon +
+						'" alt="' + escapeHtml(sound.title) + '" title="' + escapeHtml(sound.title) +
+						'" aria-label="' + escapeHtml(sound.title) + '" />';
 				}).join('');
 			}
 
@@ -1963,34 +2018,57 @@ get_header(); ?>
 				return positions;
 			}
 
-			// Build one sound orb element.
+			// Build one sound orb element, positioned on the ring. Once its SVG is
+			// fetched it is inlined (so its two colours can be reversed on
+			// selection); until then it is the plain original <img>. Clicks are
+			// handled by delegation on the stage.
 			function createOrb(sound, index, pos, order) {
-				const orb = document.createElement('button');
-				orb.type = 'button';
-				orb.className = 'sound-orb category-' + sound.category;
+				const cached = svgCache[sound.icon];
+				let orb;
+				if (cached) {
+					const tpl = document.createElement('template');
+					tpl.innerHTML = cached.html.trim();
+					orb = tpl.content.querySelector('svg');
+					orb.setAttribute('role', 'img');
+					// Drop the baked-in pixel size so the CSS width/aspect-ratio wins.
+					orb.removeAttribute('width');
+					orb.removeAttribute('height');
+					orb.style.setProperty('--accent', cached.accent);
+				} else {
+					orb = document.createElement('img');
+					orb.src = iconBase + sound.icon;
+					orb.alt = sound.title;
+				}
+				orb.classList.add('sound-orb', 'category-' + sound.category);
 				orb.dataset.index = index;
 				// Position from the centre using the px ring radius (--ring-r).
 				orb.style.left = 'calc(50% + ' + pos.mx.toFixed(4) + ' * var(--ring-r))';
 				orb.style.top  = 'calc(50% + ' + pos.my.toFixed(4) + ' * var(--ring-r))';
 				orb.style.animationDelay = (order * 0.03) + 's';
-				orb.title = sound.title;
 				orb.setAttribute('aria-label', sound.title);
-				orb.innerHTML =
-					'<span class="orb-icon"><i class="bi ' + sound.icon + '"></i></span>' +
-					'<span class="orb-label">' + escapeHtml(sound.title) + '</span>';
+				orb.setAttribute('title', sound.title);
 				if (players[index] && players[index].volume > 0) orb.classList.add('active');
 				if (index === selectedIndex) orb.classList.add('selected');
 				return orb;
 			}
 
-			// Create Filter Button HTML
+			// Create Filter HTML. Each category is its SVG. Once fetched it is
+			// inlined (so its colours swap on the active filter); until then it is
+			// a plain <img>. The "all" entry has no SVG, so it is a text chip.
 			function createFilterButton(category, meta, isActive) {
-				return `
-					<button class="btn btn-filter${isActive ? ' active' : ''} mx-2 my-1 p-2" data-category="${category}">
-						<i class="bi ${meta.icon} tab-icon"></i>
-						${meta.label}
-					</button>
-				`;
+				const active = isActive ? ' active' : '';
+				const attrs = `class="btn-filter${active}" data-category="${category}" ` +
+					`title="${escapeHtml(meta.label)}" aria-label="${escapeHtml(meta.label)}"`;
+				if (!meta.icon) {
+					return `<span ${attrs}>${escapeHtml(meta.label)}</span>`;
+				}
+				const cached = catSvgCache[meta.icon];
+				if (cached) {
+					// Inject our attributes + the swap variables onto the <svg> root.
+					const style = `--accent:${cached.accent};--bg-base:${cached.bg}`;
+					return cached.html.replace('<svg ', `<svg ${attrs} role="img" style="${style}" `);
+				}
+				return `<img ${attrs} src="${iconBase}${meta.icon}" alt="${escapeHtml(meta.label)}" />`;
 			}
 
 			// Render the filter strip entirely from categoryMeta, including the
@@ -2085,10 +2163,12 @@ get_header(); ?>
 			// Paging arrows scroll the visible window of playing sounds (no snap,
 			// so you can scroll past the selected one).
 			stackPrevEl.addEventListener('click', () => {
+				if (stackPrevEl.classList.contains('is-disabled')) return;
 				stackOffset--;
 				renderPlayingStack(false);
 			});
 			stackNextEl.addEventListener('click', () => {
+				if (stackNextEl.classList.contains('is-disabled')) return;
 				stackOffset++;
 				renderPlayingStack(false);
 			});
@@ -2563,6 +2643,12 @@ get_header(); ?>
 			renderMixes();
 			applyMixFromUrl();
 			updateTimerControls();
+
+			// Fetch + inline the sound icons so their colours reverse on selection.
+			loadSvgIcons(sounds).then(renderSounds);
+
+			// Fetch + inline the category pills so the active filter swaps colours.
+			loadCategoryIcons(categoryMeta).then(renderFilters);
 		}
 
 		a.main();
